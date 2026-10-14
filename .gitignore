@@ -1,0 +1,26 @@
+# Python environment
+.venv/
+__pycache__/
+*.py[cod]
+
+# Testing and tooling
+.pytest_cache/
+.coverage
+.vscode/
+
+# Secrets
+.env
+.streamlit/secrets.toml
+
+# Local market data and databases
+data/raw/
+data/processed/
+data/*.db
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+
+# Environment files
+.env.*
+!.env.example
