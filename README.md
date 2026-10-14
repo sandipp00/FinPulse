@@ -82,6 +82,12 @@ npm run dev
 
 Open `http://localhost:5173` in your browser.
 
+## Dashboard Preview
+
+![FinPulse Dashboard](docs/finpulse-dashboard.png)
+
+FinPulse displays historical market prices, asset performance, volatility, and maximum drawdown using locally stored market data.
+
 ### 5. Start the Streamlit Dashboard
 
 From the project root:
