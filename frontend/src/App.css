@@ -122,7 +122,8 @@ button:focus-visible, input:focus-visible {
 .price-cell { color: #e2e8f0; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .sparkline { width: 78px; height: 25px; }
 .row-action { display: grid; width: 29px; height: 29px; place-items: center; border: 1px solid #29364a; border-radius: 7px; color: #94a3b8; }
-.row-action:hover { border-color: #34d399; color: #34d399; }
+.row-action:hover:not(:disabled) { border-color: #34d399; color: #34d399; }
+.row-action:disabled { cursor: not-allowed; opacity: .35; }
 .empty-state { padding: 28px !important; color: #94a3b8; text-align: center; font-size: 12px; }
 .table-footer { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #1e293b; padding: 14px 0; color: #64748b; font-size: 9px; }
 .bottom-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 15px; margin-top: 16px; }
@@ -133,11 +134,67 @@ button:focus-visible, input:focus-visible {
 .insight-button { display: flex; flex-shrink: 0; align-items: center; gap: 4px; border: 1px solid #2b4a40; border-radius: 7px; background: #17342e; padding: 8px 10px; color: #6ee7b7; font-size: 10px; }
 .data-status > div:first-child { display: flex; align-items: center; gap: 10px; }
 .connection-row { display: flex; align-items: center; gap: 8px; margin-top: 16px; border-top: 1px solid #1e293b; padding-top: 13px; color: #94a3b8; font-size: 10px; }
+.connection-row-flush { margin-top: 10px; border-top: 0; padding-top: 0; }
 .connection-badge { margin-left: auto; border: 1px solid #334155; border-radius: 4px; padding: 3px 5px; color: #94a3b8; font-size: 8px; }
 .app-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 24px; padding: 15px 0 5px; color: #64748b; font-size: 9px; }
 .app-footer > span:nth-child(2) { display: flex; align-items: center; gap: 5px; }
 .footer-version { margin-left: 7px; border: 1px solid #334155; border-radius: 4px; padding: 2px 4px; font-size: 7px; letter-spacing: .5px; }
 .mobile-menu, .mobile-close, .sidebar-backdrop { display: none; }
+
+/* ---- Live market ---- */
+.live-badge { display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; border: 1px solid #334155; border-radius: 999px; padding: 3px 9px 3px 8px; color: #94a3b8; font-size: 9px; font-weight: 750; letter-spacing: .9px; }
+.live-badge i { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
+.live-badge-live { border-color: #1d463c; background: #12332d; color: #6ee7b7; }
+.live-badge-live i { background: #34d399; animation: live-pulse 1.6s ease-out infinite; }
+.live-badge-reconnecting, .live-badge-connecting { border-color: #4a3b1c; background: #2a2212; color: #fbbf24; }
+.live-badge-reconnecting i, .live-badge-connecting i { background: #fbbf24; animation: live-pulse 1s ease-out infinite; }
+.live-badge-offline { border-color: #4a2530; background: #2a1219; color: #fca5a5; }
+.live-badge-offline i { background: #f87171; }
+@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 #34d39988; } 100% { box-shadow: 0 0 0 7px #34d39900; } }
+
+.live-price { font-variant-numeric: tabular-nums; border-radius: 4px; }
+.flash-up { animation: flash-up .7s ease-out; }
+.flash-down { animation: flash-down .7s ease-out; }
+@keyframes flash-up { 0% { color: #34d399; background: #34d39933; } 100% { background: transparent; } }
+@keyframes flash-down { 0% { color: #f87171; background: #f8717133; } 100% { background: transparent; } }
+
+.live-ticker { position: sticky; top: 70px; z-index: 15; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border); background: #0b1220ee; padding: 9px 34px; backdrop-filter: blur(12px); }
+.live-ticker-items { display: flex; min-width: 0; flex: 1; gap: 26px; overflow-x: auto; scrollbar-width: none; }
+.live-ticker-items::-webkit-scrollbar { display: none; }
+.live-ticker-item { display: flex; flex-shrink: 0; align-items: center; gap: 8px; font-size: 11px; color: #e2e8f0; }
+.live-ticker-symbol { color: #94a3b8; font-size: 10px; font-weight: 700; letter-spacing: .5px; }
+.live-ticker-change { display: inline-flex; align-items: center; font-size: 10px; font-weight: 650; }
+.live-ticker-change.up { color: #6ee7b7; }
+.live-ticker-change.down { color: #fca5a5; }
+.live-ticker-wait { color: #64748b; font-size: 10px; }
+
+.live-market { margin-top: 16px; }
+.live-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 18px; }
+.live-card { display: flex; flex-direction: column; gap: 10px; border: 1px solid #1e293b; border-top: 2px solid var(--accent, #34d399); border-radius: 11px; background: var(--panel-soft); padding: 14px; }
+.live-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.live-card-name { display: flex; min-width: 0; align-items: center; gap: 7px; }
+.live-card-name i { width: 8px; height: 8px; flex-shrink: 0; border-radius: 3px; }
+.live-card-name strong { color: #f1f5f9; font-size: 12px; }
+.live-card-name small { overflow: hidden; color: #64748b; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.live-card-price { color: #f8fafc; font-size: 21px; font-weight: 700; letter-spacing: -.5px; }
+.live-spark { display: block; width: 100%; height: 36px; }
+.live-spark-empty { border-bottom: 1px dashed #263347; }
+.live-card-stats { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; border-top: 1px solid #1e293b; padding-top: 9px; color: #64748b; font-size: 9px; font-variant-numeric: tabular-nums; }
+.live-card-stats b { color: #cbd5e1; font-weight: 600; }
+.live-card-wait { color: #64748b; font-size: 11px; }
+.live-note { margin-top: 14px; color: #64748b; font-size: 9px; }
+.row-live-tag { margin-left: 7px; border: 1px solid #1d463c; border-radius: 4px; background: #12332d; padding: 1px 4px; color: #6ee7b7; font-size: 7px; font-weight: 800; letter-spacing: .6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flash-up, .flash-down, .live-badge i { animation: none !important; }
+}
+@media (max-width: 1200px) {
+  .live-ticker { padding-right: 23px; padding-left: 23px; }
+}
+@media (max-width: 620px) {
+  .live-ticker { top: 61px; gap: 10px; padding: 8px 15px; }
+  .live-grid { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 9px; }
+}
 
 @media (min-width: 1500px) {
   .dashboard-content { padding-right: 42px; padding-left: 42px; }

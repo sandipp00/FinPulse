@@ -1,5 +1,4 @@
-
-const API_BASE_URL = 'http://127.0.0.1:8000'
+import { API_BASE_URL } from '../config'
 
 async function getJSON(path) {
   const response = await fetch(`${API_BASE_URL}${path}`)
@@ -29,4 +28,8 @@ export function getPrices(symbol, limit = 180) {
 export function getSummary(symbol) {
   const query = symbol ? `?symbol=${encodeURIComponent(symbol)}` : ''
   return getJSON(`/api/summary${query}`)
+}
+
+export function getLiveStatus() {
+  return getJSON('/api/live/status')
 }

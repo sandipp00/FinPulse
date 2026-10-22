@@ -1,31 +1,41 @@
 
-from pathlib import Path
+import asyncio
 import sqlite3
+from contextlib import asynccontextmanager
 from typing import Optional
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend import config
+from backend.live import feed
+from src.analytics.financial_metrics import asset_snapshot
 
-# Project paths
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATABASE_PATH = PROJECT_ROOT / "data" / "finpulse.db"
+DATABASE_PATH = config.DATABASE_PATH
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if config.LIVE_FEED_ENABLED:
+        feed.start()
+    yield
+    if config.LIVE_FEED_ENABLED:
+        await feed.stop()
+
 
 app = FastAPI(
     title="FinPulse API",
     description="Financial market data and analytics API",
-    version="1.0.0",
+    version="1.1.0",
+    lifespan=lifespan,
 )
 
-# Allow the local React/Vite frontend to call this API.
+# Allow the configured frontend origins (CORS_ORIGINS) to call this API.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=config.CORS_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET"],
     allow_headers=["*"],
@@ -93,74 +103,19 @@ def safe_number(value, digits=4):
     return round(float(value), digits)
 
 
+ROUNDED_FIELDS = (
+    "latest_price", "daily_change_pct", "total_return_pct",
+    "annualized_volatility_pct", "sharpe_ratio", "max_drawdown_pct",
+)
+
+
 def calculate_metrics(group: pd.DataFrame) -> dict:
-    """Calculate descriptive performance and risk metrics."""
-    group = group.sort_values("timestamp").copy()
-    closes = pd.to_numeric(
-        group["close"], errors="coerce"
-    ).dropna()
-
-    if closes.empty:
-        return {}
-
-    first_close = float(closes.iloc[0])
-    latest_close = float(closes.iloc[-1])
-
-    previous_close = (
-        float(closes.iloc[-2]) if len(closes) > 1 else None
-    )
-
-    returns = closes.pct_change().dropna()
-    asset_type = str(group["asset_type"].iloc[0]).lower()
-
-    # Annualization assumptions: crypto trades every day;
-    # stocks and indices use a conventional 252-day year.
-    periods_per_year = 365 if asset_type == "crypto" else 252
-
-    volatility = None
-    sharpe = None
-
-    if len(returns) > 1:
-        daily_std = float(returns.std(ddof=1))
-        volatility = daily_std * np.sqrt(periods_per_year)
-
-        # Descriptive Sharpe ratio assuming a zero risk-free rate.
-        if daily_std > 0:
-            sharpe = (
-                float(returns.mean())
-                / daily_std
-                * np.sqrt(periods_per_year)
-            )
-
-    drawdowns = closes / closes.cummax() - 1
-    max_drawdown = float(drawdowns.min())
-
-    total_return = None
-    if first_close != 0:
-        total_return = (latest_close / first_close - 1) * 100
-
-    daily_change = None
-    if previous_close not in (None, 0):
-        daily_change = (
-            latest_close / previous_close - 1
-        ) * 100
-
-    return {
-        "symbol": str(group["symbol"].iloc[0]),
-        "asset_type": asset_type,
-        "latest_timestamp": str(group["timestamp"].iloc[-1]),
-        "latest_price": safe_number(latest_close),
-        "daily_change_pct": safe_number(daily_change),
-        "total_return_pct": safe_number(total_return),
-        "annualized_volatility_pct": safe_number(
-            volatility * 100 if volatility is not None else None
-        ),
-        "sharpe_ratio": safe_number(sharpe),
-        "max_drawdown_pct": safe_number(max_drawdown * 100),
-        "observations": int(len(closes)),
-        "first_date": str(group["timestamp"].iloc[0]),
-        "last_date": str(group["timestamp"].iloc[-1]),
-    }
+    """Shared snapshot metrics, made JSON-safe."""
+    metrics = asset_snapshot(group)
+    for field in ROUNDED_FIELDS:
+        if field in metrics:
+            metrics[field] = safe_number(metrics[field])
+    return metrics
 
 
 @app.get("/")
@@ -278,3 +233,42 @@ def summary(symbol: Optional[str] = None):
             "source": "Local SQLite historical prices",
         },
     }
+
+
+@app.get("/api/live/status")
+def live_status():
+    return {"enabled": config.LIVE_FEED_ENABLED, **feed.status()}
+
+
+@app.get("/api/live/ticks")
+def live_ticks():
+    """Latest in-memory tick per live symbol (REST fallback for the socket)."""
+    return {
+        "connected": feed.connected,
+        "ticks": [feed.latest[s] for s in feed.symbols if s in feed.latest],
+    }
+
+
+@app.websocket("/ws/prices")
+async def ws_prices(websocket: WebSocket):
+    """Stream live ticks: a snapshot first, then each update as it arrives."""
+    await websocket.accept()
+
+    if not config.LIVE_FEED_ENABLED:
+        await websocket.close(code=1013, reason="Live feed disabled")
+        return
+
+    queue = feed.subscribe()
+    try:
+        await websocket.send_json({
+            "type": "snapshot",
+            "connected": feed.connected,
+            "ticks": [feed.latest[s] for s in feed.symbols if s in feed.latest],
+        })
+
+        while True:
+            await websocket.send_json(await queue.get())
+    except (WebSocketDisconnect, asyncio.CancelledError):
+        pass
+    finally:
+        feed.unsubscribe(queue)

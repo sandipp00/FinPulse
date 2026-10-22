@@ -10,6 +10,7 @@ FinPulse is a Python-based financial analytics platform for exploring stock mark
 - Interactive Streamlit dashboard with Plotly charts
 - React frontend with interactive financial charts
 - FastAPI backend for serving historical market data and financial metrics
+- Live crypto prices streamed from Binance over WebSockets (ticker bar, live cards with sparklines, flashing price changes)
 - Asset-class and date-range filters
 - CSV export of financial summaries
 - Automated tests using pytest
@@ -58,7 +59,11 @@ Collect historical data using the data ingestion scripts and build the SQLite da
 python src/data/build_database.py
 ```
 
-### 3. Start the FastAPI Backend
+### 3. Configure (optional)
+
+Copy `.env.example` to `.env` (backend) and `frontend/.env.example` to `frontend/.env.local` to change the API URL, CORS origins, live symbols, or Binance endpoints. Defaults work for local development.
+
+### 4. Start the FastAPI Backend
 
 From the project root:
 
@@ -66,11 +71,11 @@ From the project root:
 python -m uvicorn backend.main:app --reload
 ```
 
-The API runs at `http://127.0.0.1:8000`.
+The API runs at `http://127.0.0.1:8000`. On startup it connects to Binance's public streams (no API key) and exposes live prices at `ws://127.0.0.1:8000/ws/prices`, `GET /api/live/status` and `GET /api/live/ticks`. Closed 1-minute candles are stored in the `live_candles` table. Set `LIVE_FEED_ENABLED=false` to turn the feed off.
 
 Interactive API documentation is available at `http://127.0.0.1:8000/docs`.
 
-### 4. Start the React Frontend
+### 5. Start the React Frontend
 
 Open a separate terminal:
 
@@ -88,7 +93,7 @@ Open `http://localhost:5173` in your browser.
 
 FinPulse displays historical market prices, asset performance, volatility, and maximum drawdown using locally stored market data.
 
-### 5. Start the Streamlit Dashboard
+### 6. Start the Streamlit Dashboard
 
 From the project root:
 
