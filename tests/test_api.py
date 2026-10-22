@@ -79,3 +79,65 @@ def test_asset_snapshot_uses_365_day_year_for_crypto():
     stock_vol = asset_snapshot(stock)["annualized_volatility_pct"]
 
     assert crypto_vol / stock_vol == pytest.approx((365 / 252) ** 0.5)
+
+
+# ---- /api/candles ----------------------------------------------------
+
+KLINES = [
+    [1700000000000, "100.0", "105.0", "99.0", "104.0", "12.5", 1700000059999],
+    [1700000060000, "104.0", "106.0", "103.0", "105.5", "8.0", 1700000119999],
+]
+
+
+def test_parse_klines():
+    from backend.candles import parse_klines
+
+    assert parse_klines(KLINES)[0] == {
+        "time": 1700000000, "open": 100.0, "high": 105.0,
+        "low": 99.0, "close": 104.0, "volume": 12.5,
+    }
+
+
+def test_candles_endpoint_returns_parsed_rows(client, monkeypatch):
+    from backend import candles as candle_source
+
+    async def fake_get_json(_client, _url, params):
+        assert params["symbol"] == "BTCUSDT"
+        assert params["interval"] == "15m"
+        return KLINES
+
+    monkeypatch.setattr(candle_source, "_get_json", fake_get_json)
+    candle_source._cache.clear()
+
+    body = client.get(
+        "/api/candles", params={"symbol": "BTC/USDT", "interval": "15m", "limit": 50}
+    ).json()
+
+    assert body["count"] == 2
+    assert body["candles"][1]["close"] == 105.5
+
+
+def test_candles_rejects_unknown_symbol_and_interval(client):
+    assert client.get("/api/candles", params={"symbol": "DOGE/USDT"}).status_code == 404
+    assert client.get(
+        "/api/candles", params={"symbol": "BTC/USDT", "interval": "3m"}
+    ).status_code == 400
+    assert client.get(
+        "/api/candles", params={"symbol": "BTC/USDT", "limit": 5}
+    ).status_code == 422
+
+
+def test_candles_returns_502_when_exchange_unreachable(client, monkeypatch):
+    import httpx
+
+    from backend import candles as candle_source
+
+    async def failing_get_json(_client, _url, _params):
+        raise httpx.ConnectError("no route")
+
+    monkeypatch.setattr(candle_source, "_get_json", failing_get_json)
+    candle_source._cache.clear()
+
+    response = client.get("/api/candles", params={"symbol": "ETH/USDT"})
+
+    assert response.status_code == 502

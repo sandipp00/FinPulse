@@ -4,14 +4,28 @@ import LiveBadge from './LiveBadge'
 import LivePrice from './LivePrice'
 import Sparkline from './Sparkline'
 
-function LiveCard({ symbol, tick, series }) {
+function LiveCard({ symbol, tick, series, selected, onSelect }) {
   const details = getAssetDetails(symbol)
   const positive = (tick?.change_pct_24h ?? 0) >= 0
   // Sparkline colour follows the short-term (session) move, not the 24h change.
   const sessionUp = series.length < 2 || series.at(-1) >= series[0]
 
   return (
-    <div className="live-card" style={{ '--accent': details.color }}>
+    <div
+      className={`live-card ${selected ? 'live-card-selected' : ''}`}
+      style={{ '--accent': details.color }}
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      aria-label={`Show ${symbol} chart`}
+      onClick={() => onSelect(symbol)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelect(symbol)
+        }
+      }}
+    >
       <div className="live-card-head">
         <span className="live-card-name">
           <i style={{ background: details.color }} />
@@ -43,7 +57,7 @@ function LiveCard({ symbol, tick, series }) {
   )
 }
 
-export default function LiveMarket({ ticks, history, symbols, status }) {
+export default function LiveMarket({ ticks, history, symbols, status, selectedSymbol, onSelect }) {
   return (
     <section className="panel live-market">
       <div className="panel-heading">
@@ -61,12 +75,14 @@ export default function LiveMarket({ ticks, history, symbols, status }) {
             symbol={symbol}
             tick={ticks[symbol]}
             series={history[symbol] ?? []}
+            selected={symbol === selectedSymbol}
+            onSelect={onSelect}
           />
         ))}
       </div>
 
       <p className="live-note">
-        Sparklines show price moves since you opened this page. Live quotes are
+        Click a card to chart it. Sparklines show price moves since you opened this page. Live quotes are
         informational and may differ slightly from other venues.
       </p>
     </section>

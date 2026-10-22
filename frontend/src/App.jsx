@@ -10,6 +10,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import AssetMix from './components/AssetMix'
+import CandleChart from './components/CandleChart'
 import DataStatus from './components/DataStatus'
 import LiveMarket from './components/LiveMarket'
 import LiveTicker from './components/LiveTicker'
@@ -32,6 +33,7 @@ function App() {
   const [search, setSearch] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [selectedSymbol, setSelectedSymbol] = useState('BTC/USDT')
+  const [chartSymbol, setChartSymbol] = useState('BTC/USDT')
 
   const { assets: marketAssets, loading: assetLoading, error: apiError } = useAssets()
   const { ticks, history, status: liveStatus } = useLivePrices()
@@ -192,6 +194,16 @@ function App() {
             history={history}
             symbols={liveSymbols}
             status={liveStatus}
+            selectedSymbol={chartSymbol}
+            onSelect={setChartSymbol}
+          />
+
+          <CandleChart
+            symbols={liveSymbols}
+            symbol={chartSymbol}
+            onSymbolChange={setChartSymbol}
+            tick={ticks[chartSymbol]}
+            liveStatus={liveStatus}
           />
 
           <section className="charts-grid">

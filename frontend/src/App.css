@@ -87,7 +87,7 @@ button:focus-visible, input:focus-visible {
 .legend-dot.emerald { background: #34d399; }
 .legend-dot.violet { background: #818cf8; }
 .performance-chart { width: 100%; height: 235px; margin-top: 12px; }
-.chart-footnote { display: flex; justify-content: space-between; margin-top: 6px; border-top: 1px solid #1e293b; padding-top: 12px; color: #64748b; font-size: 9px; }
+.chart-footnote { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; margin-top: 6px; border-top: 1px solid #1e293b; padding-top: 12px; color: #64748b; font-size: 9px; }
 .chart-footnote > span:first-child { display: flex; align-items: center; gap: 7px; }
 .chart-footnote .status-dot { width: 5px; height: 5px; }
 .allocation-chart { position: relative; width: 100%; height: 215px; margin-top: 5px; }
@@ -192,9 +192,34 @@ button:focus-visible, input:focus-visible {
   .live-ticker { padding-right: 23px; padding-left: 23px; }
 }
 @media (max-width: 620px) {
+  .candle-chart { height: 400px; }
   .live-ticker { top: 61px; gap: 10px; padding: 8px 15px; }
   .live-grid { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 9px; }
 }
+
+/* ---- Candlestick chart ---- */
+.live-card { cursor: pointer; transition: border-color .15s ease, background .15s ease; }
+.live-card:hover { border-color: #2b3b52; background: #0f1a2b; }
+.live-card:focus-visible { outline: 2px solid #34d399; outline-offset: 2px; }
+.live-card-selected { border-color: #2b4a40; background: #0f1f24; box-shadow: 0 0 0 1px #34d39933 inset; }
+.candle-panel { margin-top: 16px; }
+.candle-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; }
+.candle-toolbar .range-control button { padding: 6px 10px; font-size: 10px; }
+.candle-toggles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.candle-toggles button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #273448; border-radius: 7px; background: transparent; padding: 5px 9px; color: #64748b; font-size: 10px; transition: .15s ease; }
+.candle-toggles button i { width: 7px; height: 7px; border-radius: 50%; opacity: .45; }
+.candle-toggles button:hover { color: #cbd5e1; }
+.candle-toggles button.indicator-on { border-color: #2b4a40; background: #15302b; color: #e2e8f0; }
+.candle-toggles button.indicator-on i { opacity: 1; }
+.candle-summary { flex-wrap: wrap; }
+.ohlc-readout { display: flex; flex-wrap: wrap; gap: 4px 10px; color: #64748b; font-size: 10px; font-variant-numeric: tabular-nums; }
+.ohlc-readout b { margin-right: 2px; color: #cbd5e1; font-weight: 600; }
+.candle-chart-wrap { position: relative; margin-top: 12px; }
+.candle-chart { width: 100%; height: 520px; }
+.candle-overlay { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 12px; background: #101827cc; color: #94a3b8; font-size: 12px; }
+.candle-error { flex-direction: column; color: #fca5a5; }
+.candle-error button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #4a2530; border-radius: 7px; padding: 6px 10px; color: #fca5a5; font-size: 11px; }
+.candle-error button:hover { background: #2a1219; }
 
 @media (min-width: 1500px) {
   .dashboard-content { padding-right: 42px; padding-left: 42px; }

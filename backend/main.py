@@ -9,7 +9,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend import config
+from backend import candles as candle_source, config
 from backend.live import feed
 from src.analytics.financial_metrics import asset_snapshot
 
@@ -246,6 +246,46 @@ def live_ticks():
     return {
         "connected": feed.connected,
         "ticks": [feed.latest[s] for s in feed.symbols if s in feed.latest],
+    }
+
+
+@app.get("/api/candles")
+async def candles(
+    symbol: str = Query(..., min_length=1),
+    interval: str = Query(default="1h"),
+    limit: int = Query(
+        default=500,
+        ge=candle_source.MIN_LIMIT,
+        le=candle_source.MAX_LIMIT,
+    ),
+):
+    """OHLCV candles for a live crypto symbol, oldest first."""
+    if symbol not in config.LIVE_SYMBOLS:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{symbol} is not a live symbol. "
+                   f"Available: {', '.join(config.LIVE_SYMBOLS)}",
+        )
+    if interval not in candle_source.INTERVALS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported interval. Use one of: "
+                   f"{', '.join(candle_source.INTERVALS)}",
+        )
+
+    try:
+        rows = await candle_source.fetch_candles(symbol, interval, limit)
+    except candle_source.CandleSourceError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not load candles from the exchange: {exc}",
+        ) from exc
+
+    return {
+        "symbol": symbol,
+        "interval": interval,
+        "count": len(rows),
+        "candles": rows,
     }
 
 

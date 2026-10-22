@@ -9,6 +9,7 @@ FinPulse is a Python-based financial analytics platform for exploring stock mark
 - Financial metrics including daily returns, cumulative growth, annualized volatility, Sharpe ratio, and maximum drawdown
 - Interactive Streamlit dashboard with Plotly charts
 - React frontend with interactive financial charts
+- Live candlestick charts (1m / 15m / 1h / 1d) with volume, SMA, EMA, Bollinger Bands, RSI and MACD; the current candle updates in real time
 - FastAPI backend for serving historical market data and financial metrics
 - Live crypto prices streamed from Binance over WebSockets (ticker bar, live cards with sparklines, flashing price changes)
 - Asset-class and date-range filters
@@ -71,7 +72,7 @@ From the project root:
 python -m uvicorn backend.main:app --reload
 ```
 
-The API runs at `http://127.0.0.1:8000`. On startup it connects to Binance's public streams (no API key) and exposes live prices at `ws://127.0.0.1:8000/ws/prices`, `GET /api/live/status` and `GET /api/live/ticks`. Closed 1-minute candles are stored in the `live_candles` table. Set `LIVE_FEED_ENABLED=false` to turn the feed off.
+The API runs at `http://127.0.0.1:8000`. On startup it connects to Binance's public streams (no API key) and exposes live prices at `ws://127.0.0.1:8000/ws/prices`, `GET /api/live/status` and `GET /api/live/ticks`. Closed 1-minute candles are stored in the `live_candles` table, and `GET /api/candles?symbol=BTC/USDT&interval=1h&limit=500` returns OHLCV history from Binance (intervals: `1m`, `15m`, `1h`, `1d`). Set `LIVE_FEED_ENABLED=false` to turn the feed off.
 
 Interactive API documentation is available at `http://127.0.0.1:8000/docs`.
 
@@ -107,6 +108,13 @@ Run the automated Python tests:
 
 ```bash
 python -m pytest -v
+```
+
+Run the frontend unit tests (indicator math and live-candle logic):
+
+```bash
+cd frontend
+npm test
 ```
 
 ## Limitations

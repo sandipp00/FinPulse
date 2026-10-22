@@ -43,3 +43,9 @@ BINANCE_WS_URLS = _csv(
     "BINANCE_WS_URLS",
     "wss://stream.binance.com:9443,wss://data-stream.binance.vision",
 )
+
+# REST endpoints for historical candles; tried in order.
+BINANCE_REST_URLS = _csv(
+    "BINANCE_REST_URLS",
+    "https://api.binance.com,https://data-api.binance.vision",
+)

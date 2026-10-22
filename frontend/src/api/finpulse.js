@@ -33,3 +33,10 @@ export function getSummary(symbol) {
 export function getLiveStatus() {
   return getJSON('/api/live/status')
 }
+
+export function getCandles(symbol, interval, limit = 500) {
+  return getJSON(
+    `/api/candles?symbol=${encodeURIComponent(symbol)}`
+    + `&interval=${encodeURIComponent(interval)}&limit=${limit}`,
+  )
+}
