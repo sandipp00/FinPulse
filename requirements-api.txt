@@ -5,5 +5,5 @@ numpy>=2.4
 fastapi>=0.143
 uvicorn>=0.54
 websockets>=15
-httpx>=0.28
+httpx>=0.28.1
 python-dotenv>=1.0
