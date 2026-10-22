@@ -2,7 +2,7 @@
 # requirements.txt adds the dashboard, data-download and test tooling.
 pandas>=3.0.6
 numpy>=2.4
-fastapi>=0.143
+fastapi>=0.149.0
 uvicorn>=0.54
 websockets>=15
 httpx>=0.28.1
