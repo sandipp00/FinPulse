@@ -10,4 +10,4 @@
 
 # The Streamlit dashboard
 streamlit>=1.65
-plotly>=7.0
+plotly>=7.1.0
