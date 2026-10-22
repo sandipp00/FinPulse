@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import {
   Activity,
   ArrowUpRight,
@@ -33,7 +34,7 @@ const navGroups = [
   },
 ]
 
-export default function Sidebar({ activeNav, onNavigate, open, onClose, liveStatus }) {
+function Sidebar({ activeNav, onNavigate, open, onClose, liveStatus }) {
   return (
     <>
       {open && (
@@ -108,3 +109,5 @@ export default function Sidebar({ activeNav, onNavigate, open, onClose, liveStat
     </>
   )
 }
+
+export default memo(Sidebar)

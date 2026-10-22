@@ -1,6 +1,7 @@
+import { memo } from 'react'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 
-export default function MetricCard({ label, value, change, positive, icon: Icon, note }) {
+function MetricCard({ label, value, change, positive, icon: Icon, note }) {
   return (
     <div className="metric-card">
       <div className="flex items-start justify-between gap-3">
@@ -20,3 +21,5 @@ export default function MetricCard({ label, value, change, positive, icon: Icon,
     </div>
   )
 }
+
+export default memo(MetricCard)

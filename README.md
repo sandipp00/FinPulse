@@ -13,6 +13,7 @@ FinPulse is a Python-based financial analytics platform for exploring stock mark
 - FastAPI backend for serving historical market data and financial metrics
 - Live crypto prices streamed from Binance over WebSockets (ticker bar, live cards with sparklines, flashing price changes)
 - Buy/sell signals from six transparent indicator rules (trend, MA cross, RSI, MACD, Bollinger, volume), each with a plain-language reason, plus a historical backtest vs buy-and-hold beside every rating
+- Paper trading with a virtual $100k account: market orders at live Binance prices (0.1% fee, long-only), holdings with live P&L, equity curve, order history, and a one-click "follow the signal" mode
 - Asset-class and date-range filters
 - CSV export of financial summaries
 - Automated tests using pytest
@@ -117,6 +118,12 @@ Run the frontend unit tests (indicator math and live-candle logic):
 cd frontend
 npm test
 ```
+
+## Paper trading
+
+Orders fill server-side at the live Binance price (the client never supplies a price), with a flat fee (`PAPER_FEE_PCT`, default 0.1%) and no slippage, leverage or shorting. A stale or missing price rejects the order. State lives in four SQLite tables (`paper_account`, `paper_positions`, `paper_orders`, `paper_equity`) in `data/finpulse.db`.
+
+Endpoints: `GET /api/paper/portfolio`, `GET /api/paper/orders`, `GET /api/paper/equity`, `POST /api/paper/orders` (size with exactly one of `quantity`, `notional_usd` or `percent`), `POST /api/paper/follow` and `POST /api/paper/reset`. "Follow the signal" mirrors the backtest policy: buy on a Buy rating when flat, sell everything on a Sell rating, otherwise do nothing. The account is a single shared account with no login, which is fine locally but must become per-user before any public deployment.
 
 ## How the signals work
 

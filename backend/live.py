@@ -172,6 +172,8 @@ class LiveFeed:
             "volume_24h": float(data["v"]),
             "quote_volume_24h": float(data["q"]),
             "time": data["E"],
+            # Local receive time (unix seconds), used to detect stale prices.
+            "received_at": time.time(),
         }
         self.latest[symbol] = tick
         self._broadcast({"type": "tick", **tick})

@@ -9,7 +9,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend import candles as candle_source, config, signal_service
+from backend import candles as candle_source, config, paper, signal_service
 from backend.live import feed
 from src.analytics.financial_metrics import asset_snapshot
 
@@ -38,9 +38,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=config.CORS_ORIGINS,
     allow_credentials=False,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+app.include_router(paper.router)
 
 
 def get_connection():

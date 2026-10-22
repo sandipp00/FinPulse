@@ -1,7 +1,8 @@
+import { memo } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { LIVE_STATUS_LABEL } from '../lib/liveStatus'
 
-export default function DataStatus({ apiError, loading, liveStatus }) {
+function DataStatus({ apiError, loading, liveStatus }) {
   const apiLabel = apiError
     ? 'API request needs attention'
     : loading
@@ -28,3 +29,5 @@ export default function DataStatus({ apiError, loading, liveStatus }) {
     </div>
   )
 }
+
+export default memo(DataStatus)

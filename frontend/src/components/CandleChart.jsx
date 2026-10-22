@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, memo } from 'react'
 import {
   CandlestickSeries,
   ColorType,
@@ -139,7 +139,7 @@ function addSeriesSet(chart, enabled, price) {
   return series
 }
 
-export default function CandleChart({ symbols, symbol, onSymbolChange, tick, liveStatus }) {
+function CandleChart({ symbols, symbol, onSymbolChange, tick, liveStatus }) {
   const [timeframe, setTimeframe] = useState('1h')
   const [enabled, setEnabled] = useState(DEFAULT_ENABLED)
   const [hover, setHover] = useState(null)
@@ -333,3 +333,5 @@ export default function CandleChart({ symbols, symbol, onSymbolChange, tick, liv
     </section>
   )
 }
+
+export default memo(CandleChart)

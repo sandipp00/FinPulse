@@ -53,3 +53,53 @@ export function getBacktest(symbol, interval) {
     + `&interval=${encodeURIComponent(interval)}`,
   )
 }
+
+// ---- Paper trading (virtual money) ------------------------------------
+
+// FastAPI errors carry a human-readable `detail` (a string, or a list for
+// validation errors); surface that instead of raw JSON.
+function describeError(status, text) {
+  try {
+    const { detail } = JSON.parse(text)
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) return detail.map((item) => item.msg).join('; ')
+  } catch {
+    // not JSON; fall through
+  }
+  return `API error ${status}: ${text}`
+}
+
+async function postJSON(path, body) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) throw new Error(describeError(response.status, await response.text()))
+  return response.json()
+}
+
+export function getPaperPortfolio() {
+  return getJSON('/api/paper/portfolio')
+}
+
+export function getPaperOrders(limit = 15) {
+  return getJSON(`/api/paper/orders?limit=${limit}`)
+}
+
+export function getPaperEquity() {
+  return getJSON('/api/paper/equity')
+}
+
+export function placePaperOrder(order) {
+  return postJSON('/api/paper/orders', order)
+}
+
+export function followPaperSignal(symbol, interval, percent) {
+  return postJSON('/api/paper/follow', { symbol, interval, percent })
+}
+
+export function resetPaperAccount(startingCash) {
+  return postJSON('/api/paper/reset', startingCash ? { starting_cash: startingCash } : {})
+}

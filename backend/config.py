@@ -49,3 +49,9 @@ BINANCE_REST_URLS = _csv(
     "BINANCE_REST_URLS",
     "https://api.binance.com,https://data-api.binance.vision",
 )
+
+# Paper trading (virtual money only).
+PAPER_STARTING_CASH = float(os.getenv("PAPER_STARTING_CASH", "100000"))
+PAPER_FEE_PCT = float(os.getenv("PAPER_FEE_PCT", "0.1"))
+# Orders are rejected if the live price is older than this.
+PAPER_MAX_PRICE_AGE_SECONDS = float(os.getenv("PAPER_MAX_PRICE_AGE_SECONDS", "15"))

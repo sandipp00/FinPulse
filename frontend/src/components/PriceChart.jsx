@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import {
   Area,
@@ -15,7 +15,7 @@ import { formatPercent, formatPrice } from '../lib/format'
 const RANGES = ['1D', '1W', '1M', '3M', '1Y']
 const RANGE_DAYS = { '1D': 2, '1W': 7, '1M': 30, '3M': 90, '1Y': 365 }
 
-export default function PriceChart({
+function PriceChart({
   assets,
   selectedSymbol,
   onSelectSymbol,
@@ -159,3 +159,5 @@ export default function PriceChart({
     </div>
   )
 }
+
+export default memo(PriceChart)

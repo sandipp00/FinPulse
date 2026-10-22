@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import {
   CartesianGrid,
@@ -24,14 +25,17 @@ function Stat({ label, value, tone, note }) {
 
 const toneFor = (value) => (value == null ? undefined : value >= 0 ? 'up' : 'down')
 
+// Date.toLocaleString builds a new formatter on every call; the chart axis calls
+// this for every label on every render, so reuse one formatter per style.
+const dayFormat = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
+const hourFormat = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit' })
+
 function formatDate(seconds, interval) {
   const date = new Date(seconds * 1000)
-  return interval === '1d'
-    ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    : date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' })
+  return (interval === '1d' ? dayFormat : hourFormat).format(date)
 }
 
-export default function BacktestCard({ symbol, interval }) {
+function BacktestCard({ symbol, interval }) {
   const { data, loading, error } = useBacktest(symbol, interval)
 
   if (loading) return <div className="bt-card bt-empty">Running backtest for {symbol}...</div>
@@ -122,3 +126,5 @@ export default function BacktestCard({ symbol, interval }) {
     </div>
   )
 }
+
+export default memo(BacktestCard)

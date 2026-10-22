@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowUpRight,
@@ -15,6 +15,7 @@ import DataStatus from './components/DataStatus'
 import LiveMarket from './components/LiveMarket'
 import LiveTicker from './components/LiveTicker'
 import MetricCard from './components/MetricCard'
+import PaperTrading from './components/PaperTrading'
 import PriceChart from './components/PriceChart'
 import Sidebar from './components/Sidebar'
 import SignalsPanel from './components/SignalsPanel'
@@ -41,13 +42,17 @@ function App() {
 
   // Symbols the server streams live. The stored list only knows what is in
   // SQLite, so the live set is whatever has ticked plus the stored crypto.
+  // Keyed on the symbol names rather than `ticks` itself: ticks change every
+  // fraction of a second, but the list of symbols almost never does, and a
+  // stable list lets the panels that depend on it skip re-rendering.
+  const tickSymbolKey = Object.keys(ticks).join(',')
   const liveSymbols = useMemo(() => {
-    const symbols = new Set(Object.keys(ticks))
+    const symbols = new Set(tickSymbolKey ? tickSymbolKey.split(',') : [])
     marketAssets.forEach((asset) => {
       if (asset.asset_type === 'crypto') symbols.add(asset.symbol)
     })
     return [...symbols]
-  }, [ticks, marketAssets])
+  }, [tickSymbolKey, marketAssets])
 
   // Stored assets, plus any live-only coins (e.g. SOL) with no stored history.
   const displayAssets = useMemo(() => {
@@ -107,10 +112,12 @@ function App() {
 
   const pageTitle = activeNav === 'Overview' ? 'Market overview' : activeNav
 
-  const navigate = (label) => {
+  const navigate = useCallback((label) => {
     setActiveNav(label)
     setSidebarOpen(false)
-  }
+  }, [])
+  const openSidebar = useCallback(() => setSidebarOpen(true), [])
+  const closeSidebar = useCallback(() => setSidebarOpen(false), [])
 
   return (
     <div className="app-shell">
@@ -118,7 +125,7 @@ function App() {
         activeNav={activeNav}
         onNavigate={navigate}
         open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        onClose={closeSidebar}
         liveStatus={liveStatus}
       />
 
@@ -127,7 +134,7 @@ function App() {
           pageTitle={pageTitle}
           search={search}
           onSearch={setSearch}
-          onOpenMenu={() => setSidebarOpen(true)}
+          onOpenMenu={openSidebar}
         />
 
         <LiveTicker ticks={ticks} symbols={liveSymbols} status={liveStatus} />
@@ -208,6 +215,8 @@ function App() {
           />
 
           <SignalsPanel selectedSymbol={chartSymbol} onSelect={setChartSymbol} />
+
+          <PaperTrading symbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
 
           <section className="charts-grid">
             <PriceChart

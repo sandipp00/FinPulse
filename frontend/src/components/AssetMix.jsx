@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
 import { Command, ShieldCheck } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
 const TYPE_COLORS = { Crypto: '#34D399', Stock: '#818CF8', Index: '#FBBF24' }
 
-export default function AssetMix({ assets }) {
+function AssetMix({ assets }) {
   const allocation = useMemo(() => {
     const counts = assets.reduce((result, asset) => {
       result[asset.type] = (result[asset.type] || 0) + 1
@@ -75,3 +75,5 @@ export default function AssetMix({ assets }) {
     </div>
   )
 }
+
+export default memo(AssetMix)

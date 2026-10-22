@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { ArrowDown, ArrowUp, Info, Minus } from 'lucide-react'
 import { useSignals } from '../hooks/useSignals'
 import { INTERVALS } from '../lib/candles'
@@ -37,7 +37,7 @@ function VoteIcon({ vote }) {
   return <span className="vote vote-flat"><Minus size={12} /></span>
 }
 
-export default function SignalsPanel({ selectedSymbol, onSelect }) {
+function SignalsPanel({ selectedSymbol, onSelect }) {
   const [interval, setTimeframe] = useState('1d')
   const { signals, loading, error } = useSignals(interval)
 
@@ -153,3 +153,5 @@ export default function SignalsPanel({ selectedSymbol, onSelect }) {
     </section>
   )
 }
+
+export default memo(SignalsPanel)

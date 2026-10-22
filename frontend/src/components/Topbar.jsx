@@ -1,6 +1,7 @@
+import { memo } from 'react'
 import { Bell, Menu, Search } from 'lucide-react'
 
-export default function Topbar({ pageTitle, search, onSearch, onOpenMenu }) {
+function Topbar({ pageTitle, search, onSearch, onOpenMenu }) {
   return (
     <header className="topbar">
       <div className="flex min-w-0 items-center gap-3">
@@ -30,3 +31,5 @@ export default function Topbar({ pageTitle, search, onSearch, onOpenMenu }) {
     </header>
   )
 }
+
+export default memo(Topbar)
