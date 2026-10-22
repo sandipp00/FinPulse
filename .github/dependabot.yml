@@ -1,4 +1,4 @@
-# Weekly pull requests when a dependency, GitHub Action or Docker base image has a newer
+# Monthly pull requests when a dependency, GitHub Action or Docker base image has a newer
 # release. Every PR runs the CI workflow, so a bad upgrade shows up as a red check before
 # anything is merged.
 version: 2
@@ -10,8 +10,7 @@ updates:
   - package-ecosystem: pip
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     versioning-strategy: increase
     open-pull-requests-limit: 5
     labels: [dependencies, python]
@@ -32,8 +31,7 @@ updates:
   - package-ecosystem: npm
     directory: /frontend
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     versioning-strategy: increase
     open-pull-requests-limit: 5
     labels: [dependencies, javascript]
@@ -47,8 +45,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, ci]
     commit-message:
       prefix: "deps(ci)"
@@ -57,8 +54,7 @@ updates:
   - package-ecosystem: docker
     directory: /backend
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, docker]
     commit-message:
       prefix: "deps(docker)"
@@ -66,8 +62,7 @@ updates:
   - package-ecosystem: docker
     directory: /frontend
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, docker]
     commit-message:
       prefix: "deps(docker)"
@@ -82,8 +77,7 @@ updates:
   - package-ecosystem: docker-compose
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, docker]
     commit-message:
       prefix: "deps(docker)"
