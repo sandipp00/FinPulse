@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { routeFor } from './routes'
+import { AUTH_ROUTES, ROUTES, routeFor } from './routes'
 
 describe('routeFor', () => {
-  it('recognises the sign-in and sign-up pages, with or without a trailing slash', () => {
-    expect(routeFor('/signin')).toBe('signin')
-    expect(routeFor('/signin/')).toBe('signin')
-    expect(routeFor('/signup')).toBe('signup')
-    expect(routeFor('/signup//')).toBe('signup')
+  it('maps every known path to its route, with or without a trailing slash', () => {
+    for (const [name, path] of Object.entries(ROUTES)) {
+      expect(routeFor(path)).toBe(name)
+      if (path !== '/') expect(routeFor(`${path}/`)).toBe(name)
+    }
   })
 
-  it('treats everything else as the dashboard', () => {
-    for (const path of ['/', '', undefined, null, '/overview', '/signin/extra', '/SIGNIN', '/api/health']) {
+  it('treats everything else as the dashboard home', () => {
+    for (const path of ['', undefined, null, '/overview', '/signin/extra', '/SIGNIN', '/api/health', '/risk/x']) {
       expect(routeFor(path)).toBe('home')
     }
+  })
+
+  it('knows which routes are standalone auth pages', () => {
+    expect(AUTH_ROUTES).toEqual(['signin', 'signup'])
   })
 })

@@ -139,6 +139,23 @@ Orders fill server-side at the live Binance price (the client never supplies a p
 
 Endpoints: `GET /api/paper/portfolio`, `GET /api/paper/orders`, `GET /api/paper/equity`, `POST /api/paper/orders` (size with exactly one of `quantity`, `notional_usd` or `percent`), `POST /api/paper/follow` and `POST /api/paper/reset`. "Follow the signal" mirrors the backtest policy: buy on a Buy rating when flat, sell everything on a Sell rating, otherwise do nothing. Every route requires a signed-in user and works on that user's own account.
 
+## Pages
+
+Everything below the sidebar is a real page with its own URL, so Back, Forward and direct links work:
+
+| Page | URL | What is on it |
+|---|---|---|
+| Overview | `/` | Headline numbers, live crypto cards, asset mix, quick links |
+| Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
+| Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |
+| Analytics | `/analytics` | Buy/sell signals with backtests, and a side-by-side historical comparison |
+| Research | `/research` | A plain-language brief per asset, written by fixed rules from live price, signals, risk figures and the backtest. It is not AI. |
+| Risk Monitor | `/risk` | Volatility, drawdown, 1-in-20-day loss and a correlation heatmap for every asset, plus the concentration and estimated volatility of your own paper portfolio |
+| Settings | `/settings` | Your account, a password-reset email, and live connection health |
+| Help & support | `/help` | What each page does, a glossary, and where the data comes from |
+
+The risk figures come from `GET /api/risk` (about three years of daily Binance candles for the live crypto, stored history for stocks and indices; cached for a minute).
+
 ## Accounts
 
 Sign-in and sign-up have their own pages at `/signin` and `/signup` (linked from the top bar and the paper-trading section); the rest of the dashboard is open to everyone. Sign up with an email and password (8-128 characters). Passwords are hashed with scrypt; the browser keeps only a random session token in an httpOnly, SameSite=Lax cookie, and the server stores just a hash of it. Login and registration are rate limited, and state-changing requests from other websites are rejected. Email is optional and free to set up with any SMTP account (see the deployment guide). With it configured, new accounts must confirm their address before paper trading, and anyone can reset a forgotten password from a one-time emailed link; without it, accounts work immediately and the person running the server handles resets with `python -m backend.admin`.

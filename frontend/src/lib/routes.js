@@ -1,15 +1,24 @@
-// The app has three screens. Everything that is not a sign-in or sign-up URL is the
-// dashboard, so a mistyped address still lands somewhere useful (the server also falls
-// back to index.html for unknown paths).
+// Every screen of the app and its URL. The dashboard pages share one shell (sidebar,
+// top bar, live ticker); sign-in and sign-up are standalone pages.
 export const ROUTES = {
   home: '/',
+  markets: '/markets',
+  portfolio: '/portfolio',
+  analytics: '/analytics',
+  research: '/research',
+  risk: '/risk',
+  settings: '/settings',
+  help: '/help',
   signin: '/signin',
   signup: '/signup',
 }
 
+const BY_PATH = Object.fromEntries(Object.entries(ROUTES).map(([name, path]) => [path, name]))
+
+/** The route name for a URL path. Anything unrecognised is the home page. */
 export function routeFor(pathname) {
   const path = (pathname ?? '/').replace(/\/+$/, '') || '/'
-  if (path === ROUTES.signin) return 'signin'
-  if (path === ROUTES.signup) return 'signup'
-  return 'home'
+  return BY_PATH[path] ?? 'home'
 }
+
+export const AUTH_ROUTES = ['signin', 'signup']

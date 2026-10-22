@@ -152,3 +152,7 @@ export function forgotPassword(email) {
 export function resetPassword(token, password) {
   return postJSON('/api/auth/reset-password', { token, password })
 }
+
+export function getRisk() {
+  return getJSON('/api/risk')
+}

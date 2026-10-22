@@ -9,7 +9,7 @@ import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend import auth, candles as candle_source, config, db, paper, signal_service
+from backend import auth, candles as candle_source, config, db, paper, risk_service, signal_service
 from backend.live import feed
 from src.analytics.financial_metrics import asset_snapshot
 
@@ -360,6 +360,12 @@ async def backtest(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return {**result, "disclaimer": signal_service.DISCLAIMER}
+
+
+@app.get("/api/risk")
+async def risk():
+    """Volatility, drawdown, value at risk and correlations for every tracked asset."""
+    return await risk_service.build_report()
 
 
 @app.websocket("/ws/prices")

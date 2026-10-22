@@ -3,38 +3,58 @@ import {
   Activity,
   ArrowUpRight,
   BarChart3,
+  BookOpen,
   BriefcaseBusiness,
-  ChevronDown,
+  ChevronRight,
   CircleHelp,
   LayoutDashboard,
   Settings,
   ShieldCheck,
-  Sparkles,
   TrendingUp,
   X,
 } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
 import { LIVE_STATUS_LABEL } from '../lib/liveStatus'
+import { PAGES } from '../lib/pages'
+import { ROUTES } from '../lib/routes'
+import AppLink from './AppLink'
 
-const navGroups = [
+const NAV_GROUPS = [
   {
     title: 'WORKSPACE',
     items: [
-      { label: 'Overview', icon: LayoutDashboard },
-      { label: 'Markets', icon: TrendingUp },
-      { label: 'Portfolio', icon: BriefcaseBusiness },
-      { label: 'Analytics', icon: BarChart3 },
+      { route: 'home', icon: LayoutDashboard },
+      { route: 'markets', icon: TrendingUp },
+      { route: 'portfolio', icon: BriefcaseBusiness },
+      { route: 'analytics', icon: BarChart3 },
     ],
   },
   {
     title: 'TOOLS',
     items: [
-      { label: 'AI Research', icon: Sparkles },
-      { label: 'Risk Monitor', icon: ShieldCheck },
+      { route: 'research', icon: BookOpen },
+      { route: 'risk', icon: ShieldCheck },
     ],
   },
 ]
 
-function Sidebar({ activeNav, onNavigate, open, onClose, liveStatus }) {
+function NavLink({ route, icon: Icon, active, onNavigate }) {
+  return (
+    <AppLink
+      href={ROUTES[route]}
+      onClick={onNavigate}
+      className={`nav-link ${active ? 'nav-link-active' : ''}`}
+      aria-current={active ? 'page' : undefined}
+    >
+      <Icon size={18} />
+      <span>{PAGES[route].nav}</span>
+    </AppLink>
+  )
+}
+
+function Sidebar({ route, onNavigate, open, onClose, liveStatus }) {
+  const { user } = useAuth()
+
   return (
     <>
       {open && (
@@ -57,29 +77,21 @@ function Sidebar({ activeNav, onNavigate, open, onClose, liveStatus }) {
           </button>
         </div>
 
-        <button className="workspace-switch">
-          <div className="workspace-avatar">S</div>
+        <AppLink href={user ? ROUTES.settings : ROUTES.signin} onClick={onNavigate} className="workspace-switch">
+          <div className="workspace-avatar">{user ? user.email[0].toUpperCase() : '?'}</div>
           <div className="min-w-0 flex-1 text-left">
-            <div className="truncate text-sm font-medium text-white">Personal workspace</div>
-            <div className="mt-1 text-xs text-slate-500">Local project</div>
+            <div className="truncate text-sm font-medium text-white">{user ? user.email : 'Guest'}</div>
+            <div className="mt-1 text-xs text-slate-500">{user ? 'Account and settings' : 'Sign in to paper trade'}</div>
           </div>
-          <ChevronDown size={16} className="text-slate-500" />
-        </button>
+          <ChevronRight size={16} className="text-slate-500" />
+        </AppLink>
 
-        <nav className="mt-8 flex-1">
-          {navGroups.map((group) => (
+        <nav className="mt-8 flex-1" aria-label="Main">
+          {NAV_GROUPS.map((group) => (
             <div className="mb-7" key={group.title}>
               <p className="nav-heading">{group.title}</p>
-              {group.items.map(({ label, icon: Icon }) => (
-                <button
-                  key={label}
-                  onClick={() => onNavigate(label)}
-                  className={`nav-link ${activeNav === label ? 'nav-link-active' : ''}`}
-                >
-                  <Icon size={18} />
-                  <span>{label}</span>
-                  {label === 'AI Research' && <span className="nav-new">AI</span>}
-                </button>
+              {group.items.map((item) => (
+                <NavLink key={item.route} {...item} active={route === item.route} onNavigate={onNavigate} />
               ))}
             </div>
           ))}
@@ -88,18 +100,18 @@ function Sidebar({ activeNav, onNavigate, open, onClose, liveStatus }) {
         <div className="sidebar-bottom">
           <div className="upgrade-card">
             <div className="flex items-center gap-2 text-emerald-300">
-              <Sparkles size={17} />
-              <span className="text-sm font-semibold">Research smarter</span>
+              <BookOpen size={17} />
+              <span className="text-sm font-semibold">Read the research brief</span>
             </div>
             <p className="mt-2 text-xs leading-5 text-slate-400">
-              Explore your market data with AI-powered insights.
+              A plain-language summary of each asset, written from your own data.
             </p>
-            <button onClick={() => onNavigate('AI Research')} className="upgrade-link">
-              Explore tools <ArrowUpRight size={14} />
-            </button>
+            <AppLink href={ROUTES.research} onClick={onNavigate} className="upgrade-link">
+              Open research <ArrowUpRight size={14} />
+            </AppLink>
           </div>
-          <button className="nav-link"><Settings size={18} /><span>Settings</span></button>
-          <button className="nav-link"><CircleHelp size={18} /><span>Help &amp; support</span></button>
+          <NavLink route="settings" icon={Settings} active={route === 'settings'} onNavigate={onNavigate} />
+          <NavLink route="help" icon={CircleHelp} active={route === 'help'} onNavigate={onNavigate} />
           <div className="sidebar-footer">
             <span className={`status-dot ${liveStatus === 'live' ? '' : 'status-muted'}`} />
             {LIVE_STATUS_LABEL[liveStatus]}

@@ -19,9 +19,9 @@ export default function AuthPage({ route }) {
     }
   }, [mode])
 
-  // Already signed in (or just signed in): go to the paper-trading section.
+  // Already signed in (or just signed in): go to the account, which is what signing in is for.
   useEffect(() => {
-    if (user) navigate(ROUTES.home, { replace: true, scrollTo: 'paper-trading' })
+    if (user) navigate(ROUTES.portfolio, { replace: true })
   }, [user])
 
   return (

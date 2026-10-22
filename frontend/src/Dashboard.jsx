@@ -1,37 +1,36 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Activity,
-  ArrowUpRight,
-  ChevronDown,
-  CreditCard,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-  Wallet,
-} from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { ChevronDown, CreditCard } from 'lucide-react'
 import AccountLinkBanner from './components/AccountLinkBanner'
-import AssetMix from './components/AssetMix'
-import CandleChart from './components/CandleChart'
-import DataStatus from './components/DataStatus'
-import LiveMarket from './components/LiveMarket'
 import LiveTicker from './components/LiveTicker'
-import MetricCard from './components/MetricCard'
-import PaperTrading from './components/PaperTrading'
-import PriceChart from './components/PriceChart'
 import Sidebar from './components/Sidebar'
-import SignalsPanel from './components/SignalsPanel'
 import Topbar from './components/Topbar'
-import Watchlist from './components/Watchlist'
 import { useAssets } from './hooks/useAssets'
 import { useAuth } from './hooks/useAuth'
 import { useLivePrices } from './hooks/useLivePrices'
+import { navigate } from './hooks/useRoute'
 import { LIVE_STATUS_LABEL } from './lib/liveStatus'
 import { formatPercent, formatPrice, getAssetDetails } from './lib/format'
+import { PAGES } from './lib/pages'
+import { ROUTES } from './lib/routes'
+import AnalyticsPage from './pages/AnalyticsPage'
+import HelpPage from './pages/HelpPage'
+import MarketsPage from './pages/MarketsPage'
+import OverviewPage from './pages/OverviewPage'
+import PortfolioPage from './pages/PortfolioPage'
+import ResearchPage from './pages/ResearchPage'
+import RiskPage from './pages/RiskPage'
+import SettingsPage from './pages/SettingsPage'
 
 const TYPE_LABEL = { crypto: 'Crypto', index: 'Index', stock: 'Stock' }
 
-function Dashboard() {
-  const [activeNav, setActiveNav] = useState('Overview')
+// Pages that show the stored-asset list, and so should say when it is loading or failed.
+const USES_ASSET_DATA = new Set(['home', 'markets', 'analytics'])
+
+/**
+ * The shared shell (sidebar, top bar, live price ticker) and the data every page
+ * draws on. Which page appears in the content area follows the URL.
+ */
+function Dashboard({ route }) {
   const [range, setRange] = useState('1W')
   const [filter, setFilter] = useState('All assets')
   const [search, setSearch] = useState('')
@@ -42,38 +41,6 @@ function Dashboard() {
   const { assets: marketAssets, loading: assetLoading, error: apiError } = useAssets()
   const { ticks, history, status: liveStatus } = useLivePrices()
   const { user, logout } = useAuth()
-
-  // Coming back from the sign-in page: show the paper-trading section. The request
-  // travels in the history entry. The page keeps growing for several seconds as charts
-  // and tables load above the section, which would push it back down after we scrolled,
-  // so keep it aligned until the person scrolls for themselves (or about eight seconds pass).
-  useEffect(() => {
-    const target = window.history.state?.scrollTo
-    if (!target) return undefined
-
-    let userScrolled = false
-    const align = () => {
-      if (!userScrolled) document.getElementById(target)?.scrollIntoView({ block: 'start' })
-    }
-    const stop = () => {
-      userScrolled = true
-    }
-    const userEvents = ['wheel', 'touchstart', 'keydown', 'mousedown']
-    userEvents.forEach((name) => window.addEventListener(name, stop, { passive: true }))
-
-    const observer = new ResizeObserver(align)
-    observer.observe(document.body)
-    const done = setTimeout(() => {
-      observer.disconnect()
-      window.history.replaceState(null, '', window.location.pathname)
-    }, 8000)
-
-    return () => {
-      clearTimeout(done)
-      observer.disconnect()
-      userEvents.forEach((name) => window.removeEventListener(name, stop))
-    }
-  }, [])
 
   // Symbols the server streams live. The stored list only knows what is in
   // SQLite, so the live set is whatever has ticked plus the stored crypto.
@@ -128,37 +95,31 @@ function Dashboard() {
     return matchesType && matchesSearch
   }), [displayAssets, filter, search])
 
-  const bestReturn = marketAssets.length
-    ? Math.max(...marketAssets.map((asset) => Number(asset.total_return_pct ?? -Infinity))
-      .filter(Number.isFinite))
-    : null
+  const page = PAGES[route]
 
-  const averageVolatility = marketAssets.length
-    ? marketAssets.reduce(
-      (sum, asset) => sum + (Number(asset.annualized_volatility_pct) || 0),
-      0,
-    ) / marketAssets.length
-    : null
-
-  const worstDrawdown = marketAssets.length
-    ? Math.min(...marketAssets.map((asset) => Number(asset.max_drawdown_pct ?? Infinity))
-      .filter(Number.isFinite))
-    : null
-
-  const pageTitle = activeNav === 'Overview' ? 'Market overview' : activeNav
-
-  const navigate = useCallback((label) => {
-    setActiveNav(label)
-    setSidebarOpen(false)
-  }, [])
-  const openSidebar = useCallback(() => setSidebarOpen(true), [])
   const closeSidebar = useCallback(() => setSidebarOpen(false), [])
+  const openSidebar = useCallback(() => setSidebarOpen(true), [])
+
+  // The search box filters the watchlist, which lives on the Markets page, so
+  // typing into it from anywhere takes you there.
+  const handleSearch = useCallback((value) => {
+    setSearch(value)
+    if (value && route !== 'markets') navigate(ROUTES.markets)
+  }, [route])
+
+  // A live card (Overview) or a watchlist row (Markets) opens that asset's chart.
+  const openChart = useCallback((symbol) => {
+    setChartSymbol(symbol)
+    setSelectedSymbol(symbol)
+    if (route !== 'markets') navigate(ROUTES.markets)
+    else window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [route])
 
   return (
     <div className="app-shell">
       <Sidebar
-        activeNav={activeNav}
-        onNavigate={navigate}
+        route={route}
+        onNavigate={closeSidebar}
         open={sidebarOpen}
         onClose={closeSidebar}
         liveStatus={liveStatus}
@@ -166,9 +127,9 @@ function Dashboard() {
 
       <main className="main-panel">
         <Topbar
-          pageTitle={pageTitle}
+          pageTitle={page.title}
           search={search}
-          onSearch={setSearch}
+          onSearch={handleSearch}
           onOpenMenu={openSidebar}
           user={user}
           onLogout={logout}
@@ -182,8 +143,8 @@ function Dashboard() {
           <section className="page-intro">
             <div>
               <div className="eyebrow"><span className="status-dot" /> YOUR FINANCIAL COMMAND CENTER</div>
-              <h1>{pageTitle}<span>.</span></h1>
-              <p>Track markets, understand risk, and make data-informed decisions.</p>
+              <h1>{page.title}<span>.</span></h1>
+              <p>{page.blurb}</p>
             </div>
             <div className="date-button">
               <span className={`status-dot ${liveStatus === 'live' ? '' : 'status-muted'}`} />
@@ -192,111 +153,63 @@ function Dashboard() {
             </div>
           </section>
 
-          {assetLoading && (
+          {USES_ASSET_DATA.has(route) && assetLoading && (
             <p className="mb-4 text-sm text-slate-400">Loading market data from your local database...</p>
           )}
-          {apiError && (
+          {USES_ASSET_DATA.has(route) && apiError && (
             <p className="mb-4 rounded-lg border border-red-900 bg-red-950/40 p-3 text-sm text-red-300">
               Unable to load market data: {apiError}
             </p>
           )}
 
-          <section className="metrics-grid">
-            <MetricCard
-              label="Tracked assets"
-              value={assetLoading ? 'Loading...' : String(displayAssets.length)}
-              change="SQLite + live"
-              positive
-              icon={Wallet}
-              note="Stored history plus live crypto streams"
+          {route === 'home' && (
+            <OverviewPage
+              marketAssets={marketAssets}
+              displayAssets={displayAssets}
+              assetLoading={assetLoading}
+              apiError={apiError}
+              ticks={ticks}
+              history={history}
+              liveSymbols={liveSymbols}
+              liveStatus={liveStatus}
+              chartSymbol={chartSymbol}
+              onOpenChart={openChart}
             />
-            <MetricCard
-              label="Best historical return"
-              value={bestReturn == null ? '—' : formatPercent(bestReturn)}
-              change="Full history"
-              positive={bestReturn != null && bestReturn >= 0}
-              icon={TrendingUp}
-              note="Highest return across stored assets"
-            />
-            <MetricCard
-              label="Average annualized volatility"
-              value={averageVolatility == null ? '—' : `${averageVolatility.toFixed(2)}%`}
-              change="Risk metric"
-              positive={false}
-              icon={Activity}
-              note="Average across stored assets"
-            />
-            <MetricCard
-              label="Worst historical drawdown"
-              value={worstDrawdown == null ? '—' : `${worstDrawdown.toFixed(2)}%`}
-              change="Risk metric"
-              positive={false}
-              icon={ShieldCheck}
-              note="Largest peak-to-trough decline"
-            />
-          </section>
-
-          <LiveMarket
-            ticks={ticks}
-            history={history}
-            symbols={liveSymbols}
-            status={liveStatus}
-            selectedSymbol={chartSymbol}
-            onSelect={setChartSymbol}
-          />
-
-          <CandleChart
-            symbols={liveSymbols}
-            symbol={chartSymbol}
-            onSymbolChange={setChartSymbol}
-            tick={ticks[chartSymbol]}
-            liveStatus={liveStatus}
-          />
-
-          <SignalsPanel selectedSymbol={chartSymbol} onSelect={setChartSymbol} />
-
-          <PaperTrading symbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
-
-          <section className="charts-grid">
-            <PriceChart
-              assets={marketAssets}
+          )}
+          {route === 'markets' && (
+            <MarketsPage
+              liveSymbols={liveSymbols}
+              ticks={ticks}
+              liveStatus={liveStatus}
+              chartSymbol={chartSymbol}
+              onChartSymbol={setChartSymbol}
+              marketAssets={marketAssets}
               selectedSymbol={selectedSymbol}
               onSelectSymbol={setSelectedSymbol}
               range={range}
               onRangeChange={setRange}
+              watchlist={{
+                assets: filteredAssets,
+                totalCount: displayAssets.length,
+                loading: assetLoading,
+                filter,
+                onFilterChange: setFilter,
+                onSelect: openChart,
+              }}
             />
-            <AssetMix assets={displayAssets} />
-          </section>
-
-          <Watchlist
-            assets={filteredAssets}
-            totalCount={displayAssets.length}
-            loading={assetLoading}
-            filter={filter}
-            onFilterChange={setFilter}
-            liveTicks={ticks}
-            onSelect={(symbol) => {
-              setSelectedSymbol(symbol)
-              setActiveNav('Analytics')
-            }}
-          />
-
-          <section className="bottom-grid">
-            <div className="panel insight-panel">
-              <div className="insight-icon"><Sparkles size={19} /></div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2>AI research workspace</h2>
-                  <span className="coming-soon">PREVIEW</span>
-                </div>
-                <p>Explore historical returns, volatility, drawdowns, and price trends from your local financial dataset.</p>
-              </div>
-              <button className="insight-button" onClick={() => setActiveNav('AI Research')}>
-                Explore <ArrowUpRight size={15} />
-              </button>
-            </div>
-            <DataStatus apiError={apiError} loading={assetLoading} liveStatus={liveStatus} />
-          </section>
+          )}
+          {route === 'portfolio' && (
+            <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
+          )}
+          {route === 'analytics' && (
+            <AnalyticsPage chartSymbol={chartSymbol} onSelectSymbol={setChartSymbol} marketAssets={marketAssets} />
+          )}
+          {route === 'research' && (
+            <ResearchPage ticks={ticks} liveSymbols={liveSymbols} liveStatus={liveStatus} />
+          )}
+          {route === 'risk' && <RiskPage ticks={ticks} />}
+          {route === 'settings' && <SettingsPage liveStatus={liveStatus} />}
+          {route === 'help' && <HelpPage />}
 
           <footer className="app-footer">
             <span>FinPulse <span className="footer-version">DEVELOPER PREVIEW</span></span>
