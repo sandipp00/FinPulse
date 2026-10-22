@@ -19,7 +19,14 @@ updates:
       prefix: "deps(python)"
     groups:
       python-minor-and-patch:        # one PR for the routine updates; majors stay separate
+        patterns: ["*"]              # every dependency (a group with only update-types matched none here)
         update-types: [minor, patch]
+    ignore:
+      # numpy 2.5 and later need Python 3.12 or newer, but CI and the Docker image run 3.11,
+      # so those versions cannot be installed (this is exactly how CI failed on PR #3).
+      # Patch releases of 2.4.x still come through. Remove this when moving to Python 3.12.
+      - dependency-name: numpy
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
 
   # Frontend (React, Vite, Recharts, ESLint, Vitest, ...)
   - package-ecosystem: npm
@@ -64,6 +71,12 @@ updates:
     labels: [dependencies, docker]
     commit-message:
       prefix: "deps(docker)"
+    ignore:
+      # Node majors are chosen on purpose (an even-numbered LTS release), not whatever is newest:
+      # Dependabot's first proposal was Node 25, which is a short-lived "Current" release.
+      # nginx patch/minor updates still come through. Change the Node line by hand.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
 
   # Images named in the Compose files (Caddy, Mailpit)
   - package-ecosystem: docker-compose
