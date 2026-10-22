@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react'
+import AccountLinkBanner from './components/AccountLinkBanner'
 import AssetMix from './components/AssetMix'
 import CandleChart from './components/CandleChart'
 import DataStatus from './components/DataStatus'
@@ -22,6 +23,7 @@ import SignalsPanel from './components/SignalsPanel'
 import Topbar from './components/Topbar'
 import Watchlist from './components/Watchlist'
 import { useAssets } from './hooks/useAssets'
+import { useAuth } from './hooks/useAuth'
 import { useLivePrices } from './hooks/useLivePrices'
 import { LIVE_STATUS_LABEL } from './lib/liveStatus'
 import { formatPercent, formatPrice, getAssetDetails } from './lib/format'
@@ -39,6 +41,7 @@ function App() {
 
   const { assets: marketAssets, loading: assetLoading, error: apiError } = useAssets()
   const { ticks, history, status: liveStatus } = useLivePrices()
+  const { user, logout } = useAuth()
 
   // Symbols the server streams live. The stored list only knows what is in
   // SQLite, so the live set is whatever has ticked plus the stored crypto.
@@ -135,11 +138,15 @@ function App() {
           search={search}
           onSearch={setSearch}
           onOpenMenu={openSidebar}
+          user={user}
+          onLogout={logout}
         />
 
         <LiveTicker ticks={ticks} symbols={liveSymbols} status={liveStatus} />
 
         <div className="dashboard-content">
+          <AccountLinkBanner />
+
           <section className="page-intro">
             <div>
               <div className="eyebrow"><span className="status-dot" /> YOUR FINANCIAL COMMAND CENTER</div>

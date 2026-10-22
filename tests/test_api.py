@@ -29,6 +29,7 @@ def client(tmp_path, monkeypatch):
         )
 
     monkeypatch.setattr(main, "DATABASE_PATH", db_path)
+    monkeypatch.setattr(config, "DATABASE_PATH", db_path)  # init_db() runs at startup
     monkeypatch.setattr(config, "LIVE_FEED_ENABLED", False)
     with TestClient(main.app) as test_client:
         yield test_client
@@ -61,9 +62,15 @@ def test_live_status_reports_disabled(client):
 
 
 def test_websocket_closes_when_live_feed_disabled(client):
-    with pytest.raises(Exception):
+    from starlette.websockets import WebSocketDisconnect
+
+    with pytest.raises(WebSocketDisconnect) as closed:
         with client.websocket_connect("/ws/prices") as socket:
             socket.receive_json()
+
+    # 1013 = "try again later": the handshake was accepted and the feed is off.
+    # (An error in the app-wide dependencies would be a 500 instead.)
+    assert closed.value.code == 1013
 
 
 def test_asset_snapshot_uses_365_day_year_for_crypto():
@@ -233,3 +240,30 @@ def test_backtest_validation_and_short_history(client, monkeypatch):
     assert client.get("/api/backtest", params={"symbol": "BTC/USDT", "interval": "9m"}).status_code == 400
     assert client.get("/api/backtest", params={"symbol": "BTC/USDT", "fee_pct": 5}).status_code == 422
     assert client.get("/api/backtest", params={"symbol": "BTC/USDT"}).status_code == 422
+
+
+def test_websocket_streams_a_snapshot_when_the_feed_is_on(client, monkeypatch):
+    """Regression: app-wide dependencies must not break WebSocket routes."""
+    monkeypatch.setattr(config, "LIVE_FEED_ENABLED", True)
+    monkeypatch.setattr(main.feed, "latest", {"BTC/USDT": {"symbol": "BTC/USDT", "price": 1.0}})
+
+    with client.websocket_connect("/ws/prices") as socket:
+        message = socket.receive_json()
+
+    assert message["type"] == "snapshot"
+    assert message["ticks"][0]["symbol"] == "BTC/USDT"
+
+
+def test_websocket_from_another_site_is_refused(client, monkeypatch):
+    from starlette.websockets import WebSocketDisconnect
+
+    monkeypatch.setattr(config, "LIVE_FEED_ENABLED", True)
+
+    with pytest.raises(WebSocketDisconnect) as closed:
+        with client.websocket_connect("/ws/prices", headers={"origin": "https://evil.example"}):
+            pass
+    assert closed.value.code == 1008
+
+    allowed = {"origin": config.CORS_ORIGINS[0]}
+    with client.websocket_connect("/ws/prices", headers=allowed) as socket:
+        assert socket.receive_json()["type"] == "snapshot"

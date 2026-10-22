@@ -192,6 +192,8 @@ button:focus-visible, input:focus-visible {
   .live-ticker { padding-right: 23px; padding-left: 23px; }
 }
 @media (max-width: 620px) {
+  .top-user { display: none; }
+  .auth-card { max-width: none; }
   .paper-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
   .paper-equity { min-width: 0; width: 100%; }
   .paper-equity strong { font-size: 24px; }
@@ -359,6 +361,45 @@ button:focus-visible, input:focus-visible {
 .ticket-ok { border: 1px solid #1d463c; background: #12332d; color: #a7f3d0; }
 .ticket-error { border: 1px solid #4a2530; background: #2a1219; color: #fca5a5; }
 .paper-panel > .ticket-message { margin-top: 12px; }
+
+/* ---- Accounts ---- */
+.top-user { max-width: 170px; overflow: hidden; color: #94a3b8; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.top-avatar-guest { border-style: dashed; color: #64748b; background: transparent; }
+.auth-card { display: flex; max-width: 380px; flex-direction: column; gap: 14px; margin-top: 18px; border: 1px solid #1e293b; border-radius: 11px; background: var(--panel-soft); padding: 22px; }
+.auth-card h3 { color: #f1f5f9; font-size: 15px; font-weight: 650; }
+.auth-card > p { color: #64748b; font-size: 11px; line-height: 1.6; }
+.auth-field { display: flex; flex-direction: column; gap: 6px; color: #94a3b8; font-size: 11px; }
+.auth-field input { width: 100%; border: 1px solid #273448; border-radius: 8px; background: #0b1220; padding: 10px 11px; color: #f1f5f9; font-size: 13px; }
+.auth-field input:focus-visible { outline: 2px solid #34d399; outline-offset: 1px; }
+.auth-field small { color: #475569; font-size: 10px; line-height: 1.5; }
+.auth-hint-bad { color: #fca5a5 !important; }
+.auth-error { border: 1px solid #4a2530; border-radius: 8px; background: #2a1219; padding: 9px 11px; color: #fca5a5; font-size: 11px; line-height: 1.5; }
+.auth-submit { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; background: #14513f; padding: 11px; color: #d1fae5; font-size: 12px; font-weight: 700; }
+.auth-submit:hover:not(:disabled) { filter: brightness(1.15); }
+.auth-submit:disabled { opacity: .45; cursor: not-allowed; }
+.auth-switch { color: #6ee7b7; font-size: 11px; text-align: center; }
+.auth-switch:hover { text-decoration: underline; }
+.auth-closed { color: #64748b; font-size: 11px; text-align: center; }
+
+/* ---- Email links, verification ---- */
+.auth-sent { display: flex; align-items: flex-start; gap: 7px; border: 1px solid #1d463c; border-radius: 8px; background: #12332d; padding: 9px 11px; color: #a7f3d0; font-size: 11px; line-height: 1.5; }
+.auth-sent svg { flex-shrink: 0; margin-top: 2px; }
+.verify-card h3 { display: flex; align-items: center; gap: 8px; }
+.verify-card strong { color: #e2e8f0; word-break: break-all; }
+.link-banner { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; border: 1px solid; border-radius: 11px; padding: 12px 14px; font-size: 12px; line-height: 1.5; }
+.link-banner span { flex: 1; }
+.link-banner button { color: inherit; opacity: .7; }
+.link-banner button:hover { opacity: 1; }
+.link-working { border-color: #334155; background: #172334; color: #cbd5e1; }
+.link-ok { border-color: #1d463c; background: #12332d; color: #a7f3d0; }
+.link-error { border-color: #4a2530; background: #2a1219; color: #fca5a5; }
+.link-reset { flex-direction: column; align-items: stretch; border-color: #3a3320; background: #1d1a10; color: #fde68a; }
+.link-reset-head { display: flex; align-items: center; gap: 8px; }
+.link-reset-head strong { flex: 1; color: #fef3c7; }
+.link-reset-fields { display: flex; flex-wrap: wrap; gap: 8px; }
+.link-reset-fields input { min-width: 180px; flex: 1; border: 1px solid #4a4020; border-radius: 8px; background: #0b1220; padding: 9px 11px; color: #f1f5f9; font-size: 12px; }
+.link-reset-fields input:focus-visible { outline: 2px solid #fbbf24; outline-offset: 1px; }
+.link-reset-fields .auth-submit { padding: 9px 14px; }
 
 @media (min-width: 1500px) {
   .dashboard-content { padding-right: 42px; padding-left: 42px; }

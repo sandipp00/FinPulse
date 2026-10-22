@@ -6,10 +6,10 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend import candles as candle_source, config, paper, signal_service
+from backend import auth, candles as candle_source, config, db, paper, signal_service
 from backend.live import feed
 from src.analytics.financial_metrics import asset_snapshot
 
@@ -18,6 +18,8 @@ DATABASE_PATH = config.DATABASE_PATH
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    db.init_db()
+    auth.warn_about_email_config()
     if config.LIVE_FEED_ENABLED:
         feed.start()
     yield
@@ -29,24 +31,32 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     title="FinPulse API",
     description="Financial market data and analytics API",
-    version="1.1.0",
+    version="1.2.0",
     lifespan=lifespan,
+    # Blocks state-changing requests that come from another website.
+    dependencies=[Depends(auth.check_origin)],
 )
 
 # Allow the configured frontend origins (CORS_ORIGINS) to call this API.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.CORS_ORIGINS,
-    allow_credentials=False,
+    allow_credentials=True,  # the session cookie; origins are an explicit list, never "*"
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(paper.router)
 
 
 def get_connection():
-    """Open the existing SQLite database in read-only mode."""
+    """Open the market-data database for reading only.
+
+    `query_only` makes SQLite reject any write on this connection. It is used
+    instead of a read-only file URI because that mode cannot read a database
+    in WAL mode when the -shm file does not exist yet.
+    """
     if not DATABASE_PATH.exists():
         raise HTTPException(
             status_code=503,
@@ -54,11 +64,9 @@ def get_connection():
         )
 
     try:
-        return sqlite3.connect(
-            DATABASE_PATH.as_uri() + "?mode=ro",
-            uri=True,
-            timeout=10,
-        )
+        connection = sqlite3.connect(DATABASE_PATH, timeout=10)
+        connection.execute("PRAGMA query_only = ON")
+        return connection
     except sqlite3.Error as exc:
         raise HTTPException(
             status_code=503,
@@ -357,6 +365,12 @@ async def backtest(
 @app.websocket("/ws/prices")
 async def ws_prices(websocket: WebSocket):
     """Stream live ticks: a snapshot first, then each update as it arrives."""
+    # Prices are public, but a page on another site has no business streaming
+    # them through its visitors' browsers (and this keeps one rule for all routes).
+    if not auth.origin_allowed(websocket):
+        await websocket.close(code=1008, reason="Origin not allowed")
+        return
+
     await websocket.accept()
 
     if not config.LIVE_FEED_ENABLED:

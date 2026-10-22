@@ -15,7 +15,7 @@ __pycache__/
 # Local market data and databases
 data/raw/
 data/processed/
-data/*.db
+data/*.db*
 
 # Frontend dependencies and build output
 frontend/node_modules/

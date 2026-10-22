@@ -13,6 +13,7 @@ FinPulse is a Python-based financial analytics platform for exploring stock mark
 - FastAPI backend for serving historical market data and financial metrics
 - Live crypto prices streamed from Binance over WebSockets (ticker bar, live cards with sparklines, flashing price changes)
 - Buy/sell signals from six transparent indicator rules (trend, MA cross, RSI, MACD, Bollinger, volume), each with a plain-language reason, plus a historical backtest vs buy-and-hold beside every rating
+- Email-and-password accounts (scrypt hashing, httpOnly session cookies) with optional email verification and emailed password reset, so every person gets their own paper account
 - Paper trading with a virtual $100k account: market orders at live Binance prices (0.1% fee, long-only), holdings with live P&L, equity curve, order history, and a one-click "follow the signal" mode
 - Asset-class and date-range filters
 - CSV export of financial summaries
@@ -44,7 +45,17 @@ FinPulse/
 └── README.md
 ```
 
-## Setup
+## Run with Docker
+
+The quickest way to run everything (free, no accounts needed):
+
+```bash
+docker compose up -d --build     # then open http://localhost:8080
+```
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for HTTPS, free hosting options, backups and account administration.
+
+## Setup (development)
 
 ### 1. Python Environment
 
@@ -88,7 +99,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Open `http://localhost:5173` in your browser. The dev server forwards `/api` and `/ws` to the backend on port 8000, so the browser only ever sees one origin (this is what lets the login cookie work).
 
 ## Dashboard Preview
 
@@ -123,7 +134,13 @@ npm test
 
 Orders fill server-side at the live Binance price (the client never supplies a price), with a flat fee (`PAPER_FEE_PCT`, default 0.1%) and no slippage, leverage or shorting. A stale or missing price rejects the order. State lives in four SQLite tables (`paper_account`, `paper_positions`, `paper_orders`, `paper_equity`) in `data/finpulse.db`.
 
-Endpoints: `GET /api/paper/portfolio`, `GET /api/paper/orders`, `GET /api/paper/equity`, `POST /api/paper/orders` (size with exactly one of `quantity`, `notional_usd` or `percent`), `POST /api/paper/follow` and `POST /api/paper/reset`. "Follow the signal" mirrors the backtest policy: buy on a Buy rating when flat, sell everything on a Sell rating, otherwise do nothing. The account is a single shared account with no login, which is fine locally but must become per-user before any public deployment.
+Endpoints: `GET /api/paper/portfolio`, `GET /api/paper/orders`, `GET /api/paper/equity`, `POST /api/paper/orders` (size with exactly one of `quantity`, `notional_usd` or `percent`), `POST /api/paper/follow` and `POST /api/paper/reset`. "Follow the signal" mirrors the backtest policy: buy on a Buy rating when flat, sell everything on a Sell rating, otherwise do nothing. Every route requires a signed-in user and works on that user's own account.
+
+## Accounts
+
+Sign up with an email and password (8-128 characters). Passwords are hashed with scrypt; the browser keeps only a random session token in an httpOnly, SameSite=Lax cookie, and the server stores just a hash of it. Login and registration are rate limited, and state-changing requests from other websites are rejected. Email is optional and free to set up with any SMTP account (see the deployment guide). With it configured, new accounts must confirm their address before paper trading, and anyone can reset a forgotten password from a one-time emailed link; without it, accounts work immediately and the person running the server handles resets with `python -m backend.admin`.
+
+Login failures are counted per email *and* IP address, so a stranger guessing your address cannot lock you out. Guessing spread across many addresses hits a higher per-email ceiling, and while it is active only networks you have signed in from before are let through.
 
 ## How the signals work
 

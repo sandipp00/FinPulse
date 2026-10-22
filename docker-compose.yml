@@ -1,0 +1,80 @@
+# FinPulse: API + web in two containers.
+#
+#   docker compose up -d --build        # then open http://localhost:8080
+#   docker compose --profile seed run --rm seed    # optional: download stock history
+#
+# Settings come from the environment or an optional .env file (see .env.example).
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_PATH: /app/data/finpulse.db
+      # nginx sits in front and overwrites X-Forwarded-For, so it is safe to trust.
+      TRUST_PROXY: "true"
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      # Email (verification + password reset). Blank means "off"; see docs/DEPLOYMENT.md.
+      # PUBLIC_URL is the address people type; the links in emails are built from it.
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-}
+      SMTP_SSL: ${SMTP_SSL:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-}
+    volumes:
+      - finpulse-data:/app/data
+    expose:
+      - "8000"          # reachable by the web container only, never published
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  web:
+    build:
+      context: ./frontend
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  # One-off job: downloads NIFTY 50 / Apple / BTC / ETH history into the data volume.
+  seed:
+    profiles: ["seed"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: seed
+    environment:
+      DATABASE_PATH: /app/data/finpulse.db
+    volumes:
+      - finpulse-data:/app/data
+    restart: "no"
+
+volumes:
+  finpulse-data:

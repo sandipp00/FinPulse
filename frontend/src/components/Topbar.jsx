@@ -1,7 +1,7 @@
 import { memo } from 'react'
-import { Bell, Menu, Search } from 'lucide-react'
+import { Bell, LogOut, Menu, Search } from 'lucide-react'
 
-function Topbar({ pageTitle, search, onSearch, onOpenMenu }) {
+function Topbar({ pageTitle, search, onSearch, onOpenMenu, user, onLogout }) {
   return (
     <header className="topbar">
       <div className="flex min-w-0 items-center gap-3">
@@ -26,7 +26,17 @@ function Topbar({ pageTitle, search, onSearch, onOpenMenu }) {
         <button className="icon-button" aria-label="Notifications">
           <Bell size={18} /><span className="notification-dot" />
         </button>
-        <div className="top-avatar">SP</div>
+        {user ? (
+          <>
+            <span className="top-user" title={user.email}>{user.email}</span>
+            <div className="top-avatar" aria-hidden="true">{user.email.slice(0, 2).toUpperCase()}</div>
+            <button className="icon-button" onClick={onLogout} aria-label="Sign out" title="Sign out">
+              <LogOut size={17} />
+            </button>
+          </>
+        ) : (
+          <div className="top-avatar top-avatar-guest" title="Not signed in" aria-label="Not signed in">?</div>
+        )}
       </div>
     </header>
   )

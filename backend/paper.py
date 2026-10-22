@@ -7,14 +7,21 @@ import asyncio
 import time
 from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, model_validator
 
 from backend import candles as candle_source, config, signal_service
+from backend.auth import verified_user
 from backend.live import feed
 from src.portfolio.paper import OrderError, PaperBroker
 
-router = APIRouter(prefix="/api/paper", tags=["paper trading"])
+# Every paper-trading route belongs to a signed-in user whose email is confirmed
+# (when this server requires that); none are public.
+router = APIRouter(
+    prefix="/api/paper",
+    tags=["paper trading"],
+    dependencies=[Depends(verified_user)],
+)
 
 EQUITY_SNAPSHOT_SECONDS = 60
 BUY_RATINGS = {"Strong Buy", "Buy"}
@@ -25,9 +32,11 @@ DISCLAIMER = (
 )
 
 
-def get_broker() -> PaperBroker:
+def get_broker(user: dict = Depends(verified_user)) -> PaperBroker:
+    """The signed-in user's own account (one broker per request)."""
     return PaperBroker(
         config.DATABASE_PATH,
+        user["id"],
         fee_rate=config.PAPER_FEE_PCT / 100,
         starting_cash=config.PAPER_STARTING_CASH,
     )
@@ -132,36 +141,34 @@ def _execute(broker: PaperBroker, request: OrderRequest, **extra) -> dict:
 
 
 @router.get("/portfolio")
-def portfolio():
-    return _portfolio_response(get_broker())
+def portfolio(broker: PaperBroker = Depends(get_broker)):
+    return _portfolio_response(broker)
 
 
 @router.get("/orders")
-def orders(limit: int = 50):
-    return {"orders": get_broker().orders(max(1, min(limit, 200)))}
+def orders(limit: int = 50, broker: PaperBroker = Depends(get_broker)):
+    return {"orders": broker.orders(max(1, min(limit, 200)))}
 
 
 @router.get("/equity")
-def equity(limit: int = 500):
-    return {"points": get_broker().equity_history(max(2, min(limit, 2000)))}
+def equity(limit: int = 500, broker: PaperBroker = Depends(get_broker)):
+    return {"points": broker.equity_history(max(2, min(limit, 2000)))}
 
 
 @router.post("/orders")
-def place_order(request: OrderRequest):
-    broker = get_broker()
+def place_order(request: OrderRequest, broker: PaperBroker = Depends(get_broker)):
     order = _execute(broker, request)
     return {"order": order, "portfolio": _portfolio_response(broker)}
 
 
 @router.post("/follow")
-async def follow_signal(request: FollowRequest):
+async def follow_signal(request: FollowRequest, broker: PaperBroker = Depends(get_broker)):
     """Trade the way the backtest does: buy a Buy when flat, sell all on a Sell.
 
     The rating is computed on the server from closed candles, so the client
     cannot fake a signal.
     """
     _require_symbol(request.symbol)
-    broker = get_broker()
 
     try:
         signal = await signal_service.signal_for(request.symbol, request.interval)
@@ -204,7 +211,6 @@ async def follow_signal(request: FollowRequest):
 
 
 @router.post("/reset")
-def reset(request: ResetRequest):
-    broker = get_broker()
+def reset(request: ResetRequest, broker: PaperBroker = Depends(get_broker)):
     broker.reset(request.starting_cash)
     return _portfolio_response(broker)

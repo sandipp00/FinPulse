@@ -23,19 +23,22 @@ EPSILON = 1e-9
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS paper_account (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
+    user_id INTEGER PRIMARY KEY,
     starting_cash REAL NOT NULL,
     cash REAL NOT NULL,
     created_at INTEGER NOT NULL,
     reset_at INTEGER
 );
 CREATE TABLE IF NOT EXISTS paper_positions (
-    symbol TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    symbol TEXT NOT NULL,
     quantity REAL NOT NULL,
-    avg_cost REAL NOT NULL
+    avg_cost REAL NOT NULL,
+    PRIMARY KEY (user_id, symbol)
 );
 CREATE TABLE IF NOT EXISTS paper_orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
     ts INTEGER NOT NULL,
     symbol TEXT NOT NULL,
     side TEXT NOT NULL CHECK (side IN ('buy', 'sell')),
@@ -47,11 +50,29 @@ CREATE TABLE IF NOT EXISTS paper_orders (
     source TEXT NOT NULL DEFAULT 'manual',
     signal_rating TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_paper_orders_user ON paper_orders (user_id, id);
 CREATE TABLE IF NOT EXISTS paper_equity (
-    ts INTEGER PRIMARY KEY,
-    equity REAL NOT NULL
+    user_id INTEGER NOT NULL,
+    ts INTEGER NOT NULL,
+    equity REAL NOT NULL,
+    PRIMARY KEY (user_id, ts)
 );
 """
+
+_PAPER_TABLES = ("paper_account", "paper_positions", "paper_orders", "paper_equity")
+
+
+def _migrate_single_account_tables(conn: sqlite3.Connection) -> None:
+    """Set aside tables from the single-account version (no user_id column).
+
+    They are renamed, not dropped, so nothing is lost; the new per-user tables
+    are then created fresh by SCHEMA.
+    """
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(paper_account)")}
+    if columns and "user_id" not in columns:
+        conn.execute("DROP INDEX IF EXISTS idx_paper_orders_user")
+        for table in _PAPER_TABLES:
+            conn.execute(f"ALTER TABLE {table} RENAME TO legacy_{table}")
 
 
 class OrderError(ValueError):
@@ -71,10 +92,12 @@ class PaperBroker:
     def __init__(
         self,
         db_path: Path,
+        user_id: int,
         fee_rate: float = DEFAULT_FEE_RATE,
         starting_cash: float = DEFAULT_STARTING_CASH,
     ):
         self.db_path = Path(db_path)
+        self.user_id = user_id
         self.fee_rate = fee_rate
         self.default_starting_cash = starting_cash
 
@@ -85,11 +108,12 @@ class PaperBroker:
         # isolation_level=None: transactions are managed explicitly below.
         conn = sqlite3.connect(self.db_path, timeout=10, isolation_level=None)
         conn.row_factory = sqlite3.Row
+        _migrate_single_account_tables(conn)
         conn.executescript(SCHEMA)
         conn.execute(
-            "INSERT OR IGNORE INTO paper_account (id, starting_cash, cash, created_at) "
-            "VALUES (1, ?, ?, ?)",
-            (self.default_starting_cash, self.default_starting_cash, _now_ms()),
+            "INSERT OR IGNORE INTO paper_account (user_id, starting_cash, cash, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (self.user_id, self.default_starting_cash, self.default_starting_cash, _now_ms()),
         )
         return conn
 
@@ -97,19 +121,24 @@ class PaperBroker:
 
     def account(self) -> dict:
         with closing(self._connect()) as conn:
-            return dict(conn.execute("SELECT * FROM paper_account WHERE id = 1").fetchone())
+            return dict(conn.execute(
+                "SELECT * FROM paper_account WHERE user_id = ?", (self.user_id,)
+            ).fetchone())
 
     def positions(self) -> list[dict]:
         with closing(self._connect()) as conn:
             rows = conn.execute(
-                "SELECT symbol, quantity, avg_cost FROM paper_positions ORDER BY symbol"
+                "SELECT symbol, quantity, avg_cost FROM paper_positions "
+                "WHERE user_id = ? ORDER BY symbol",
+                (self.user_id,),
             ).fetchall()
         return [dict(row) for row in rows]
 
     def orders(self, limit: int = 50) -> list[dict]:
         with closing(self._connect()) as conn:
             rows = conn.execute(
-                "SELECT * FROM paper_orders ORDER BY id DESC LIMIT ?", (limit,)
+                "SELECT * FROM paper_orders WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+                (self.user_id, limit),
             ).fetchall()
         return [dict(row) for row in rows]
 
@@ -123,29 +152,31 @@ class PaperBroker:
                     COALESCE(SUM(realized_pnl), 0) AS realized_pnl,
                     COALESCE(SUM(CASE WHEN side = 'sell' THEN 1 END), 0) AS closed,
                     COALESCE(SUM(CASE WHEN side = 'sell' AND realized_pnl > 0 THEN 1 END), 0) AS wins
-                FROM paper_orders
-            """).fetchone()
+                FROM paper_orders WHERE user_id = ?
+            """, (self.user_id,)).fetchone()
         return dict(row)
 
     def equity_history(self, limit: int = 500) -> list[dict]:
         with closing(self._connect()) as conn:
             rows = conn.execute(
                 "SELECT ts, equity FROM (SELECT ts, equity FROM paper_equity "
-                "ORDER BY ts DESC LIMIT ?) ORDER BY ts",
-                (limit,),
+                "WHERE user_id = ? ORDER BY ts DESC LIMIT ?) ORDER BY ts",
+                (self.user_id, limit),
             ).fetchall()
         return [dict(row) for row in rows]
 
     def last_equity_ts(self) -> Optional[int]:
         with closing(self._connect()) as conn:
-            row = conn.execute("SELECT MAX(ts) AS ts FROM paper_equity").fetchone()
+            row = conn.execute(
+                "SELECT MAX(ts) AS ts FROM paper_equity WHERE user_id = ?", (self.user_id,)
+            ).fetchone()
         return row["ts"]
 
     def record_equity(self, equity: float, ts: Optional[int] = None) -> None:
         with closing(self._connect()) as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO paper_equity (ts, equity) VALUES (?, ?)",
-                (ts or _now_ms(), round(equity, 2)),
+                "INSERT OR REPLACE INTO paper_equity (user_id, ts, equity) VALUES (?, ?, ?)",
+                (self.user_id, ts or _now_ms(), round(equity, 2)),
             )
 
     # ---- valuation -----------------------------------------------------
@@ -251,7 +282,9 @@ class PaperBroker:
             conn.close()
 
     def _buy(self, conn, symbol, price, quantity, notional, percent, source, rating) -> dict:
-        cash = conn.execute("SELECT cash FROM paper_account WHERE id = 1").fetchone()["cash"]
+        cash = conn.execute(
+            "SELECT cash FROM paper_account WHERE user_id = ?", (self.user_id,)
+        ).fetchone()["cash"]
 
         if quantity is not None:
             qty = _floor_quantity(quantity)
@@ -270,24 +303,28 @@ class PaperBroker:
             )
 
         held = conn.execute(
-            "SELECT quantity, avg_cost FROM paper_positions WHERE symbol = ?", (symbol,)
+            "SELECT quantity, avg_cost FROM paper_positions WHERE user_id = ? AND symbol = ?",
+            (self.user_id, symbol),
         ).fetchone()
         old_qty, old_avg = (held["quantity"], held["avg_cost"]) if held else (0.0, 0.0)
         new_qty = old_qty + qty
         new_avg = (old_qty * old_avg + cost + fee) / new_qty  # buy fee is part of cost basis
 
-        conn.execute("UPDATE paper_account SET cash = cash - ? WHERE id = 1", (cost + fee,))
         conn.execute(
-            "INSERT INTO paper_positions (symbol, quantity, avg_cost) VALUES (?, ?, ?) "
-            "ON CONFLICT(symbol) DO UPDATE SET quantity = excluded.quantity, "
+            "UPDATE paper_account SET cash = cash - ? WHERE user_id = ?", (cost + fee, self.user_id)
+        )
+        conn.execute(
+            "INSERT INTO paper_positions (user_id, symbol, quantity, avg_cost) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(user_id, symbol) DO UPDATE SET quantity = excluded.quantity, "
             "avg_cost = excluded.avg_cost",
-            (symbol, new_qty, new_avg),
+            (self.user_id, symbol, new_qty, new_avg),
         )
         return self._log(conn, symbol, "buy", qty, price, fee, cost, None, source, rating)
 
     def _sell(self, conn, symbol, price, quantity, notional, percent, source, rating) -> dict:
         held = conn.execute(
-            "SELECT quantity, avg_cost FROM paper_positions WHERE symbol = ?", (symbol,)
+            "SELECT quantity, avg_cost FROM paper_positions WHERE user_id = ? AND symbol = ?",
+            (self.user_id, symbol),
         ).fetchone()
         if held is None:
             raise OrderError(f"You don't hold any {symbol}.")
@@ -315,24 +352,29 @@ class PaperBroker:
             raise OrderError(f"Minimum order is ${MIN_ORDER_USD:,.0f}.")
 
         realized = proceeds - fee - qty * avg_cost
-        conn.execute("UPDATE paper_account SET cash = cash + ? WHERE id = 1", (proceeds - fee,))
+        conn.execute(
+            "UPDATE paper_account SET cash = cash + ? WHERE user_id = ?",
+            (proceeds - fee, self.user_id),
+        )
         if sells_everything:
-            conn.execute("DELETE FROM paper_positions WHERE symbol = ?", (symbol,))
+            conn.execute(
+                "DELETE FROM paper_positions WHERE user_id = ? AND symbol = ?",
+                (self.user_id, symbol),
+            )
         else:
             conn.execute(
-                "UPDATE paper_positions SET quantity = ? WHERE symbol = ?",
-                (held_qty - qty, symbol),
+                "UPDATE paper_positions SET quantity = ? WHERE user_id = ? AND symbol = ?",
+                (held_qty - qty, self.user_id, symbol),
             )
         return self._log(conn, symbol, "sell", qty, price, fee, proceeds, realized, source, rating)
 
-    @staticmethod
-    def _log(conn, symbol, side, qty, price, fee, notional, realized, source, rating) -> dict:
+    def _log(self, conn, symbol, side, qty, price, fee, notional, realized, source, rating) -> dict:
         ts = _now_ms()
         cursor = conn.execute(
             "INSERT INTO paper_orders "
-            "(ts, symbol, side, quantity, price, fee, notional, realized_pnl, source, signal_rating) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (ts, symbol, side, qty, price, fee, notional, realized, source, rating),
+            "(user_id, ts, symbol, side, quantity, price, fee, notional, realized_pnl, source, signal_rating) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (self.user_id, ts, symbol, side, qty, price, fee, notional, realized, source, rating),
         )
         return {
             "id": cursor.lastrowid, "ts": ts, "symbol": symbol, "side": side,
@@ -346,12 +388,15 @@ class PaperBroker:
         try:
             conn.execute("BEGIN IMMEDIATE")
             for table in ("paper_orders", "paper_positions", "paper_equity"):
-                conn.execute(f"DELETE FROM {table}")
+                conn.execute(f"DELETE FROM {table} WHERE user_id = ?", (self.user_id,))
             conn.execute(
-                "UPDATE paper_account SET starting_cash = ?, cash = ?, reset_at = ? WHERE id = 1",
-                (cash, cash, _now_ms()),
+                "UPDATE paper_account SET starting_cash = ?, cash = ?, reset_at = ? WHERE user_id = ?",
+                (cash, cash, _now_ms(), self.user_id),
             )
-            conn.execute("INSERT INTO paper_equity (ts, equity) VALUES (?, ?)", (_now_ms(), cash))
+            conn.execute(
+                "INSERT INTO paper_equity (user_id, ts, equity) VALUES (?, ?, ?)",
+                (self.user_id, _now_ms(), cash),
+            )
             conn.execute("COMMIT")
         except Exception:
             conn.execute("ROLLBACK")

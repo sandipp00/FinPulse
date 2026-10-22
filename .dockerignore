@@ -1,0 +1,21 @@
+# Keep the build context small and free of local state and secrets.
+.git
+.venv
+.env
+.env.*
+!.env.example
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.vscode
+
+# Local data and databases never go into an image (they live on a volume).
+data
+
+# The frontend has its own Dockerfile and context.
+frontend/node_modules
+frontend/dist
+
+docs
+tests
+dashboard

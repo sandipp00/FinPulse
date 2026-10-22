@@ -1,9 +1,13 @@
 import sqlite3
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))  # lets `python src/data/build_database.py` import src.*
+
+from src.data.schema import MARKET_PRICES_DDL, MARKET_PRICES_INDEX_DDL  # noqa: E402
 DB_PATH = ROOT / "data" / "finpulse.db"
 
 DATASETS = [
@@ -66,24 +70,8 @@ def main() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS market_prices (
-                timestamp TEXT NOT NULL,
-                symbol TEXT NOT NULL,
-                asset_type TEXT NOT NULL,
-                open REAL NOT NULL,
-                high REAL NOT NULL,
-                low REAL NOT NULL,
-                close REAL NOT NULL,
-                volume REAL NOT NULL,
-                PRIMARY KEY (timestamp, symbol, asset_type)
-            )
-        """)
-
-        conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_market_symbol_timestamp
-            ON market_prices (symbol, timestamp)
-        """)
+        conn.execute(MARKET_PRICES_DDL)
+        conn.execute(MARKET_PRICES_INDEX_DDL)
 
         total_loaded = 0
 

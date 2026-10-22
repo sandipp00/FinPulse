@@ -1,0 +1,3 @@
+# Extra dependencies for downloading historical market data (the `seed` job).
+yfinance>=1.7
+ccxt>=4.5

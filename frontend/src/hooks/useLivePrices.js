@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { WS_PRICES_URL } from '../config'
+import { getPricesSocketUrl } from '../config'
 
 const HISTORY_LENGTH = 60
 const RETRY_MIN_MS = 1000
@@ -77,7 +77,7 @@ export function useLivePrices() {
     }
 
     const connect = () => {
-      socket = new WebSocket(WS_PRICES_URL)
+      socket = new WebSocket(getPricesSocketUrl())
       socket.onopen = () => {
         attempt = 0
       }

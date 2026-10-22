@@ -1,0 +1,6 @@
+# Free automatic HTTPS (Let's Encrypt) in front of the web container.
+# DOMAIN comes from the environment, e.g. DOMAIN=finpulse.example.com
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy web:8080
+}

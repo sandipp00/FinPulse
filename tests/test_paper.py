@@ -12,7 +12,7 @@ FEE = 0.001
 
 @pytest.fixture
 def broker(tmp_path):
-    return PaperBroker(tmp_path / "paper.db", fee_rate=FEE, starting_cash=100_000)
+    return PaperBroker(tmp_path / "paper.db", user_id=1, fee_rate=FEE, starting_cash=100_000)
 
 
 def cash(broker):
@@ -208,6 +208,11 @@ def paper_client(tmp_path, monkeypatch):
         "ETH/USDT": tick("ETH/USDT", 2_500),
     })
     with TestClient(main.app) as client:
+        # Paper trading needs an account; registering also signs the client in.
+        response = client.post(
+            "/api/auth/register", json={"email": "trader@example.com", "password": "correct horse"}
+        )
+        assert response.status_code == 201
         yield client
 
 
@@ -322,3 +327,83 @@ def test_follow_does_nothing_on_hold_or_when_there_is_nothing_to_sell(paper_clie
     flat = follow(paper_client)
     assert flat["action"] == "none" and "no position" in flat["reason"]
     assert paper_client.get("/api/paper/orders").json()["orders"] == []
+
+
+# ---- per-user isolation -------------------------------------------------------
+
+def test_two_brokers_for_different_users_never_see_each_other(tmp_path):
+    path = tmp_path / "shared.db"
+    alice = PaperBroker(path, user_id=1, fee_rate=FEE, starting_cash=100_000)
+    bob = PaperBroker(path, user_id=2, fee_rate=FEE, starting_cash=50_000)
+
+    alice.place_order("BTC/USDT", "buy", 100, quantity=10)
+    alice.record_equity(99_000)
+
+    assert [p["symbol"] for p in alice.positions()] == ["BTC/USDT"]
+    assert bob.positions() == [] and bob.orders() == [] and bob.equity_history() == []
+    assert bob.account()["cash"] == 50_000
+    assert alice.account()["cash"] < 100_000
+
+    bob.reset()
+    assert [p["symbol"] for p in alice.positions()] == ["BTC/USDT"]  # untouched by Bob's reset
+    with pytest.raises(OrderError):
+        bob.place_order("BTC/USDT", "sell", 100, percent=100)  # can't sell Alice's coins
+
+
+def test_single_account_tables_are_set_aside_not_deleted(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    with sqlite3.connect(path) as conn:
+        conn.executescript("""
+            CREATE TABLE paper_account (id INTEGER PRIMARY KEY, starting_cash REAL, cash REAL,
+                                        created_at INTEGER, reset_at INTEGER);
+            INSERT INTO paper_account VALUES (1, 100000, 88000, 0, NULL);
+            CREATE TABLE paper_positions (symbol TEXT PRIMARY KEY, quantity REAL, avg_cost REAL);
+            CREATE TABLE paper_orders (id INTEGER PRIMARY KEY, ts INTEGER, symbol TEXT, side TEXT,
+                quantity REAL, price REAL, fee REAL, notional REAL, realized_pnl REAL, source TEXT,
+                signal_rating TEXT);
+            CREATE TABLE paper_equity (ts INTEGER PRIMARY KEY, equity REAL);
+        """)
+
+    broker = PaperBroker(path, user_id=7, fee_rate=FEE, starting_cash=100_000)
+
+    assert broker.account()["cash"] == 100_000          # fresh per-user account
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT cash FROM legacy_paper_account").fetchone()[0] == 88_000
+    # Opening it again must not migrate twice or fail.
+    assert PaperBroker(path, user_id=7, fee_rate=FEE).account()["cash"] == 100_000
+
+
+# ---- API: authentication and isolation ---------------------------------------
+
+def test_paper_endpoints_require_sign_in(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "DATABASE_PATH", tmp_path / "finpulse.db")
+    monkeypatch.setattr(main, "DATABASE_PATH", tmp_path / "finpulse.db")
+    monkeypatch.setattr(config, "LIVE_FEED_ENABLED", False)
+    monkeypatch.setattr(feed, "latest", {"BTC/USDT": tick("BTC/USDT", 50_000)})
+
+    with TestClient(main.app) as anonymous:
+        assert anonymous.get("/api/paper/portfolio").status_code == 401
+        assert anonymous.get("/api/paper/orders").status_code == 401
+        assert anonymous.get("/api/paper/equity").status_code == 401
+        order = {"symbol": "BTC/USDT", "side": "buy", "percent": 10}
+        assert anonymous.post("/api/paper/orders", json=order).status_code == 401
+        assert anonymous.post("/api/paper/follow", json={"symbol": "BTC/USDT"}).status_code == 401
+        assert anonymous.post("/api/paper/reset", json={}).status_code == 401
+        # Market data stays public.
+        assert anonymous.get("/api/live/status").status_code == 200
+
+
+def test_users_have_separate_paper_accounts_over_http(paper_client):
+    paper_client.post("/api/paper/orders", json={"symbol": "BTC/USDT", "side": "buy", "percent": 30})
+
+    with TestClient(main.app) as other:
+        other.post("/api/auth/register", json={"email": "other@example.com", "password": "another pass"})
+        theirs = other.get("/api/paper/portfolio").json()
+        assert theirs["positions"] == [] and theirs["totals"]["equity"] == 100_000
+        other.post("/api/paper/reset", json={"starting_cash": 5_000})
+
+    mine = paper_client.get("/api/paper/portfolio").json()
+    assert [p["symbol"] for p in mine["positions"]] == ["BTC/USDT"]
+    assert len(paper_client.get("/api/paper/orders").json()["orders"]) == 1

@@ -1,0 +1,28 @@
+# Local test inbox: catches every email the app sends, with a web UI.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d --build
+#
+# Then register an account and read the confirmation email at http://localhost:8025.
+# Nothing leaves your machine. For real email, set SMTP_HOST etc. instead (see
+# docs/DEPLOYMENT.md) and do not use this file.
+
+services:
+  api:
+    environment:
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_STARTTLS: "false"
+      SMTP_SSL: "false"
+      EMAIL_FROM: "FinPulse <no-reply@finpulse.local>"
+    depends_on:
+      - mailpit
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"      # web inbox, this machine only
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true

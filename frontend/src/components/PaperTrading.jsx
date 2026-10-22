@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, Info, RotateCcw } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
 import { usePaperTrading } from '../hooks/usePaperTrading'
 import { formatPercent } from '../lib/format'
+import AuthPanel from './AuthPanel'
 import EquityCurve from './EquityCurve'
 import HoldingsTable from './HoldingsTable'
 import LiveBadge from './LiveBadge'
 import OrderHistory from './OrderHistory'
 import OrderTicket from './OrderTicket'
+import VerifyEmailPanel from './VerifyEmailPanel'
 
 const money = (value, digits = 2) => `${value < 0 ? '-' : ''}$${Math.abs(value).toLocaleString('en-US', {
   minimumFractionDigits: digits,
@@ -25,7 +28,7 @@ function Stat({ label, value, tone, note }) {
 
 const toneFor = (value) => (value > 0 ? 'up' : value < 0 ? 'down' : undefined)
 
-export default function PaperTrading({ symbols, ticks, liveStatus }) {
+function PaperAccount({ symbols, ticks, liveStatus }) {
   const { view, orders, equity, error, trade, follow, reset } = usePaperTrading(ticks)
   const [notice, setNotice] = useState(null)
 
@@ -129,6 +132,38 @@ export default function PaperTrading({ symbols, ticks, liveStatus }) {
         </>
       ) : (
         !error && <p className="signal-loading">Loading your paper account...</p>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Paper trading needs an account. Each user's account lives in its own
+ * component instance (keyed by user id), so signing out and in as someone else
+ * can never briefly show the previous person's portfolio.
+ */
+export default function PaperTrading({ symbols, ticks, liveStatus }) {
+  const { user, loading, verificationRequired, resetEpoch } = useAuth()
+
+  if (user && !(verificationRequired && !user.email_verified)) {
+    return <PaperAccount key={user.id} symbols={symbols} ticks={ticks} liveStatus={liveStatus} />
+  }
+
+  return (
+    <section className="panel paper-panel">
+      <div className="panel-heading assets-heading">
+        <div>
+          <h2>Paper trading</h2>
+          <p>Practice with virtual money at live prices. Nothing here is a real order.</p>
+        </div>
+        <LiveBadge status={liveStatus} />
+      </div>
+      {loading ? (
+        <p className="signal-loading">Checking your session...</p>
+      ) : user ? (
+        <VerifyEmailPanel user={user} />
+      ) : (
+        <AuthPanel key={resetEpoch} />
       )}
     </section>
   )
