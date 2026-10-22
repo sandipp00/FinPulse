@@ -1,0 +1,4 @@
+# Everything needed to run the backend test suite (used by CI):
+#   pip install -r requirements-dev.txt && python -m pytest
+-r requirements-api.txt
+pytest>=9.0

@@ -1,5 +1,7 @@
 # FinPulse
 
+[![CI](https://github.com/sandipp00/FinPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/sandipp00/FinPulse/actions/workflows/ci.yml)
+
 FinPulse is a Python-based financial analytics platform for exploring stock market and cryptocurrency data, comparing historical performance, and evaluating investment risk.
 
 ## Features
@@ -117,13 +119,14 @@ python -m streamlit run dashboard/app.py
 
 ## Testing
 
-Run the automated Python tests:
+Run the automated Python tests (the minimal dependencies for this are in `requirements-dev.txt`):
 
 ```bash
+pip install -r requirements-dev.txt
 python -m pytest -v
 ```
 
-Run the frontend unit tests (indicator math and live-candle logic):
+Run the frontend unit tests (indicator math, live-candle logic, portfolio valuation, email-link parsing):
 
 ```bash
 cd frontend
@@ -153,3 +156,7 @@ The backtest is long-only: it buys at the *next* candle's open after a Buy ratin
 Market data availability depends on external providers. Historical metrics exclude applicable trading fees, taxes, and dividends unless explicitly incorporated. Historical performance does not predict future results.
 
 **Disclaimer:** This project is for educational and research purposes only. It is not investment advice.
+
+## Continuous integration
+
+Every push to `main` and every pull request runs [GitHub Actions](.github/workflows/ci.yml): the Python tests, the frontend lint, tests and build, and a Docker job that builds both images, starts the stack and smoke-tests it (health, security headers, login required, cross-site requests refused).
