@@ -10,7 +10,7 @@ RUN npm run build
 
 
 # ---- serve it (unprivileged nginx, listens on 8080) ---------------------------------
-FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY proxy_params.inc /etc/nginx/proxy_params.inc
 COPY --from=build /app/dist /usr/share/nginx/html
