@@ -1,6 +1,6 @@
 # Runtime dependencies of the API server (used by the Docker image).
 # requirements.txt adds the dashboard, data-download and test tooling.
-pandas>=3.0
+pandas>=3.0.6
 numpy>=2.4
 fastapi>=0.143
 uvicorn>=0.54
