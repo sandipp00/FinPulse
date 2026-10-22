@@ -17,11 +17,6 @@ export default function AuthProvider({ children }) {
     emailEnabled: false,
   })
 
-  // Bumped when a password reset completes, so the sign-in panel can start over
-  // on its sign-in form instead of staying on "forgot password".
-  const [resetEpoch, setResetEpoch] = useState(0)
-  const markPasswordReset = useCallback(() => setResetEpoch((count) => count + 1), [])
-
   const applyMe = useCallback((result) => {
     setState((current) => ({
       ...current,
@@ -82,8 +77,8 @@ export default function AuthProvider({ children }) {
   }, [])
 
   const value = useMemo(
-    () => ({ ...state, login, register, logout, refresh, resetEpoch, markPasswordReset }),
-    [state, login, register, logout, refresh, resetEpoch, markPasswordReset],
+    () => ({ ...state, login, register, logout, refresh }),
+    [state, login, register, logout, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

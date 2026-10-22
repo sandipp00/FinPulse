@@ -1,5 +1,7 @@
 import { memo } from 'react'
-import { Bell, LogOut, Menu, Search } from 'lucide-react'
+import { Bell, LogIn, LogOut, Menu, Search } from 'lucide-react'
+import { ROUTES } from '../lib/routes'
+import AppLink from './AppLink'
 
 function Topbar({ pageTitle, search, onSearch, onOpenMenu, user, onLogout }) {
   return (
@@ -35,7 +37,9 @@ function Topbar({ pageTitle, search, onSearch, onOpenMenu, user, onLogout }) {
             </button>
           </>
         ) : (
-          <div className="top-avatar top-avatar-guest" title="Not signed in" aria-label="Not signed in">?</div>
+          <AppLink href={ROUTES.signin} className="topbar-signin">
+            <LogIn size={14} /> Sign in
+          </AppLink>
         )}
       </div>
     </header>

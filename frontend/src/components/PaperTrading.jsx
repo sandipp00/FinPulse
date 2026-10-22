@@ -3,7 +3,8 @@ import { ArrowDownRight, ArrowUpRight, Info, RotateCcw } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { usePaperTrading } from '../hooks/usePaperTrading'
 import { formatPercent } from '../lib/format'
-import AuthPanel from './AuthPanel'
+import { ROUTES } from '../lib/routes'
+import AppLink from './AppLink'
 import EquityCurve from './EquityCurve'
 import HoldingsTable from './HoldingsTable'
 import LiveBadge from './LiveBadge'
@@ -57,7 +58,7 @@ function PaperAccount({ symbols, ticks, liveStatus }) {
   }
 
   return (
-    <section className="panel paper-panel">
+    <section className="panel paper-panel" id="paper-trading">
       <div className="panel-heading assets-heading">
         <div>
           <h2>Paper trading</h2>
@@ -143,14 +144,14 @@ function PaperAccount({ symbols, ticks, liveStatus }) {
  * can never briefly show the previous person's portfolio.
  */
 export default function PaperTrading({ symbols, ticks, liveStatus }) {
-  const { user, loading, verificationRequired, resetEpoch } = useAuth()
+  const { user, loading, verificationRequired, registrationOpen } = useAuth()
 
   if (user && !(verificationRequired && !user.email_verified)) {
     return <PaperAccount key={user.id} symbols={symbols} ticks={ticks} liveStatus={liveStatus} />
   }
 
   return (
-    <section className="panel paper-panel">
+    <section className="panel paper-panel" id="paper-trading">
       <div className="panel-heading assets-heading">
         <div>
           <h2>Paper trading</h2>
@@ -163,7 +164,21 @@ export default function PaperTrading({ symbols, ticks, liveStatus }) {
       ) : user ? (
         <VerifyEmailPanel user={user} />
       ) : (
-        <AuthPanel key={resetEpoch} />
+        <div className="signin-cta">
+          <div>
+            <h3>Sign in to start paper trading</h3>
+            <p>
+              Everything else on this page is open to everyone. An account gives you a private
+              virtual portfolio to practice with, and nothing in it is real money.
+            </p>
+          </div>
+          <div className="signin-cta-actions">
+            <AppLink href={ROUTES.signin} className="auth-submit">Sign in</AppLink>
+            {registrationOpen && (
+              <AppLink href={ROUTES.signup} className="auth-secondary">Create account</AppLink>
+            )}
+          </div>
+        </div>
       )}
     </section>
   )

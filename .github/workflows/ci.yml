@@ -89,6 +89,11 @@ jobs:
           curl -fsS "$base/api/health"
           curl -fsS "$base/api/auth/me" | grep -q '"user":null'
 
+          # Direct links to the sign-in and sign-up pages work: nginx falls back to the app.
+          curl -fsS "$base/signin" | grep -q '<div id="root">'
+          curl -fsS "$base/signup" | grep -q '<div id="root">'
+          curl -fsS "$base/no/such/page" | grep -q '<div id="root">'
+
           # nginx adds the security headers.
           curl -sI "$base/" | grep -qi '^content-security-policy:'
           curl -sI "$base/" | grep -qi '^x-frame-options: deny'

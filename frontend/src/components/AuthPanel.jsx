@@ -5,15 +5,15 @@ import { useAuth } from '../hooks/useAuth'
 
 const MIN_PASSWORD = 8
 
-const TITLES = {
-  login: 'Sign in',
-  register: 'Create your account',
-  forgot: 'Reset your password',
-}
-
-export default function AuthPanel() {
+/**
+ * The sign-in / sign-up / forgot-password form.
+ *   mode      'login' | 'register', decided by the page URL
+ *   onSwitch  asked to move between the two (the page changes the URL)
+ * "Forgot password" is a third state kept here, since it has no page of its own.
+ */
+export default function AuthPanel({ mode, onSwitch }) {
   const { login, register, registrationOpen, emailEnabled, verificationRequired } = useAuth()
-  const [mode, setMode] = useState('login') // 'login' | 'register' | 'forgot'
+  const [forgot, setForgot] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -21,18 +21,24 @@ export default function AuthPanel() {
   const [busy, setBusy] = useState(false)
 
   const creating = mode === 'register'
-  const forgot = mode === 'forgot'
   const tooShort = creating && password.length > 0 && password.length < MIN_PASSWORD
 
-  const switchTo = (next) => {
-    setMode(next)
+  const title = forgot ? 'Reset your password' : creating ? 'Create your account' : 'Sign in'
+
+  const clearMessages = () => {
     setError('')
     setSent('')
   }
 
+  const switchMode = (next) => {
+    clearMessages()
+    setForgot(false)
+    onSwitch(next)
+  }
+
   const submit = async (event) => {
     event.preventDefault()
-    setError('')
+    clearMessages()
     setBusy(true)
     try {
       if (forgot) {
@@ -44,14 +50,14 @@ export default function AuthPanel() {
     } catch (err) {
       setError(err.message)
     } finally {
-      // On a successful sign-in the provider swaps this panel out anyway.
+      // On a successful sign-in the page redirects away, so there is nothing to reset.
       setBusy(false)
     }
   }
 
   return (
     <form className="auth-card" onSubmit={submit} noValidate>
-      <h3>{TITLES[mode]}</h3>
+      <h3>{title}</h3>
       <p>
         {forgot
           ? 'Enter the email you signed up with and we will send a link to choose a new password.'
@@ -66,6 +72,7 @@ export default function AuthPanel() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
+          autoFocus
         />
       </label>
 
@@ -100,18 +107,18 @@ export default function AuthPanel() {
         {busy ? 'Please wait...' : forgot ? 'Email me a reset link' : creating ? 'Create account' : 'Sign in'}
       </button>
 
-      {mode === 'login' && emailEnabled && (
-        <button className="auth-switch" type="button" onClick={() => switchTo('forgot')}>
+      {!forgot && !creating && emailEnabled && (
+        <button className="auth-switch" type="button" onClick={() => { clearMessages(); setForgot(true) }}>
           Forgot your password?
         </button>
       )}
 
       {forgot ? (
-        <button className="auth-switch" type="button" onClick={() => switchTo('login')}>
+        <button className="auth-switch" type="button" onClick={() => { clearMessages(); setForgot(false) }}>
           Back to sign in
         </button>
       ) : registrationOpen || creating ? (
-        <button className="auth-switch" type="button" onClick={() => switchTo(creating ? 'login' : 'register')}>
+        <button className="auth-switch" type="button" onClick={() => switchMode(creating ? 'login' : 'register')}>
           {creating ? 'Already have an account? Sign in' : 'New here? Create an account'}
         </button>
       ) : (

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle2, KeyRound, X, XCircle } from 'lucide-react'
 import { resetPassword } from '../api/finpulse'
+import { ROUTES } from '../lib/routes'
+import AppLink from './AppLink'
 import { confirmEmailOnce, initialAccountLink, takeLinkFromAddressBar } from '../lib/accountLink'
 import { useAuth } from '../hooks/useAuth'
 
@@ -42,7 +44,7 @@ function ConfirmEmail({ token, onDone }) {
 }
 
 function ResetPassword({ token, onDone }) {
-  const { user, refresh, markPasswordReset } = useAuth()
+  const { user, refresh } = useAuth()
   const [password, setPassword] = useState('')
   const [repeat, setRepeat] = useState('')
   const [error, setError] = useState('')
@@ -65,7 +67,6 @@ function ResetPassword({ token, onDone }) {
     try {
       await resetPassword(token, password)
       setFinished(true)
-      markPasswordReset()
       refresh() // every old session was revoked, so this page is now signed out
     } catch (err) {
       setError(err.message)
@@ -78,7 +79,10 @@ function ResetPassword({ token, onDone }) {
     return (
       <div className="link-banner link-ok" role="status">
         <CheckCircle2 size={16} />
-        <span>Password changed, and you were signed out everywhere. Sign in with your new password below.</span>
+        <span>
+          Password changed, and you were signed out everywhere.{' '}
+          <AppLink href={ROUTES.signin} className="link-inline">Sign in with your new password</AppLink>.
+        </span>
         <button onClick={onDone} aria-label="Dismiss"><X size={14} /></button>
       </div>
     )
