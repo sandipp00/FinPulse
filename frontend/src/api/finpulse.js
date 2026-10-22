@@ -40,3 +40,16 @@ export function getCandles(symbol, interval, limit = 500) {
     + `&interval=${encodeURIComponent(interval)}&limit=${limit}`,
   )
 }
+
+export function getSignals(interval, symbol) {
+  const query = `interval=${encodeURIComponent(interval)}`
+    + (symbol ? `&symbol=${encodeURIComponent(symbol)}` : '')
+  return getJSON(`/api/signals?${query}`)
+}
+
+export function getBacktest(symbol, interval) {
+  return getJSON(
+    `/api/backtest?symbol=${encodeURIComponent(symbol)}`
+    + `&interval=${encodeURIComponent(interval)}`,
+  )
+}

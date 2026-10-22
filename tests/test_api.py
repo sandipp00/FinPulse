@@ -141,3 +141,95 @@ def test_candles_returns_502_when_exchange_unreachable(client, monkeypatch):
     response = client.get("/api/candles", params={"symbol": "ETH/USDT"})
 
     assert response.status_code == 502
+
+
+# ---- /api/signals and /api/backtest ------------------------------------
+
+def _fake_rows(n=300, interval_seconds=3600, trend=0.5):
+    import numpy as np
+
+    rng = np.random.default_rng(7)
+    closes = 100 + trend * np.arange(n) + rng.normal(0, 1.5, n)
+    start = 1_700_000_000
+    return [
+        {
+            "time": start + i * interval_seconds,
+            "open": float(closes[i - 1] if i else closes[0]),
+            "high": float(closes[i] + 1),
+            "low": float(closes[i] - 1),
+            "close": float(closes[i]),
+            "volume": 100.0,
+        }
+        for i in range(n)
+    ]
+
+
+@pytest.fixture
+def fake_candles(monkeypatch):
+    from backend import candles as candle_source
+
+    async def fake_fetch(symbol, interval, limit):
+        return _fake_rows()
+
+    monkeypatch.setattr(candle_source, "fetch_candles", fake_fetch)
+
+
+def test_to_closed_frame_drops_the_forming_candle():
+    from backend.signal_service import to_closed_frame
+
+    rows = _fake_rows(n=3)
+    # "now" is halfway through the last candle.
+    now = rows[-1]["time"] + 1800
+
+    frame = to_closed_frame(rows, "1h", now=now)
+
+    assert len(frame) == 2
+    assert frame["time"].iloc[-1] == rows[1]["time"]
+
+
+def test_signals_endpoint_returns_a_rated_signal_per_symbol(client, fake_candles):
+    body = client.get("/api/signals", params={"interval": "1h"}).json()
+
+    assert body["count"] == len(config.LIVE_SYMBOLS)
+    first = body["signals"][0]
+    assert first["rating"] in {"Strong Buy", "Buy", "Hold", "Sell", "Strong Sell"}
+    assert len(first["reasons"]) == 6
+    assert "not investment advice" in body["disclaimer"]
+
+
+def test_signals_endpoint_filters_to_one_symbol(client, fake_candles):
+    body = client.get("/api/signals", params={"symbol": "ETH/USDT"}).json()
+
+    assert [item["symbol"] for item in body["signals"]] == ["ETH/USDT"]
+
+
+def test_signals_validation(client):
+    assert client.get("/api/signals", params={"interval": "3m"}).status_code == 400
+    assert client.get("/api/signals", params={"symbol": "DOGE/USDT"}).status_code == 404
+
+
+def test_backtest_endpoint_reports_strategy_and_benchmark(client, fake_candles):
+    body = client.get(
+        "/api/backtest", params={"symbol": "BTC/USDT", "interval": "1h"}
+    ).json()
+
+    assert body["symbol"] == "BTC/USDT"
+    assert body["fee_pct"] == 0.1
+    assert "strategy_return_pct" in body and "buy_hold_return_pct" in body
+    assert body["trades"]["count"] >= len(body["trades"]["list"])
+    assert len(body["trades"]["list"]) <= 20  # only the most recent are listed
+    assert isinstance(body["sample_warning"], bool)
+    assert body["equity_curve"]
+
+
+def test_backtest_validation_and_short_history(client, monkeypatch):
+    from backend import candles as candle_source
+
+    async def short_history(symbol, interval, limit):
+        return _fake_rows(n=20)
+
+    monkeypatch.setattr(candle_source, "fetch_candles", short_history)
+
+    assert client.get("/api/backtest", params={"symbol": "BTC/USDT", "interval": "9m"}).status_code == 400
+    assert client.get("/api/backtest", params={"symbol": "BTC/USDT", "fee_pct": 5}).status_code == 422
+    assert client.get("/api/backtest", params={"symbol": "BTC/USDT"}).status_code == 422

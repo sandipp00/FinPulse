@@ -9,7 +9,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend import candles as candle_source, config
+from backend import candles as candle_source, config, signal_service
 from backend.live import feed
 from src.analytics.financial_metrics import asset_snapshot
 
@@ -23,6 +23,7 @@ async def lifespan(_app: FastAPI):
     yield
     if config.LIVE_FEED_ENABLED:
         await feed.stop()
+    await candle_source.close_client()
 
 
 app = FastAPI(
@@ -260,18 +261,8 @@ async def candles(
     ),
 ):
     """OHLCV candles for a live crypto symbol, oldest first."""
-    if symbol not in config.LIVE_SYMBOLS:
-        raise HTTPException(
-            status_code=404,
-            detail=f"{symbol} is not a live symbol. "
-                   f"Available: {', '.join(config.LIVE_SYMBOLS)}",
-        )
-    if interval not in candle_source.INTERVALS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported interval. Use one of: "
-                   f"{', '.join(candle_source.INTERVALS)}",
-        )
+    _require_live_symbol(symbol)
+    _require_interval(interval)
 
     try:
         rows = await candle_source.fetch_candles(symbol, interval, limit)
@@ -287,6 +278,78 @@ async def candles(
         "count": len(rows),
         "candles": rows,
     }
+
+
+def _require_live_symbol(symbol: str) -> None:
+    if symbol not in config.LIVE_SYMBOLS:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{symbol} is not a live symbol. "
+                   f"Available: {', '.join(config.LIVE_SYMBOLS)}",
+        )
+
+
+def _require_interval(interval: str) -> None:
+    if interval not in candle_source.INTERVALS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported interval. Use one of: "
+                   f"{', '.join(candle_source.INTERVALS)}",
+        )
+
+
+@app.get("/api/signals")
+async def signals(
+    interval: str = Query(default="1h"),
+    symbol: Optional[str] = None,
+):
+    """Buy/sell ratings from the rule-based engine, with the reasons for each.
+
+    Ratings use closed candles only, so they change at most once per candle.
+    """
+    _require_interval(interval)
+    symbols = config.LIVE_SYMBOLS
+    if symbol:
+        _require_live_symbol(symbol)
+        symbols = [symbol]
+
+    try:
+        results = await signal_service.signals_for(symbols, interval)
+    except candle_source.CandleSourceError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not load candles from the exchange: {exc}",
+        ) from exc
+
+    return {
+        "interval": interval,
+        "count": len(results),
+        "signals": results,
+        "disclaimer": signal_service.DISCLAIMER,
+    }
+
+
+@app.get("/api/backtest")
+async def backtest(
+    symbol: str = Query(..., min_length=1),
+    interval: str = Query(default="1d"),
+    fee_pct: float = Query(default=0.1, ge=0, le=2, description="Fee per fill, in percent"),
+):
+    """Historical performance of the signal rules on this symbol and timeframe."""
+    _require_live_symbol(symbol)
+    _require_interval(interval)
+
+    try:
+        result = await signal_service.backtest_for(symbol, interval, fee_pct / 100)
+    except candle_source.CandleSourceError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not load candles from the exchange: {exc}",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return {**result, "disclaimer": signal_service.DISCLAIMER}
 
 
 @app.websocket("/ws/prices")

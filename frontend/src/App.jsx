@@ -17,6 +17,7 @@ import LiveTicker from './components/LiveTicker'
 import MetricCard from './components/MetricCard'
 import PriceChart from './components/PriceChart'
 import Sidebar from './components/Sidebar'
+import SignalsPanel from './components/SignalsPanel'
 import Topbar from './components/Topbar'
 import Watchlist from './components/Watchlist'
 import { useAssets } from './hooks/useAssets'
@@ -205,6 +206,8 @@ function App() {
             tick={ticks[chartSymbol]}
             liveStatus={liveStatus}
           />
+
+          <SignalsPanel selectedSymbol={chartSymbol} onSelect={setChartSymbol} />
 
           <section className="charts-grid">
             <PriceChart

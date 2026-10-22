@@ -19,6 +19,24 @@ CACHE_SECONDS = 5
 
 _cache: dict[tuple, tuple[float, list[dict]]] = {}
 
+# One long-lived client: reusing its connections avoids a fresh TLS handshake
+# on every request (about 1s each), which matters when five symbols load at once.
+_client: httpx.AsyncClient | None = None
+
+
+def get_client() -> httpx.AsyncClient:
+    global _client
+    if _client is None:
+        _client = httpx.AsyncClient(timeout=10)
+    return _client
+
+
+async def close_client() -> None:
+    global _client
+    if _client is not None:
+        await _client.aclose()
+        _client = None
+
 
 class CandleSourceError(Exception):
     """Every configured Binance endpoint failed."""
@@ -58,17 +76,17 @@ async def fetch_candles(symbol: str, interval: str, limit: int) -> list[dict]:
     }
     last_error = None
 
-    async with httpx.AsyncClient(timeout=10) as client:
-        for base in config.BINANCE_REST_URLS:
-            try:
-                rows = await _get_json(client, f"{base.rstrip('/')}/api/v3/klines", params)
-            except (httpx.HTTPError, ValueError) as exc:
-                last_error = exc
-                log.warning("Klines request to %s failed: %s", base, exc)
-                continue
+    client = get_client()
+    for base in config.BINANCE_REST_URLS:
+        try:
+            rows = await _get_json(client, f"{base.rstrip('/')}/api/v3/klines", params)
+        except (httpx.HTTPError, ValueError) as exc:
+            last_error = exc
+            log.warning("Klines request to %s failed: %s", base, exc)
+            continue
 
-            candles = parse_klines(rows)
-            _cache[key] = (time.monotonic(), candles)
-            return candles
+        candles = parse_klines(rows)
+        _cache[key] = (time.monotonic(), candles)
+        return candles
 
     raise CandleSourceError(str(last_error))
