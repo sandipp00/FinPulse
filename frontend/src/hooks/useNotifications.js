@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { getSignals } from '../api/finpulse'
-import { createNotificationStore } from '../lib/notificationStore'
+import { createNotificationStore, STORAGE_KEY } from '../lib/notificationStore'
 import { unreadCount } from '../lib/notifications'
 
 // One store for the whole page. localStorage can throw or be missing (private mode, blocked
@@ -14,6 +14,13 @@ function browserStorage() {
 }
 
 export const notificationStore = createNotificationStore(browserStorage())
+
+// Another tab saved something: pick it up (key is null when storage was cleared).
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === null || event.key === STORAGE_KEY) notificationStore.sync()
+  })
+}
 
 // Daily ratings only change when a daily candle closes, so a slow poll is plenty.
 const SIGNAL_POLL_MS = 5 * 60_000

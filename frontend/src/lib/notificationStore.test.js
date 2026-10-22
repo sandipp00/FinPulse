@@ -193,3 +193,61 @@ describe('persistence is defensive', () => {
     }
   })
 })
+
+describe('two tabs sharing one storage', () => {
+  const twoTabs = () => {
+    const storage = fakeStorage()
+    return { storage, a: createNotificationStore(storage, clock()), b: createNotificationStore(storage, clock()) }
+  }
+  const alert = (price) => ({ symbol: 'BTC/USDT', direction: 'above', price })
+
+  it('does not erase an alert the other tab saved', () => {
+    const { storage, a, b } = twoTabs()
+    a.addAlert(alert(82_000), context())
+    b.addAlert(alert(83_000), context())                       // b never saw a's alert
+
+    expect(saved(storage).alerts.map((x) => x.price)).toEqual([82_000, 83_000])
+    expect(b.getState().alerts).toHaveLength(2)
+  })
+
+  it('picks up the other tab on sync, tells subscribers, and keeps its own toasts', () => {
+    const { a, b } = twoTabs()
+    a.addAlert(alert(82_000), context())
+    a.ingestTicks({ 'BTC/USDT': { price: 90_000 } })           // fires: a has a toast
+    const listener = vi.fn()
+    b.subscribe(listener)
+
+    b.sync()
+
+    expect(b.getState().notifications).toHaveLength(1)
+    expect(b.getState().toasts).toEqual([])
+    expect(a.getState().toasts).toHaveLength(1)
+    expect(listener).toHaveBeenCalledTimes(1)
+    b.sync()
+    expect(listener).toHaveBeenCalledTimes(1)                  // nothing new, no re-render
+  })
+
+  it('fires an alert in only one tab', () => {
+    const { storage, a, b } = twoTabs()
+    a.addAlert(alert(82_000), context())
+    b.sync()
+
+    a.ingestTicks({ 'BTC/USDT': { price: 90_000 } })
+    b.ingestTicks({ 'BTC/USDT': { price: 90_000 } })           // b's copy is stale; it must not fire again
+
+    expect(saved(storage).notifications).toHaveLength(1)
+    expect(b.getState().toasts).toEqual([])
+  })
+
+  it('does not resurrect an alert removed in the other tab', () => {
+    const { storage, a, b } = twoTabs()
+    a.addAlert(alert(82_000), context())
+    b.sync()
+    a.removeAlert(a.getState().alerts[0].id)
+
+    b.ingestTicks({ 'BTC/USDT': { price: 90_000 } })
+
+    expect(saved(storage).notifications).toEqual([])
+    expect(b.getState().alerts).toEqual([])
+  })
+})

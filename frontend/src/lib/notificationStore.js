@@ -47,16 +47,40 @@ function load(storage) {
  */
 export function createNotificationStore(storage, { now = () => Date.now() } = {}) {
   let state = { ...load(storage), toasts: [] }
+  let lastRaw = readRaw()
   const listeners = new Set()
+
+  function readRaw() {
+    try {
+      return storage?.getItem(STORAGE_KEY) ?? null
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Other tabs share this storage. Before changing anything, adopt whatever they saved
+   * (toasts stay local) so a stale tab never overwrites newer alerts or re-fires one
+   * that another tab already consumed. Returns true if the state changed.
+   */
+  const refresh = () => {
+    const raw = readRaw()
+    if (raw === lastRaw) return false
+    lastRaw = raw
+    state = { ...load(storage), toasts: state.toasts }
+    return true
+  }
 
   const commit = (next) => {
     state = next
     try {
-      storage?.setItem(STORAGE_KEY, JSON.stringify({
+      const raw = JSON.stringify({
         alerts: state.alerts,
         notifications: state.notifications,
         ratings: state.ratings,
-      }))
+      })
+      storage?.setItem(STORAGE_KEY, raw)
+      lastRaw = raw
     } catch {
       // Storage may be full or blocked (private mode). The app still works without it.
     }
@@ -73,6 +97,11 @@ export function createNotificationStore(storage, { now = () => Date.now() } = {}
   return {
     getState: () => state,
 
+    /** Called when another tab changes the storage: pick up its changes and re-render. */
+    sync() {
+      if (refresh()) listeners.forEach((listener) => listener())
+    },
+
     subscribe(listener) {
       listeners.add(listener)
       return () => listeners.delete(listener)
@@ -80,12 +109,14 @@ export function createNotificationStore(storage, { now = () => Date.now() } = {}
 
     /** Returns { ok: true } or { ok: false, error } for the form to show. */
     addAlert(input, context) {
+      refresh()
       const result = validateAlert(input, { ...context, existing: state.alerts }, now())
       if (result.ok) commit({ ...state, alerts: [...state.alerts, result.alert] })
       return result
     },
 
     removeAlert(id) {
+      refresh()
       if (state.alerts.some((alert) => alert.id === id)) {
         commit({ ...state, alerts: state.alerts.filter((alert) => alert.id !== id) })
       }
@@ -94,8 +125,17 @@ export function createNotificationStore(storage, { now = () => Date.now() } = {}
     /** Called on every price tick; does nothing unless an alert has been reached. */
     ingestTicks(ticks) {
       if (state.alerts.length === 0) return
-      const { remaining, fired } = evaluateAlerts(state.alerts, ticks)
+      let { remaining, fired } = evaluateAlerts(state.alerts, ticks)
       if (fired.length === 0) return
+
+      // Another tab may have fired these already; look again with its saved state.
+      if (refresh()) {
+        ;({ remaining, fired } = evaluateAlerts(state.alerts, ticks))
+        if (fired.length === 0) {
+          listeners.forEach((listener) => listener())
+          return
+        }
+      }
 
       const stamp = now()
       commit(withNotifications(
@@ -106,6 +146,7 @@ export function createNotificationStore(storage, { now = () => Date.now() } = {}
 
     /** Called with the latest daily ratings; notifies about any that changed. */
     ingestSignals(signals) {
+      refresh()
       const { ratings, changes } = detectRatingChanges(state.ratings, signals)
       const ratingsChanged = JSON.stringify(ratings) !== JSON.stringify(state.ratings)
       if (!ratingsChanged) return
@@ -117,12 +158,14 @@ export function createNotificationStore(storage, { now = () => Date.now() } = {}
     },
 
     markAllRead() {
+      refresh()
       if (state.notifications.some((n) => !n.read)) {
         commit({ ...state, notifications: state.notifications.map((n) => (n.read ? n : { ...n, read: true })) })
       }
     },
 
     clearNotifications() {
+      refresh()
       if (state.notifications.length || state.toasts.length) commit({ ...state, notifications: [], toasts: [] })
     },
 
