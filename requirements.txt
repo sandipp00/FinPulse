@@ -1,22 +1,13 @@
-# Direct dependencies only; pip resolves the rest.
-# Data and analytics
-pandas>=3.0
-numpy>=2.4
+# Everything for local development: the API, the data downloaders, the Streamlit
+# dashboard and the tests. The other files hold the actual version floors, so each
+# dependency is declared in exactly one place.
+#
+#   requirements-api.txt   what the API server needs (also used by the Docker image)
+#   requirements-data.txt  yfinance and ccxt, for downloading historical data
+#   requirements-dev.txt   the API plus pytest (what CI installs)
+-r requirements-dev.txt
+-r requirements-data.txt
 
-# Market data sources
-yfinance>=1.7
-ccxt>=4.5
-
-# API and live feed
-fastapi>=0.143
-uvicorn>=0.54
-websockets>=15
-python-dotenv>=1.0
-
-# Streamlit dashboard
+# The Streamlit dashboard
 streamlit>=1.65
 plotly>=7.0
-
-# Testing
-pytest>=9.0
-httpx>=0.28

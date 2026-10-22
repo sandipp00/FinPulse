@@ -1,9 +1,37 @@
-import { memo } from 'react'
-import { Bell, LogIn, LogOut, Menu, Search } from 'lucide-react'
+import { memo, useEffect, useRef } from 'react'
+import { LogIn, LogOut, Menu, Search } from 'lucide-react'
 import { ROUTES } from '../lib/routes'
 import AppLink from './AppLink'
+import NotificationBell from './NotificationBell'
+
+// The shortcut is Cmd+K on a Mac and Ctrl+K everywhere else, and the hint should say which.
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent)
+const SHORTCUT_HINT = IS_MAC ? '⌘ K' : 'Ctrl K'
 
 function Topbar({ pageTitle, search, onSearch, onOpenMenu, user, onLogout }) {
+  const searchRef = useRef(null)
+
+  // Cmd/Ctrl+K jumps to the search box from anywhere on the page. The browser has its own
+  // meaning for the key (Chrome and Firefox focus their search bar), so take it over.
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        searchRef.current?.focus()
+        searchRef.current?.select()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  // Escape clears the search; pressing it again (or with nothing typed) leaves the box.
+  const onSearchKeyDown = (event) => {
+    if (event.key !== 'Escape') return
+    if (search) onSearch('')
+    else event.currentTarget.blur()
+  }
+
   return (
     <header className="topbar">
       <div className="flex min-w-0 items-center gap-3">
@@ -18,16 +46,17 @@ function Topbar({ pageTitle, search, onSearch, onOpenMenu, user, onLogout }) {
         <label className="search-box">
           <Search size={16} />
           <input
+            ref={searchRef}
             value={search}
             onChange={(event) => onSearch(event.target.value)}
+            onKeyDown={onSearchKeyDown}
             placeholder="Search assets..."
             aria-label="Search assets"
+            aria-keyshortcuts={IS_MAC ? 'Meta+K' : 'Control+K'}
           />
-          <kbd>⌘ K</kbd>
+          <kbd>{SHORTCUT_HINT}</kbd>
         </label>
-        <button className="icon-button" aria-label="Notifications">
-          <Bell size={18} /><span className="notification-dot" />
-        </button>
+        <NotificationBell />
         {user ? (
           <>
             <span className="top-user" title={user.email}>{user.email}</span>

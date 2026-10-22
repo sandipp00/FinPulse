@@ -1,12 +1,15 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChevronDown, CreditCard } from 'lucide-react'
 import AccountLinkBanner from './components/AccountLinkBanner'
 import LiveTicker from './components/LiveTicker'
 import Sidebar from './components/Sidebar'
+import ToastStack from './components/ToastStack'
 import Topbar from './components/Topbar'
 import { useAssets } from './hooks/useAssets'
+import { LivePricesContext } from './context/live-prices-context'
 import { useAuth } from './hooks/useAuth'
 import { useLivePrices } from './hooks/useLivePrices'
+import { useNotificationFeeds, useNotifications } from './hooks/useNotifications'
 import { navigate } from './hooks/useRoute'
 import { LIVE_STATUS_LABEL } from './lib/liveStatus'
 import { formatPercent, formatPrice, getAssetDetails } from './lib/format'
@@ -41,6 +44,18 @@ function Dashboard({ route }) {
   const { assets: marketAssets, loading: assetLoading, error: apiError } = useAssets()
   const { ticks, history, status: liveStatus } = useLivePrices()
   const { user, logout } = useAuth()
+  const { unread } = useNotifications()
+
+  // Price alerts are checked against every tick, and daily ratings are polled for changes.
+  useNotificationFeeds(ticks)
+
+  // Show the unread count in the browser tab, so a notification is noticed from another tab.
+  useEffect(() => {
+    document.title = unread > 0 ? `(${unread}) FinPulse` : 'FinPulse'
+    return () => {
+      document.title = 'FinPulse'
+    }
+  }, [unread])
 
   // Symbols the server streams live. The stored list only knows what is in
   // SQLite, so the live set is whatever has ticked plus the stored crypto.
@@ -115,110 +130,115 @@ function Dashboard({ route }) {
     else window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [route])
 
-  return (
-    <div className="app-shell">
-      <Sidebar
-        route={route}
-        onNavigate={closeSidebar}
-        open={sidebarOpen}
-        onClose={closeSidebar}
-        liveStatus={liveStatus}
-      />
+  const livePrices = useMemo(() => ({ ticks, symbols: liveSymbols }), [ticks, liveSymbols])
 
-      <main className="main-panel">
-        <Topbar
-          pageTitle={page.title}
-          search={search}
-          onSearch={handleSearch}
-          onOpenMenu={openSidebar}
-          user={user}
-          onLogout={logout}
+  return (
+    <LivePricesContext.Provider value={livePrices}>
+      <div className="app-shell">
+        <Sidebar
+          route={route}
+          onNavigate={closeSidebar}
+          open={sidebarOpen}
+          onClose={closeSidebar}
+          liveStatus={liveStatus}
         />
 
-        <LiveTicker ticks={ticks} symbols={liveSymbols} status={liveStatus} />
+        <main className="main-panel">
+          <Topbar
+            pageTitle={page.title}
+            search={search}
+            onSearch={handleSearch}
+            onOpenMenu={openSidebar}
+            user={user}
+            onLogout={logout}
+          />
 
-        <div className="dashboard-content">
-          <AccountLinkBanner />
+          <LiveTicker ticks={ticks} symbols={liveSymbols} status={liveStatus} />
 
-          <section className="page-intro">
-            <div>
-              <div className="eyebrow"><span className="status-dot" /> YOUR FINANCIAL COMMAND CENTER</div>
-              <h1>{page.title}<span>.</span></h1>
-              <p>{page.blurb}</p>
-            </div>
-            <div className="date-button">
-              <span className={`status-dot ${liveStatus === 'live' ? '' : 'status-muted'}`} />
-              {LIVE_STATUS_LABEL[liveStatus]}
-              <ChevronDown size={15} />
-            </div>
-          </section>
+          <div className="dashboard-content">
+            <AccountLinkBanner />
 
-          {USES_ASSET_DATA.has(route) && assetLoading && (
-            <p className="mb-4 text-sm text-slate-400">Loading market data from your local database...</p>
-          )}
-          {USES_ASSET_DATA.has(route) && apiError && (
-            <p className="mb-4 rounded-lg border border-red-900 bg-red-950/40 p-3 text-sm text-red-300">
-              Unable to load market data: {apiError}
-            </p>
-          )}
+            <section className="page-intro">
+              <div>
+                <div className="eyebrow"><span className="status-dot" /> YOUR FINANCIAL COMMAND CENTER</div>
+                <h1>{page.title}<span>.</span></h1>
+                <p>{page.blurb}</p>
+              </div>
+              <div className="date-button">
+                <span className={`status-dot ${liveStatus === 'live' ? '' : 'status-muted'}`} />
+                {LIVE_STATUS_LABEL[liveStatus]}
+                <ChevronDown size={15} />
+              </div>
+            </section>
 
-          {route === 'home' && (
-            <OverviewPage
-              marketAssets={marketAssets}
-              displayAssets={displayAssets}
-              assetLoading={assetLoading}
-              apiError={apiError}
-              ticks={ticks}
-              history={history}
-              liveSymbols={liveSymbols}
-              liveStatus={liveStatus}
-              chartSymbol={chartSymbol}
-              onOpenChart={openChart}
-            />
-          )}
-          {route === 'markets' && (
-            <MarketsPage
-              liveSymbols={liveSymbols}
-              ticks={ticks}
-              liveStatus={liveStatus}
-              chartSymbol={chartSymbol}
-              onChartSymbol={setChartSymbol}
-              marketAssets={marketAssets}
-              selectedSymbol={selectedSymbol}
-              onSelectSymbol={setSelectedSymbol}
-              range={range}
-              onRangeChange={setRange}
-              watchlist={{
-                assets: filteredAssets,
-                totalCount: displayAssets.length,
-                loading: assetLoading,
-                filter,
-                onFilterChange: setFilter,
-                onSelect: openChart,
-              }}
-            />
-          )}
-          {route === 'portfolio' && (
-            <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
-          )}
-          {route === 'analytics' && (
-            <AnalyticsPage chartSymbol={chartSymbol} onSelectSymbol={setChartSymbol} marketAssets={marketAssets} />
-          )}
-          {route === 'research' && (
-            <ResearchPage ticks={ticks} liveSymbols={liveSymbols} liveStatus={liveStatus} />
-          )}
-          {route === 'risk' && <RiskPage ticks={ticks} />}
-          {route === 'settings' && <SettingsPage liveStatus={liveStatus} />}
-          {route === 'help' && <HelpPage />}
+            {USES_ASSET_DATA.has(route) && assetLoading && (
+              <p className="mb-4 text-sm text-slate-400">Loading market data from your local database...</p>
+            )}
+            {USES_ASSET_DATA.has(route) && apiError && (
+              <p className="mb-4 rounded-lg border border-red-900 bg-red-950/40 p-3 text-sm text-red-300">
+                Unable to load market data: {apiError}
+              </p>
+            )}
 
-          <footer className="app-footer">
-            <span>FinPulse <span className="footer-version">DEVELOPER PREVIEW</span></span>
-            <span><CreditCard size={13} /> Research &amp; analytics workspace</span>
-            <span>Market data is informational only. Not investment advice.</span>
-          </footer>
-        </div>
-      </main>
-    </div>
+            {route === 'home' && (
+              <OverviewPage
+                marketAssets={marketAssets}
+                displayAssets={displayAssets}
+                assetLoading={assetLoading}
+                apiError={apiError}
+                ticks={ticks}
+                history={history}
+                liveSymbols={liveSymbols}
+                liveStatus={liveStatus}
+                chartSymbol={chartSymbol}
+                onOpenChart={openChart}
+              />
+            )}
+            {route === 'markets' && (
+              <MarketsPage
+                liveSymbols={liveSymbols}
+                ticks={ticks}
+                liveStatus={liveStatus}
+                chartSymbol={chartSymbol}
+                onChartSymbol={setChartSymbol}
+                marketAssets={marketAssets}
+                selectedSymbol={selectedSymbol}
+                onSelectSymbol={setSelectedSymbol}
+                range={range}
+                onRangeChange={setRange}
+                watchlist={{
+                  assets: filteredAssets,
+                  totalCount: displayAssets.length,
+                  loading: assetLoading,
+                  filter,
+                  onFilterChange: setFilter,
+                  onSelect: openChart,
+                }}
+              />
+            )}
+            {route === 'portfolio' && (
+              <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
+            )}
+            {route === 'analytics' && (
+              <AnalyticsPage chartSymbol={chartSymbol} onSelectSymbol={setChartSymbol} marketAssets={marketAssets} />
+            )}
+            {route === 'research' && (
+              <ResearchPage ticks={ticks} liveSymbols={liveSymbols} liveStatus={liveStatus} />
+            )}
+            {route === 'risk' && <RiskPage ticks={ticks} />}
+            {route === 'settings' && <SettingsPage liveStatus={liveStatus} />}
+            {route === 'help' && <HelpPage />}
+
+            <footer className="app-footer">
+              <span>FinPulse <span className="footer-version">DEVELOPER PREVIEW</span></span>
+              <span><CreditCard size={13} /> Research &amp; analytics workspace</span>
+              <span>Market data is informational only. Not investment advice.</span>
+            </footer>
+          </div>
+        </main>
+        <ToastStack />
+      </div>
+    </LivePricesContext.Provider>
   )
 }
 

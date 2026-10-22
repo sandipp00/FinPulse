@@ -156,6 +156,12 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 
 The risk figures come from `GET /api/risk` (about three years of daily Binance candles for the live crypto, stored history for stocks and indices; cached for a minute).
 
+## Notifications and shortcuts
+
+- **Bell:** the top-bar bell shows an unread count and opens a panel with two tabs. *Activity* lists what happened; *Price alerts* lets you set "tell me when BTC rises to or above $X" (or falls to or below). An alert fires once, when the live price reaches it, and a pop-up appears so you notice even with the bell closed. The bell also announces when an asset's **daily buy/sell rating changes**. An alert that is already true is refused, since it would fire instantly.
+- **Saved in your browser only** (localStorage), not on the server and not synced between devices. Alerts are checked while FinPulse is open in a tab; they cannot reach you when it is closed.
+- **Search shortcut:** press **Ctrl+K** (**⌘K** on a Mac) anywhere to jump to the search box. **Esc** clears the search, and a second press leaves the box. Typing a search opens the Markets page filtered to your match.
+
 ## Accounts
 
 Sign-in and sign-up have their own pages at `/signin` and `/signup` (linked from the top bar and the paper-trading section); the rest of the dashboard is open to everyone. Sign up with an email and password (8-128 characters). Passwords are hashed with scrypt; the browser keeps only a random session token in an httpOnly, SameSite=Lax cookie, and the server stores just a hash of it. Login and registration are rate limited, and state-changing requests from other websites are rejected. Email is optional and free to set up with any SMTP account (see the deployment guide). With it configured, new accounts must confirm their address before paper trading, and anyone can reset a forgotten password from a one-time emailed link; without it, accounts work immediately and the person running the server handles resets with `python -m backend.admin`.
@@ -177,3 +183,5 @@ Market data availability depends on external providers. Historical metrics exclu
 ## Continuous integration
 
 Every push to `main` and every pull request runs [GitHub Actions](.github/workflows/ci.yml): the Python tests, the frontend lint, tests and build, and a Docker job that builds both images, starts the stack and smoke-tests it (health, security headers, login required, cross-site requests refused).
+
+[Dependabot](.github/dependabot.yml) opens a weekly pull request when a Python or npm dependency, a GitHub Action or a Docker base image has a newer release, grouping routine updates into one PR per ecosystem. Each of those PRs runs the same CI, so a bad upgrade shows up as a failing check before it is merged.

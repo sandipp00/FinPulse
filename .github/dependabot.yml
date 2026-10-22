@@ -1,0 +1,76 @@
+# Weekly pull requests when a dependency, GitHub Action or Docker base image has a newer
+# release. Every PR runs the CI workflow, so a bad upgrade shows up as a red check before
+# anything is merged.
+version: 2
+
+updates:
+  # Python. The requirements files use ">=" floors, so "increase" is what makes Dependabot
+  # raise the floor to a newer release (without it, nothing is ever "out of date").
+  # requirements.txt pulls in the other requirements-*.txt files with -r.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    versioning-strategy: increase
+    open-pull-requests-limit: 5
+    labels: [dependencies, python]
+    commit-message:
+      prefix: "deps(python)"
+    groups:
+      python-minor-and-patch:        # one PR for the routine updates; majors stay separate
+        update-types: [minor, patch]
+
+  # Frontend (React, Vite, Recharts, ESLint, Vitest, ...)
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    versioning-strategy: increase
+    open-pull-requests-limit: 5
+    labels: [dependencies, javascript]
+    commit-message:
+      prefix: "deps(frontend)"
+    groups:
+      frontend-minor-and-patch:
+        update-types: [minor, patch]
+
+  # The actions used in .github/workflows
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: "deps(ci)"
+
+  # Base images in the Dockerfiles (python, node, nginx)
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, docker]
+    commit-message:
+      prefix: "deps(docker)"
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, docker]
+    commit-message:
+      prefix: "deps(docker)"
+
+  # Images named in the Compose files (Caddy, Mailpit)
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, docker]
+    commit-message:
+      prefix: "deps(docker)"
