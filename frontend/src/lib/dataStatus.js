@@ -79,6 +79,25 @@ export function formatAge(ms) {
   return `${Math.floor(seconds / 86_400)}d ago`
 }
 
+/**
+ * Weekdays (Mon-Fri) after `value`'s date up to and including yesterday (UTC):
+ * how many completed sessions a daily series could be missing. Exchange
+ * holidays are not known here, so this can overstate by a day or two.
+ */
+export function weekdaysSince(value, now) {
+  const date = parseTimestamp(value)
+  if (!date) return null
+  const day = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const today = new Date(now)
+  const end = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+  let count = 0
+  for (let t = day.getTime() + DAY_MS; t < end; t += DAY_MS) {
+    const weekday = new Date(t).getUTCDay()
+    if (weekday !== 0 && weekday !== 6) count += 1
+  }
+  return count
+}
+
 /** The newest `latest_timestamp` across stored assets: when the stored history ends. */
 export function latestStoredTimestamp(assets) {
   let newest = null

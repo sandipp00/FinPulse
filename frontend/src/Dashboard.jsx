@@ -50,6 +50,8 @@ function Dashboard({ route }) {
   // The right panel's selection is its own, so picking a live-only coin there does
   // not point the stored-history chart at an asset it has no data for.
   const [panelSymbol, setPanelSymbol] = useState('BTC/USDT')
+  // Fixed for the visit: day-level ages do not need a ticking clock.
+  const [pageLoadedAt] = useState(() => Date.now())
 
   const { assets: marketAssets, loading: assetLoading, error: apiError } = useAssets()
   const { ticks, history, status: liveStatus } = useLivePrices()
@@ -222,6 +224,7 @@ function Dashboard({ route }) {
                   loading={assetLoading}
                   error={apiError}
                   onSelect={openChart}
+                  now={pageLoadedAt}
                 />
               )}
               {route === 'markets' && (

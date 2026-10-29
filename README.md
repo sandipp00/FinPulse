@@ -154,6 +154,17 @@ In the explorer, a comparison keeps only the dates both instruments share (daily
 - **Requests, caching and failures:** one request fetches every currency for the whole window. It is cached for an hour. When the source fails, the last response is served for up to three days, labelled `cached`. A 429 is honoured using its `Retry-After`.
 - Frankfurter's default "blended" rate is its own mix of many providers and can differ from the ECB's (on 29 Oct 2026, EUR/USD was 1.1158 blended against 1.1130 from the ECB). FinPulse asks for the ECB's rate so that the source is a single, citable one.
 
+### Refreshing stock and index history
+
+`python src/data/update_equities.py` brings AAPL, the NIFTY 50 (`^NSEI`) and the S&P 500 (`^GSPC`) up to date from Yahoo Finance (via yfinance). Yahoo data is for personal use, and FinPulse is run as a personal terminal.
+
+- **Dry run by default:** it prints what it would add, per symbol, and writes nothing. Add `--apply` to write.
+- **Backup first:** with `--apply`, the database is copied to `data/backups/` (git-ignored) with SQLite's backup API, and the copy is checked row by row and with an integrity check before anything is written.
+- **Append-only:** only days after a symbol's newest stored bar are inserted, with `INSERT OR IGNORE`, so existing rows are not changed. A new symbol is downloaded from 2023-01-01.
+- **Only finished days:** bars dated today (UTC) or later are ignored, since the session may still be running.
+- **Adjustment check:** Yahoo's prices are dividend- and split-adjusted, and recalculated after each one. The script re-downloads the last ten days already stored and compares them. If they no longer match, that symbol is skipped and reported, rather than mixing two adjustment bases in one series.
+- **`--replace-newest SYMBOL`:** the one exception to append-only. It replaces that symbol's newest stored bar with Yahoo's final values, but only when that bar is the sole mismatch and at least three older days match exactly. That is the signature of a bar saved before its session closed. The old and new values are printed.
+
 ### Crude oil (EIA)
 
 - **Source:** WTI at Cushing, OK (`RWTC`) and Brent, Europe (`RBRTE`) daily spot prices, in US dollars per barrel, from the U.S. Energy Information Administration's API v2 (`petroleum/pri/spt`).

@@ -13,7 +13,7 @@ from backend.schemas.market import MarketRecord
 
 # Quote currency of stored instruments that are not "BASE/QUOTE" pairs. An
 # instrument missing here gets currency None rather than a guess.
-STORED_CURRENCIES = {"AAPL": "USD", "^NSEI": "INR"}
+STORED_CURRENCIES = {"AAPL": "USD", "^NSEI": "INR", "^GSPC": "USD"}
 
 UNITS = {"crypto": "per coin", "stock": "per share", "index": "index points"}
 
