@@ -10,7 +10,7 @@ const FILTER_LABEL = { Stock: 'Stocks', Index: 'Indices' }
 
 function AssetGlyph({ symbol }) {
   if (symbol === 'BTC/USDT') return <Bitcoin size={20} />
-  if (symbol === '^NSEI') return <BarChart3 size={18} />
+  if (symbol.startsWith('^')) return <BarChart3 size={18} />
   return symbol === 'AAPL' ? 'A' : 'Ξ'
 }
 

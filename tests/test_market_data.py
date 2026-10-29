@@ -400,3 +400,13 @@ def test_quotes_endpoint_with_no_stored_history_and_no_feed(client, monkeypatch)
 
     assert body["count"] == len(config.LIVE_SYMBOLS)
     assert {q["status"] for q in body["quotes"]} == {"unavailable"}
+
+
+def test_the_sp500_is_quoted_in_usd_index_points():
+    record = market_service.stored_record({
+        "symbol": "^GSPC", "asset_type": "index", "latest_price": 7743.98,
+        "latest_timestamp": "2026-10-28 00:00:00+00:00", "daily_change_pct": 0.4,
+    })
+    assert record.currency == "USD"
+    assert record.unit == "index points"
+    assert record.status == "historical"

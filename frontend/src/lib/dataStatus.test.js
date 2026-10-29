@@ -8,6 +8,7 @@ import {
   formatAsOfDate,
   isCachedFallback,
   latestStoredTimestamp,
+  weekdaysSince,
   parseTimestamp,
   storedStatus,
   tickStatus,
@@ -145,5 +146,26 @@ describe('describeSource', () => {
     expect(isCachedFallback({ ...meta, status: 'cached' })).toBe(true)
     expect(isCachedFallback(meta)).toBe(false)
     expect(isCachedFallback(null)).toBe(false)
+  })
+})
+
+describe('weekdaysSince', () => {
+  // Thursday 29 Oct 2026, midday UTC.
+  const THU = Date.UTC(2026, 9, 29, 12)
+
+  it('counts completed weekdays after the last stored day', () => {
+    expect(weekdaysSince('2026-10-28 00:00:00+00:00', THU)).toBe(0) // Wednesday's close is the latest possible
+    expect(weekdaysSince('2026-10-27T00:00:00Z', THU)).toBe(1)
+    expect(weekdaysSince('2026-10-14T00:00:00Z', THU)).toBe(10)
+  })
+
+  it('skips weekends', () => {
+    const MON = Date.UTC(2026, 10, 2, 12)
+    expect(weekdaysSince('2026-10-30T00:00:00Z', MON)).toBe(0) // Friday's close, seen on Monday
+    expect(weekdaysSince('2026-10-29T00:00:00Z', MON)).toBe(1)
+  })
+
+  it('is null for an unknown date', () => {
+    expect(weekdaysSince(null, THU)).toBeNull()
   })
 })

@@ -16,6 +16,7 @@ __pycache__/
 data/raw/
 data/processed/
 data/*.db*
+data/backups/
 
 # Frontend dependencies and build output
 frontend/node_modules/

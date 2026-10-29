@@ -27,11 +27,18 @@ def load_dataset(path: Path, asset_type: str) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(f"Dataset not found: {path}")
 
-    df = pd.read_csv(path)
+    return validate_frame(pd.read_csv(path), asset_type, path.name)
 
+
+def validate_frame(df: pd.DataFrame, asset_type: str, name: str) -> pd.DataFrame:
+    """Rows ready for market_prices; raises ValueError on anything unusable.
+
+    Shared by this loader and src/data/update_equities.py, so both apply the
+    same rules.
+    """
     missing = set(REQUIRED_COLUMNS) - set(df.columns)
     if missing:
-        raise ValueError(f"{path.name}: missing columns {sorted(missing)}")
+        raise ValueError(f"{name}: missing columns {sorted(missing)}")
 
     df = df[REQUIRED_COLUMNS].copy()
     df["asset_type"] = asset_type
@@ -44,16 +51,16 @@ def load_dataset(path: Path, asset_type: str) -> pd.DataFrame:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     if df[["timestamp"] + numeric_columns].isna().any().any():
-        raise ValueError(f"{path.name}: invalid or missing values found")
+        raise ValueError(f"{name}: invalid or missing values found")
 
     if (df[["open", "high", "low", "close"]] <= 0).any().any():
-        raise ValueError(f"{path.name}: non-positive price found")
+        raise ValueError(f"{name}: non-positive price found")
 
     if (df["volume"] < 0).any():
-        raise ValueError(f"{path.name}: negative volume found")
+        raise ValueError(f"{name}: negative volume found")
 
     if (df["high"] < df["low"]).any():
-        raise ValueError(f"{path.name}: high is below low")
+        raise ValueError(f"{name}: high is below low")
 
     df["timestamp"] = df["timestamp"].dt.strftime(
         "%Y-%m-%dT%H:%M:%SZ"
