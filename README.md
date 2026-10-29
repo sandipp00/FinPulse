@@ -145,6 +145,15 @@ Every number the API serves says where it came from and how fresh it is (models 
 
 In the explorer, a comparison keeps only the dates both instruments share (daily bars are matched by UTC day), and rebases both to 100. Prices are not converted between currencies, and the page says so when they differ.
 
+### FX rates (ECB via Frankfurter)
+
+- **Source:** euro foreign exchange reference rates from the European Central Bank, fetched through the free, open-source [Frankfurter](https://frankfurter.dev/) API (`providers=ecb`). No key is needed. `FX_BASE_URL` can point at a self-hosted Frankfurter.
+- **Freshness:** the ECB publishes them around 16:00 CET on TARGET working days, "for information purposes only". They are labelled `HIST` with their date, never as live. Weekends and holidays have no rate, and none is filled in.
+- **Derived pairs:** the ECB publishes only rates against the euro. GBP/USD, USD/JPY and USD/INR are cross rates that FinPulse calculates from the same day's two euro rates (for example USD/INR = EUR/INR ÷ EUR/USD). The ECB's reuse terms require changes to be stated, so these pairs are marked *Derived cross*, and their `method` field says how they were calculated.
+- **Endpoints:** `GET /api/fx/pairs` returns each pair's latest and previous rate, the change, whether it is derived, and source metadata. `GET /api/fx/history?pair=USD/INR` returns ten years of daily rates.
+- **Requests, caching and failures:** one request fetches every currency for the whole window. It is cached for an hour. When the source fails, the last response is served for up to three days, labelled `cached`. A 429 is honoured using its `Retry-After`.
+- Frankfurter's default "blended" rate is its own mix of many providers and can differ from the ECB's (on 29 Oct 2026, EUR/USD was 1.1158 blended against 1.1130 from the ECB). FinPulse asks for the ECB's rate so that the source is a single, citable one.
+
 ### US macro (FRED)
 
 Eight series from FRED: CPI (`CPIAUCSL`), core PCE prices (`PCEPILFE`), the effective Fed funds rate (`FEDFUNDS`), 2- and 10-year Treasury yields (`DGS2`, `DGS10`), real GDP (`GDPC1`), the unemployment rate (`UNRATE`) and nonfarm payrolls (`PAYEMS`).
@@ -181,6 +190,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Equities | `/equities` | Stocks and indices with their stored daily history and how far it reaches |
 | Crypto | `/crypto` | Live-streamed coins and stored crypto history, with data coverage |
 | Instrument explorer | `/explorer?symbol=AAPL` | Search any supported instrument; candles with volume, interval and bar-count choices, return figures, and a comparison rebased to 100. The selection is kept in the URL so a view can be shared |
+| FX rates | `/fx` | ECB euro reference rates (EUR/USD, EUR/GBP, EUR/JPY, EUR/INR) and cross rates derived from them (GBP/USD, USD/JPY, USD/INR), with a chart per pair. Daily, not live; no key needed |
 | US macro | `/macro` | Inflation, the Fed funds rate, Treasury yields, GDP and jobs from FRED, with a chart per series. Needs a free `FRED_API_KEY` |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |

@@ -175,3 +175,11 @@ export function getMacroSeries() {
 export function getMacroSeriesDetail(seriesId) {
   return getJSON(`/api/macro/series/${encodeURIComponent(seriesId)}`)
 }
+
+export function getFxPairs() {
+  return getJSON('/api/fx/pairs')
+}
+
+export function getFxHistory(pair) {
+  return getJSON(`/api/fx/history?pair=${encodeURIComponent(pair)}`)
+}

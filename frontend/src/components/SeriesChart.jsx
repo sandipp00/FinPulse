@@ -1,8 +1,11 @@
 import { memo, useEffect, useRef } from 'react'
 import { ColorType, LineSeries, createChart } from 'lightweight-charts'
 
-/** One macro series as a line; missing observations are drawn as gaps. */
-function MacroChart({ points, percent }) {
+/**
+ * One daily-or-slower series as a line (macro data, FX rates). Whitespace points
+ * (time only) are drawn as gaps. `percent` adds a % sign; `precision` sets decimals.
+ */
+function SeriesChart({ points, percent = false, precision = 2 }) {
   const containerRef = useRef(null)
   const chartRef = useRef(null)
   const seriesRef = useRef(null)
@@ -28,14 +31,14 @@ function MacroChart({ points, percent }) {
     if (!seriesRef.current) return
     seriesRef.current.applyOptions({
       priceFormat: percent
-        ? { type: 'custom', formatter: (value) => `${value.toFixed(2)}%`, minMove: 0.01 }
-        : { type: 'price', precision: 2, minMove: 0.01 },
+        ? { type: 'custom', formatter: (value) => `${value.toFixed(precision)}%`, minMove: 1 / 10 ** precision }
+        : { type: 'price', precision, minMove: 1 / 10 ** precision },
     })
     seriesRef.current.setData(points)
     chartRef.current?.timeScale().fitContent()
-  }, [points, percent])
+  }, [points, percent, precision])
 
   return <div ref={containerRef} className="macro-chart" />
 }
 
-export default memo(MacroChart)
+export default memo(SeriesChart)
