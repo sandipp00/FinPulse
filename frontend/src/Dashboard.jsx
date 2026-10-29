@@ -1,21 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronDown, CreditCard } from 'lucide-react'
 import AccountLinkBanner from './components/AccountLinkBanner'
 import LiveTicker from './components/LiveTicker'
+import RightPanel from './components/RightPanel'
 import Sidebar from './components/Sidebar'
+import StatusBar from './components/StatusBar'
 import ToastStack from './components/ToastStack'
 import Topbar from './components/Topbar'
 import { useAssets } from './hooks/useAssets'
+import { useBackendStatus } from './hooks/useBackendStatus'
 import { LivePricesContext } from './context/live-prices-context'
 import { useAuth } from './hooks/useAuth'
 import { useLivePrices } from './hooks/useLivePrices'
 import { useNotificationFeeds, useNotifications } from './hooks/useNotifications'
 import { navigate } from './hooks/useRoute'
-import { LIVE_STATUS_LABEL } from './lib/liveStatus'
+import { apiState, latestStoredTimestamp } from './lib/dataStatus'
 import { formatPercent, formatPrice, getAssetDetails } from './lib/format'
 import { PAGES } from './lib/pages'
 import { ROUTES } from './lib/routes'
 import AnalyticsPage from './pages/AnalyticsPage'
+import AssetClassPage from './pages/AssetClassPage'
 import HelpPage from './pages/HelpPage'
 import MarketsPage from './pages/MarketsPage'
 import OverviewPage from './pages/OverviewPage'
@@ -27,7 +30,7 @@ import SettingsPage from './pages/SettingsPage'
 const TYPE_LABEL = { crypto: 'Crypto', index: 'Index', stock: 'Stock' }
 
 // Pages that show the stored-asset list, and so should say when it is loading or failed.
-const USES_ASSET_DATA = new Set(['home', 'markets', 'analytics'])
+const USES_ASSET_DATA = new Set(['home', 'equities', 'crypto', 'markets', 'analytics'])
 
 /**
  * The shared shell (sidebar, top bar, live price ticker) and the data every page
@@ -40,11 +43,15 @@ function Dashboard({ route }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [selectedSymbol, setSelectedSymbol] = useState('BTC/USDT')
   const [chartSymbol, setChartSymbol] = useState('BTC/USDT')
+  // The right panel's selection is its own, so picking a live-only coin there does
+  // not point the stored-history chart at an asset it has no data for.
+  const [panelSymbol, setPanelSymbol] = useState('BTC/USDT')
 
   const { assets: marketAssets, loading: assetLoading, error: apiError } = useAssets()
   const { ticks, history, status: liveStatus } = useLivePrices()
   const { user, logout } = useAuth()
   const { unread } = useNotifications()
+  const backend = useBackendStatus()
 
   // Price alerts are checked against every tick, and daily ratings are polled for changes.
   useNotificationFeeds(ticks)
@@ -126,11 +133,19 @@ function Dashboard({ route }) {
   const openChart = useCallback((symbol) => {
     setChartSymbol(symbol)
     setSelectedSymbol(symbol)
+    setPanelSymbol(symbol)
     if (route !== 'markets') navigate(ROUTES.markets)
     else window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [route])
 
   const livePrices = useMemo(() => ({ ticks, symbols: liveSymbols }), [ticks, liveSymbols])
+
+  // Stocks and indices have no live feed; the ticker shows their stored close, dated.
+  const storedTickerAssets = useMemo(
+    () => marketAssets.filter((asset) => asset.asset_type !== 'crypto'),
+    [marketAssets],
+  )
+  const storedAsOf = useMemo(() => latestStoredTimestamp(marketAssets), [marketAssets])
 
   return (
     <LivePricesContext.Provider value={livePrices}>
@@ -140,7 +155,6 @@ function Dashboard({ route }) {
           onNavigate={closeSidebar}
           open={sidebarOpen}
           onClose={closeSidebar}
-          liveStatus={liveStatus}
         />
 
         <main className="main-panel">
@@ -151,91 +165,111 @@ function Dashboard({ route }) {
             onOpenMenu={openSidebar}
             user={user}
             onLogout={logout}
+            apiStatus={apiState(backend)}
+            liveStatus={liveStatus}
           />
 
-          <LiveTicker ticks={ticks} symbols={liveSymbols} status={liveStatus} />
+          <LiveTicker ticks={ticks} symbols={liveSymbols} status={liveStatus} storedAssets={storedTickerAssets} />
 
-          <div className="dashboard-content">
-            <AccountLinkBanner />
+          <div className="workspace">
+            <div className="dashboard-content">
+              <AccountLinkBanner />
 
-            <section className="page-intro">
-              <div>
-                <div className="eyebrow"><span className="status-dot" /> YOUR FINANCIAL COMMAND CENTER</div>
-                <h1>{page.title}<span>.</span></h1>
+              <section className="page-intro">
+                <h1>{page.title}</h1>
                 <p>{page.blurb}</p>
-              </div>
-              <div className="date-button">
-                <span className={`status-dot ${liveStatus === 'live' ? '' : 'status-muted'}`} />
-                {LIVE_STATUS_LABEL[liveStatus]}
-                <ChevronDown size={15} />
-              </div>
-            </section>
+              </section>
 
-            {USES_ASSET_DATA.has(route) && assetLoading && (
-              <p className="mb-4 text-sm text-slate-400">Loading market data from your local database...</p>
-            )}
-            {USES_ASSET_DATA.has(route) && apiError && (
-              <p className="mb-4 rounded-lg border border-red-900 bg-red-950/40 p-3 text-sm text-red-300">
-                Unable to load market data: {apiError}
-              </p>
-            )}
+              {USES_ASSET_DATA.has(route) && assetLoading && (
+                <p className="mb-4 text-sm text-slate-400">Loading market data from your local database...</p>
+              )}
+              {USES_ASSET_DATA.has(route) && apiError && (
+                <p className="mb-4 rounded-lg border border-red-900 bg-red-950/40 p-3 text-sm text-red-300">
+                  Unable to load market data: {apiError}
+                </p>
+              )}
 
-            {route === 'home' && (
-              <OverviewPage
-                marketAssets={marketAssets}
-                displayAssets={displayAssets}
-                assetLoading={assetLoading}
-                apiError={apiError}
-                ticks={ticks}
-                history={history}
-                liveSymbols={liveSymbols}
-                liveStatus={liveStatus}
-                chartSymbol={chartSymbol}
-                onOpenChart={openChart}
-              />
-            )}
-            {route === 'markets' && (
-              <MarketsPage
-                liveSymbols={liveSymbols}
-                ticks={ticks}
-                liveStatus={liveStatus}
-                chartSymbol={chartSymbol}
-                onChartSymbol={setChartSymbol}
-                marketAssets={marketAssets}
-                selectedSymbol={selectedSymbol}
-                onSelectSymbol={setSelectedSymbol}
-                range={range}
-                onRangeChange={setRange}
-                watchlist={{
-                  assets: filteredAssets,
-                  totalCount: displayAssets.length,
-                  loading: assetLoading,
-                  filter,
-                  onFilterChange: setFilter,
-                  onSelect: openChart,
-                }}
-              />
-            )}
-            {route === 'portfolio' && (
-              <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
-            )}
-            {route === 'analytics' && (
-              <AnalyticsPage chartSymbol={chartSymbol} onSelectSymbol={setChartSymbol} marketAssets={marketAssets} />
-            )}
-            {route === 'research' && (
-              <ResearchPage ticks={ticks} liveSymbols={liveSymbols} liveStatus={liveStatus} />
-            )}
-            {route === 'risk' && <RiskPage ticks={ticks} />}
-            {route === 'settings' && <SettingsPage liveStatus={liveStatus} />}
-            {route === 'help' && <HelpPage />}
+              {route === 'home' && (
+                <OverviewPage
+                  marketAssets={marketAssets}
+                  displayAssets={displayAssets}
+                  assetLoading={assetLoading}
+                  apiError={apiError}
+                  ticks={ticks}
+                  history={history}
+                  liveSymbols={liveSymbols}
+                  liveStatus={liveStatus}
+                  chartSymbol={chartSymbol}
+                  onOpenChart={openChart}
+                />
+              )}
+              {(route === 'equities' || route === 'crypto') && (
+                <AssetClassPage
+                  assetClass={route}
+                  assets={displayAssets}
+                  ticks={ticks}
+                  liveStatus={liveStatus}
+                  loading={assetLoading}
+                  error={apiError}
+                  onSelect={openChart}
+                />
+              )}
+              {route === 'markets' && (
+                <MarketsPage
+                  liveSymbols={liveSymbols}
+                  ticks={ticks}
+                  liveStatus={liveStatus}
+                  chartSymbol={chartSymbol}
+                  onChartSymbol={setChartSymbol}
+                  marketAssets={marketAssets}
+                  selectedSymbol={selectedSymbol}
+                  onSelectSymbol={setSelectedSymbol}
+                  range={range}
+                  onRangeChange={setRange}
+                  watchlist={{
+                    assets: filteredAssets,
+                    totalCount: displayAssets.length,
+                    loading: assetLoading,
+                    filter,
+                    onFilterChange: setFilter,
+                    onSelect: openChart,
+                  }}
+                />
+              )}
+              {route === 'portfolio' && (
+                <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
+              )}
+              {route === 'analytics' && (
+                <AnalyticsPage chartSymbol={chartSymbol} onSelectSymbol={setChartSymbol} marketAssets={marketAssets} />
+              )}
+              {route === 'research' && (
+                <ResearchPage ticks={ticks} liveSymbols={liveSymbols} liveStatus={liveStatus} />
+              )}
+              {route === 'risk' && <RiskPage ticks={ticks} />}
+              {route === 'settings' && <SettingsPage liveStatus={liveStatus} />}
+              {route === 'help' && <HelpPage />}
+            </div>
 
-            <footer className="app-footer">
-              <span>FinPulse <span className="footer-version">DEVELOPER PREVIEW</span></span>
-              <span><CreditCard size={13} /> Research &amp; analytics workspace</span>
-              <span>Market data is informational only. Not investment advice.</span>
-            </footer>
+            <RightPanel
+              assets={displayAssets}
+              ticks={ticks}
+              liveStatus={liveStatus}
+              loading={assetLoading}
+              error={apiError}
+              selectedSymbol={panelSymbol}
+              onSelect={setPanelSymbol}
+              onOpenChart={openChart}
+            />
           </div>
         </main>
+        <StatusBar
+          backend={backend}
+          liveStatus={liveStatus}
+          ticks={ticks}
+          storedAsOf={storedAsOf}
+          assetsLoading={assetLoading}
+          assetsError={apiError}
+        />
         <ToastStack />
       </div>
     </LivePricesContext.Provider>

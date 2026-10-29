@@ -1,0 +1,116 @@
+import { describe, expect, it } from 'vitest'
+import {
+  STALE_AFTER_MS,
+  ageInDays,
+  apiState,
+  formatAge,
+  formatAsOfDate,
+  latestStoredTimestamp,
+  parseTimestamp,
+  storedStatus,
+  tickStatus,
+} from './dataStatus'
+
+const NOW = Date.UTC(2026, 9, 29, 12, 0, 0)
+
+describe('tickStatus', () => {
+  const tick = { symbol: 'BTC/USDT', price: 83000, seenAt: NOW - 1000 }
+
+  it('is live for a recent tick while the feed is connected', () => {
+    expect(tickStatus(tick, 'live', NOW)).toBe('live')
+  })
+
+  it('is stale once the last tick is older than the threshold', () => {
+    expect(tickStatus({ ...tick, seenAt: NOW - STALE_AFTER_MS - 1 }, 'live', NOW)).toBe('stale')
+    expect(tickStatus({ ...tick, seenAt: NOW - STALE_AFTER_MS }, 'live', NOW)).toBe('live')
+  })
+
+  it('is stale whenever the feed is not connected, however recent the tick', () => {
+    for (const status of ['connecting', 'reconnecting', 'offline']) {
+      expect(tickStatus(tick, status, NOW)).toBe('stale')
+    }
+  })
+
+  it('is stale when the receive time is unknown', () => {
+    expect(tickStatus({ symbol: 'BTC/USDT', price: 1 }, 'live', NOW)).toBe('stale')
+  })
+
+  it('is unavailable without a usable price', () => {
+    expect(tickStatus(undefined, 'live', NOW)).toBe('unavailable')
+    expect(tickStatus({ ...tick, price: null }, 'live', NOW)).toBe('unavailable')
+    expect(tickStatus({ ...tick, price: 'abc' }, 'live', NOW)).toBe('unavailable')
+  })
+})
+
+describe('storedStatus', () => {
+  it('calls a stored close historical, never live', () => {
+    expect(storedStatus({ latest_price: 230.1, latest_timestamp: '2026-10-14 00:00:00+00:00' })).toBe('historical')
+  })
+
+  it('is unavailable without a price', () => {
+    expect(storedStatus(undefined)).toBe('unavailable')
+    expect(storedStatus({ latest_price: null })).toBe('unavailable')
+  })
+})
+
+describe('timestamps', () => {
+  it('parses the formats the API returns', () => {
+    expect(parseTimestamp('2026-10-14 00:00:00+00:00')?.toISOString()).toBe('2026-10-14T00:00:00.000Z')
+    expect(parseTimestamp('2026-10-14T00:00:00Z')?.toISOString()).toBe('2026-10-14T00:00:00.000Z')
+    expect(parseTimestamp(NOW)?.getTime()).toBe(NOW)
+    expect(parseTimestamp(new Date(NOW))?.getTime()).toBe(NOW)
+    expect(parseTimestamp('')).toBeNull()
+    expect(parseTimestamp(null)).toBeNull()
+    expect(parseTimestamp('not a date')).toBeNull()
+  })
+
+  it('counts whole days of age', () => {
+    expect(ageInDays('2026-10-14 00:00:00+00:00', NOW)).toBe(15)
+    expect(ageInDays('2026-10-29 00:00:00+00:00', NOW)).toBe(0)
+    expect(ageInDays('2026-11-30 00:00:00+00:00', NOW)).toBe(0)
+    expect(ageInDays(new Date('2026-10-14T00:00:00Z'), NOW)).toBe(15)
+    expect(ageInDays(null, NOW)).toBeNull()
+  })
+
+  it('formats an as-of date in UTC', () => {
+    expect(formatAsOfDate('2026-10-14 00:00:00+00:00')).toBe('14 Oct')
+    expect(formatAsOfDate('2026-10-14 00:00:00+00:00', { withYear: true })).toBe('14 Oct 2026')
+    expect(formatAsOfDate(new Date('2026-10-14T00:00:00Z'), { withYear: true })).toBe('14 Oct 2026')
+    expect(formatAsOfDate(undefined)).toBe('—')
+  })
+
+  it('formats an age', () => {
+    expect(formatAge(2400)).toBe('2s ago')
+    expect(formatAge(5 * 60_000)).toBe('5m ago')
+    expect(formatAge(3 * 3_600_000)).toBe('3h ago')
+    expect(formatAge(15 * 86_400_000)).toBe('15d ago')
+    expect(formatAge(-50)).toBe('0s ago')
+    expect(formatAge(null)).toBe('—')
+  })
+
+  it('finds where the stored history ends', () => {
+    const assets = [
+      { latest_timestamp: '2026-10-13 00:00:00+00:00' },
+      { latest_timestamp: '2026-10-14 00:00:00+00:00' },
+      { latest_timestamp: null },
+    ]
+    expect(latestStoredTimestamp(assets)?.toISOString()).toBe('2026-10-14T00:00:00.000Z')
+    expect(latestStoredTimestamp([])).toBeNull()
+  })
+})
+
+describe('apiState', () => {
+  it('is ok only for a healthy answer', () => {
+    expect(apiState({ health: { status: 'healthy' }, loading: false })).toBe('ok')
+  })
+
+  it('is checking before the first answer', () => {
+    expect(apiState({ health: null, loading: true })).toBe('checking')
+  })
+
+  it('is an error when the check failed or answered unhealthy', () => {
+    expect(apiState({ health: { status: 'healthy' }, healthError: 'Network error', loading: false })).toBe('error')
+    expect(apiState({ health: { status: 'degraded' }, loading: false })).toBe('error')
+    expect(apiState({ health: null, loading: false })).toBe('error')
+  })
+})

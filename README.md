@@ -146,6 +146,8 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Page | URL | What is on it |
 |---|---|---|
 | Overview | `/` | Headline numbers, live crypto cards, asset mix, quick links |
+| Equities | `/equities` | Stocks and indices with their stored daily history and how far it reaches |
+| Crypto | `/crypto` | Live-streamed coins and stored crypto history, with data coverage |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |
 | Analytics | `/analytics` | Buy/sell signals with backtests, and a side-by-side historical comparison |
@@ -153,6 +155,19 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Risk Monitor | `/risk` | Volatility, drawdown, 1-in-20-day loss and a correlation heatmap for every asset, plus the concentration and estimated volatility of your own paper portfolio |
 | Settings | `/settings` | Your account, a password-reset email, and live connection health |
 | Help & support | `/help` | What each page does, a glossary, and where the data comes from |
+
+FX, Commodities, Macro and News appear in the sidebar marked *Planned*. They are not links yet, because no data source for them is connected.
+
+### Terminal layout
+
+Every page shares one shell:
+
+- **Top bar:** page title, search (Ctrl/⌘K), notification bell, account, and two status lights: whether the API answers (`/api/health`) and whether the exchange feed is connected.
+- **Ticker:** live crypto from the feed, then the latest stored close for stocks and indices, tagged `HIST` with its date.
+- **Right panel:** a compact watchlist plus details of the selected instrument (its source, when it was received or stored, 24h range or historical metrics). Below 1400px wide it moves under the page content.
+- **Status bar:** API health and stored-bar count, feed state and time since the last tick, how old the stored history is, and local/UTC time.
+
+Every price carries a freshness tag: `LIVE` for a recent tick while the feed is connected, `STALE` when a live symbol has had no tick for 30 seconds or the feed is down, `HIST` for a stored daily close, and `N/A` when nothing is available. Nothing is filled in when a source fails.
 
 The risk figures come from `GET /api/risk` (about three years of daily Binance candles for the live crypto, stored history for stocks and indices; cached for a minute).
 

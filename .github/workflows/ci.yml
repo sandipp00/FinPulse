@@ -93,7 +93,7 @@ jobs:
           curl -fsS "$base/signin" | grep -q '<div id="root">'
           curl -fsS "$base/signup" | grep -q '<div id="root">'
           curl -fsS "$base/no/such/page" | grep -q '<div id="root">'
-          for page in markets portfolio analytics research risk settings help; do
+          for page in equities crypto markets portfolio analytics research risk settings help; do
             curl -fsS "$base/$page" | grep -q '<div id="root">'
           done
 

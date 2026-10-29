@@ -1,17 +1,36 @@
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
-import { formatPercent, getAssetDetails } from '../lib/format'
+import { useNow } from '../hooks/useNow'
+import { formatAsOfDate, tickStatus } from '../lib/dataStatus'
+import { formatPercent, formatPrice, getAssetDetails } from '../lib/format'
+import DataTag from './DataTag'
 import LiveBadge from './LiveBadge'
 import LivePrice from './LivePrice'
 
-/** Compact strip of live prices shown above the page content. */
-export default function LiveTicker({ ticks, symbols, status }) {
+function Change({ value, suffix }) {
+  if (value == null || !Number.isFinite(Number(value))) return null
+  const positive = Number(value) >= 0
   return (
-    <div className="live-ticker" role="region" aria-label="Live crypto prices">
+    <span className={`live-ticker-change ${positive ? 'up' : 'down'}`}>
+      {positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+      {formatPercent(value)}{suffix}
+    </span>
+  )
+}
+
+/**
+ * Strip of prices above the page content: live crypto from the exchange feed, then
+ * the latest stored close for stocks and indices, tagged with its date.
+ */
+export default function LiveTicker({ ticks, symbols, status, storedAssets = [] }) {
+  const now = useNow(5000)
+
+  return (
+    <div className="live-ticker" role="region" aria-label="Market prices">
       <LiveBadge status={status} />
       <div className="live-ticker-items">
         {symbols.map((symbol) => {
           const tick = ticks[symbol]
-          const positive = (tick?.change_pct_24h ?? 0) >= 0
+          const freshness = tickStatus(tick, status, now)
 
           return (
             <div className="live-ticker-item" key={symbol}>
@@ -19,10 +38,8 @@ export default function LiveTicker({ ticks, symbols, status }) {
               {tick ? (
                 <>
                   <LivePrice tick={tick} />
-                  <span className={`live-ticker-change ${positive ? 'up' : 'down'}`}>
-                    {positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                    {formatPercent(tick.change_pct_24h)}
-                  </span>
+                  <Change value={tick.change_pct_24h} suffix=" 24h" />
+                  {freshness === 'stale' && <DataTag status="stale" />}
                 </>
               ) : (
                 <span className="live-ticker-wait">{getAssetDetails(symbol).name}…</span>
@@ -30,6 +47,17 @@ export default function LiveTicker({ ticks, symbols, status }) {
             </div>
           )
         })}
+
+        {storedAssets.length > 0 && <span className="live-ticker-divider" aria-hidden="true" />}
+
+        {storedAssets.map((asset) => (
+          <div className="live-ticker-item" key={asset.symbol}>
+            <span className="live-ticker-symbol">{asset.symbol}</span>
+            <span className="num">{formatPrice(asset.latest_price, asset.symbol)}</span>
+            <Change value={asset.daily_change_pct} suffix=" 1d" />
+            <DataTag status="historical" detail={formatAsOfDate(asset.latest_timestamp)} />
+          </div>
+        ))}
       </div>
     </div>
   )

@@ -7,8 +7,10 @@ const RETRY_MAX_MS = 15000
 
 // Merge one tick into the per-symbol state. `direction` and `seq` only change
 // when the price changes, so a flash animation keyed on `seq` fires exactly
-// once per real price move.
-function mergeTick(ticks, tick) {
+// once per real price move. `seenAt` is when this browser received the tick, used
+// to spot a stale price without trusting the server's or the exchange's clock.
+function mergeTick(ticks, incoming) {
+  const tick = { ...incoming, seenAt: Date.now() }
   const previous = ticks[tick.symbol]
 
   if (!previous) {
