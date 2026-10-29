@@ -183,3 +183,11 @@ export function getFxPairs() {
 export function getFxHistory(pair) {
   return getJSON(`/api/fx/history?pair=${encodeURIComponent(pair)}`)
 }
+
+export function getCommodities() {
+  return getJSON('/api/commodities')
+}
+
+export function getCommodityHistory(series) {
+  return getJSON(`/api/commodities/history?series=${encodeURIComponent(series)}`)
+}

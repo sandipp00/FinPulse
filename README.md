@@ -154,6 +154,20 @@ In the explorer, a comparison keeps only the dates both instruments share (daily
 - **Requests, caching and failures:** one request fetches every currency for the whole window. It is cached for an hour. When the source fails, the last response is served for up to three days, labelled `cached`. A 429 is honoured using its `Retry-After`.
 - Frankfurter's default "blended" rate is its own mix of many providers and can differ from the ECB's (on 29 Oct 2026, EUR/USD was 1.1158 blended against 1.1130 from the ECB). FinPulse asks for the ECB's rate so that the source is a single, citable one.
 
+### Crude oil (EIA)
+
+- **Source:** WTI at Cushing, OK (`RWTC`) and Brent, Europe (`RBRTE`) daily spot prices, in US dollars per barrel, from the U.S. Energy Information Administration's API v2 (`petroleum/pri/spt`).
+- **Setup:** get a free key at https://www.eia.gov/opendata/register.php and set `EIA_API_KEY` in `.env`. Without it, `/api/commodities` answers `"configured": false` and nothing is sent to EIA.
+- **Freshness:** EIA releases these daily prices once a week, so the newest value can be several days old. Each price carries its date, labelled `HIST`, never as live.
+- **Terms:** EIA data is in the public domain. EIA asks for the citation "Source: U.S. Energy Information Administration (date)", which the page shows.
+- **Endpoints:** `GET /api/commodities` returns the latest and previous price, the change, units and source metadata. `GET /api/commodities/history?series=RWTC` returns ten years of daily prices, with missing values as `null`.
+- **Requests, caching and failures:**
+  - **Paging:** one request asks for both series, paging through EIA's 5,000-row limit (at most four pages).
+  - **Caching:** responses are cached for an hour. When EIA fails, the last response is kept for up to three days, labelled `cached`.
+  - **Rate limits:** after a 429, FinPulse waits 60 seconds before asking again.
+- **The key:** it goes in the URL, as with FRED, so it is kept out of logs and error messages, and tests check this.
+- **Not covered:** gold and silver are not included yet. FRED dropped its gold and silver series in 2022, and no source with verified display terms has been chosen.
+
 ### US macro (FRED)
 
 Eight series from FRED: CPI (`CPIAUCSL`), core PCE prices (`PCEPILFE`), the effective Fed funds rate (`FEDFUNDS`), 2- and 10-year Treasury yields (`DGS2`, `DGS10`), real GDP (`GDPC1`), the unemployment rate (`UNRATE`) and nonfarm payrolls (`PAYEMS`).
@@ -191,6 +205,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Crypto | `/crypto` | Live-streamed coins and stored crypto history, with data coverage |
 | Instrument explorer | `/explorer?symbol=AAPL` | Search any supported instrument; candles with volume, interval and bar-count choices, return figures, and a comparison rebased to 100. The selection is kept in the URL so a view can be shared |
 | FX rates | `/fx` | ECB euro reference rates (EUR/USD, EUR/GBP, EUR/JPY, EUR/INR) and cross rates derived from them (GBP/USD, USD/JPY, USD/INR), with a chart per pair. Daily, not live; no key needed |
+| Commodities | `/commodities` | WTI and Brent crude oil spot prices from the EIA, with a chart per series. Needs a free `EIA_API_KEY` |
 | US macro | `/macro` | Inflation, the Fed funds rate, Treasury yields, GDP and jobs from FRED, with a chart per series. Needs a free `FRED_API_KEY` |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |

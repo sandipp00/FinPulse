@@ -5,6 +5,7 @@ export const ROUTES = {
   equities: '/equities',
   crypto: '/crypto',
   fx: '/fx',
+  commodities: '/commodities',
   macro: '/macro',
   markets: '/markets',
   explorer: '/explorer',

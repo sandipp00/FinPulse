@@ -1,7 +1,6 @@
 // Modules shown in the sidebar that have no data source yet. They are listed so the
 // layout is visible, but they are not links and have no page: nothing to fabricate.
 export const PLANNED_MODULES = [
-  { key: 'commodities', nav: 'Commodities', note: 'Gold, silver and oil need a data source; planned for a later phase.' },
   { key: 'news', nav: 'News', note: 'Source-linked headlines are planned for a later phase.' },
 ]
 
@@ -27,6 +26,11 @@ export const PAGES = {
     title: 'FX rates',
     nav: 'FX',
     blurb: 'ECB euro reference rates and cross rates derived from them. Daily, not live.',
+  },
+  commodities: {
+    title: 'Commodities',
+    nav: 'Commodities',
+    blurb: 'WTI and Brent crude oil spot prices from the U.S. Energy Information Administration.',
   },
   macro: {
     title: 'US macro',
