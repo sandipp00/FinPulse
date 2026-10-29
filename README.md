@@ -145,6 +145,18 @@ Every number the API serves says where it came from and how fresh it is (models 
 
 In the explorer, a comparison keeps only the dates both instruments share (daily bars are matched by UTC day), and rebases both to 100. Prices are not converted between currencies, and the page says so when they differ.
 
+### US macro (FRED)
+
+Eight series from FRED: CPI (`CPIAUCSL`), core PCE prices (`PCEPILFE`), the effective Fed funds rate (`FEDFUNDS`), 2- and 10-year Treasury yields (`DGS2`, `DGS10`), real GDP (`GDPC1`), the unemployment rate (`UNRATE`) and nonfarm payrolls (`PAYEMS`).
+
+- **Setup:** get a free key at https://fred.stlouisfed.org/docs/api/api_key.html and set `FRED_API_KEY` in `.env`. Without a key, `/api/macro/series` answers `"configured": false` and FinPulse sends nothing to FRED.
+- **Endpoints:** `GET /api/macro/series` returns each series' latest and previous values, the change between them, units, frequency, FRED's `last_updated` and source metadata. `GET /api/macro/series/{id}` returns the last ten years of observations.
+- **Missing values:** FRED's non-numeric values (such as `.`) are returned as `null`, counted, and drawn as gaps.
+- **Allowed series:** only the series listed above can be requested, so the API is not an open proxy to FRED.
+- **Caching and limits:** responses are cached for an hour. FRED allows 120 requests a minute; after a 429, FinPulse waits 60 seconds before asking again, and the API answers 503 with `Retry-After`. When FRED fails, the last response is served for up to a day, labelled `cached`.
+- **The key:** it stays on the server. FRED takes it as a URL parameter, so httpx's request logging is held at WARNING, and error messages are built without the request URL. Tests check that the key never appears in logs or API responses.
+- **Required notice:** This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis. The Macro and Help pages show it, with a link to the [FRED® API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html).
+
 How failures are handled when fetching Binance candles:
 
 - **Malformed responses** (not a list, missing or non-numeric fields, NaN, negative prices, open/close outside the low-high range, out-of-order bars) are rejected, and the next endpoint in `BINANCE_REST_URLS` is tried.
@@ -169,6 +181,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Equities | `/equities` | Stocks and indices with their stored daily history and how far it reaches |
 | Crypto | `/crypto` | Live-streamed coins and stored crypto history, with data coverage |
 | Instrument explorer | `/explorer?symbol=AAPL` | Search any supported instrument; candles with volume, interval and bar-count choices, return figures, and a comparison rebased to 100. The selection is kept in the URL so a view can be shared |
+| US macro | `/macro` | Inflation, the Fed funds rate, Treasury yields, GDP and jobs from FRED, with a chart per series. Needs a free `FRED_API_KEY` |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |
 | Analytics | `/analytics` | Buy/sell signals with backtests, and a side-by-side historical comparison |
