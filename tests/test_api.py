@@ -267,3 +267,20 @@ def test_websocket_from_another_site_is_refused(client, monkeypatch):
     allowed = {"origin": config.CORS_ORIGINS[0]}
     with client.websocket_connect("/ws/prices", headers=allowed) as socket:
         assert socket.receive_json()["type"] == "snapshot"
+
+
+def test_backtest_endpoint_passes_slippage_and_position_size(client, fake_candles):
+    base = {"symbol": "BTC/USDT", "interval": "1h"}
+    default = client.get("/api/backtest", params=base).json()
+    custom = client.get("/api/backtest", params={**base, "slippage_bps": 10, "position_pct": 50}).json()
+
+    assert (default["slippage_pct"], default["position_size_pct"]) == (0.0, 100.0)
+    assert (custom["slippage_pct"], custom["position_size_pct"]) == (0.1, 50.0)
+    assert custom["buy_hold_return_pct"] != default["buy_hold_return_pct"]
+    assert "trend" in custom["baselines"] and "split" in custom
+
+
+@pytest.mark.parametrize("params", [{"slippage_bps": -1}, {"slippage_bps": 101}, {"position_pct": 0}, {"position_pct": 120}])
+def test_backtest_settings_are_validated(client, params):
+    response = client.get("/api/backtest", params={"symbol": "BTC/USDT", "interval": "1h", **params})
+    assert response.status_code == 422

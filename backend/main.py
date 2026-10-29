@@ -378,13 +378,20 @@ async def backtest(
     symbol: str = Query(..., min_length=1),
     interval: str = Query(default="1d"),
     fee_pct: float = Query(default=0.1, ge=0, le=2, description="Fee per fill, in percent"),
+    slippage_bps: float = Query(default=0, ge=0, le=100, description="Slippage per fill, in basis points"),
+    position_pct: float = Query(default=100, gt=0, le=100, description="Share of equity invested per entry"),
 ):
-    """Historical performance of the signal rules on this symbol and timeframe."""
+    """Historical performance of the signal rules on this symbol and timeframe.
+
+    Slippage and position size also apply to the buy-and-hold and trend baselines.
+    """
     _require_live_symbol(symbol)
     _require_interval(interval)
 
     try:
-        result = await signal_service.backtest_for(symbol, interval, fee_pct / 100)
+        result = await signal_service.backtest_for(
+            symbol, interval, fee_pct / 100, slippage_bps / 10_000, position_pct / 100
+        )
     except candle_source.CandleSourceError as exc:
         raise exchange_error(exc) from exc
     except ValueError as exc:

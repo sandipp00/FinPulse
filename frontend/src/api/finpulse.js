@@ -71,10 +71,11 @@ export function getSignals(interval, symbol) {
   return getJSON(`/api/signals?${query}`)
 }
 
-export function getBacktest(symbol, interval) {
+export function getBacktest(symbol, interval, { slippageBps = 0, positionPct = 100 } = {}) {
   return getJSON(
     `/api/backtest?symbol=${encodeURIComponent(symbol)}`
-    + `&interval=${encodeURIComponent(interval)}`,
+    + `&interval=${encodeURIComponent(interval)}`
+    + `&slippage_bps=${slippageBps}&position_pct=${positionPct}`,
   )
 }
 

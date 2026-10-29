@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import { getBacktest } from '../api/finpulse'
 
-/** Backtest of the signal rules for one symbol and timeframe. */
-export function useBacktest(symbol, interval) {
+/** Backtest of the signal rules for one symbol and timeframe, with slippage and position size. */
+export function useBacktest(symbol, interval, { slippageBps = 0, positionPct = 100 } = {}) {
   const [result, setResult] = useState({ key: null, data: null, error: '' })
-  const key = `${symbol}|${interval}`
+  const key = `${symbol}|${interval}|${slippageBps}|${positionPct}`
 
   useEffect(() => {
     let cancelled = false
 
-    getBacktest(symbol, interval)
+    getBacktest(symbol, interval, { slippageBps, positionPct })
       .then((data) => {
         if (!cancelled) setResult({ key, data, error: '' })
       })
@@ -20,7 +20,7 @@ export function useBacktest(symbol, interval) {
     return () => {
       cancelled = true
     }
-  }, [symbol, interval, key])
+  }, [symbol, interval, slippageBps, positionPct, key])
 
   const loading = result.key !== key
   return {

@@ -47,7 +47,9 @@ async def signals_for(symbols: list[str], interval: str) -> list[dict]:
     return list(await asyncio.gather(*(signal_for(s, interval) for s in symbols)))
 
 
-async def backtest_for(symbol: str, interval: str, fee: float) -> dict:
+async def backtest_for(
+    symbol: str, interval: str, fee: float, slippage: float = 0.0, position_size: float = 1.0
+) -> dict:
     frame = await _closed_candles(symbol, interval, BACKTEST_CANDLES)
-    result = await asyncio.to_thread(run_backtest, frame, interval, fee)
+    result = await asyncio.to_thread(run_backtest, frame, interval, fee, slippage, position_size)
     return {"symbol": symbol, **result}

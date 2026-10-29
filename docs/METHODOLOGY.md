@@ -68,10 +68,28 @@ will keep moving together.
 - **Window figures:** returns in the explorer's figures use the bars on screen.
 - **Bar volatility:** the explorer's "bar volatility" is the sample standard deviation of bar-to-bar returns. It is **not** annualized.
 
-## Signals and backtests
+## Signals
 
-- **Signals:** six indicator rules vote on each **closed** candle (see the README). They use the same indicator conventions in Python and in the browser: the EMA is seeded with the simple average of its first *n* values, RSI uses Wilder's smoothing, and Bollinger Bands use the population standard deviation.
-- **Backtests:** a backtest trades at the **next** candle's open after a signal and pays a fee on every fill. This means it never uses a price it could not have known.
+Six indicator rules vote on each **closed** candle (see the README). They use the same indicator conventions in Python and in the browser: the EMA is seeded with the simple average of its first *n* values, RSI uses Wilder's smoothing, and Bollinger Bands use the population standard deviation.
+
+## Backtests
+
+| Rule | Detail |
+|---|---|
+| No look-ahead | The rating is computed from a candle's close, and the trade fills at the **next** candle's open. |
+| Long only | Enter on a Buy rating, leave on a Sell rating, and keep the position through Hold. No shorting or leverage. |
+| Fee | A share of each fill (default 0.1%, roughly Binance spot). It is paid on entry and again on exit. |
+| Slippage | A share of the price, always against the trader: buys fill at open × (1 + s), sells at open × (1 − s). The default is 0. |
+| Position size | The share of equity invested on each entry (default 100%). The rest stays in cash, earning nothing. Cash and units are tracked explicitly, and the position is not rebalanced while it is held. |
+| Equity | cash + units × close, starting from 1.0. An open position at the end is valued at the last close, with no exit costs. |
+| Trade return | exit fill / entry fill × (1 − fee)² − 1, on the money invested in that trade. It does not depend on the position size. |
+| Buy and hold | Bought at the window's first tradable open, with the **same** fee, slippage and position size. |
+| Trend baseline | Long while the 50-candle simple average is above the 200-candle one, run through the same simulation. It is in cash for its first 200 candles. |
+| First 70% / latest 30% | The window's results, split by time. Each part is rebased to its own start, so (1 + first) × (1 + latest) = 1 + whole. A trade belongs to the part in which it was entered. The signal rules have **no fitted parameters**, so this is not a validation of a fit. It shows whether the result held up in the most recent stretch. |
+| Sharpe ratio | mean / sd of per-candle strategy returns × √(candles per year). Only given for windows of at least 14 days. |
+| Too few trades | Fewer than 10 trades is flagged as too few to draw conclusions. |
+
+With the default settings (100% position, no slippage), results are identical to those before slippage and position sizing were added.
 
 ## Where the code is
 
