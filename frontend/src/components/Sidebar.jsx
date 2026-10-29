@@ -1,12 +1,14 @@
 import { memo } from 'react'
 import {
   Activity,
-  ArrowUpRight,
   BarChart3,
+  Bitcoin,
   BookOpen,
   BriefcaseBusiness,
+  Building2,
   ChevronRight,
   CircleHelp,
+  Clock,
   LayoutDashboard,
   Settings,
   ShieldCheck,
@@ -14,26 +16,33 @@ import {
   X,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { LIVE_STATUS_LABEL } from '../lib/liveStatus'
-import { PAGES } from '../lib/pages'
+import { PAGES, PLANNED_MODULES } from '../lib/pages'
 import { ROUTES } from '../lib/routes'
 import AppLink from './AppLink'
 
 const NAV_GROUPS = [
   {
-    title: 'WORKSPACE',
+    title: 'MARKETS',
     items: [
       { route: 'home', icon: LayoutDashboard },
+      { route: 'equities', icon: Building2 },
+      { route: 'crypto', icon: Bitcoin },
+    ],
+    planned: PLANNED_MODULES,
+  },
+  {
+    title: 'RESEARCH',
+    items: [
       { route: 'markets', icon: TrendingUp },
-      { route: 'portfolio', icon: BriefcaseBusiness },
       { route: 'analytics', icon: BarChart3 },
+      { route: 'research', icon: BookOpen },
+      { route: 'risk', icon: ShieldCheck },
     ],
   },
   {
-    title: 'TOOLS',
+    title: 'PORTFOLIO',
     items: [
-      { route: 'research', icon: BookOpen },
-      { route: 'risk', icon: ShieldCheck },
+      { route: 'portfolio', icon: BriefcaseBusiness },
     ],
   },
 ]
@@ -46,13 +55,25 @@ function NavLink({ route, icon: Icon, active, onNavigate }) {
       className={`nav-link ${active ? 'nav-link-active' : ''}`}
       aria-current={active ? 'page' : undefined}
     >
-      <Icon size={18} />
+      <Icon size={16} />
       <span>{PAGES[route].nav}</span>
     </AppLink>
   )
 }
 
-function Sidebar({ route, onNavigate, open, onClose, liveStatus }) {
+// Not a link: the module has no data yet, so there is no page to open.
+function PlannedItem({ nav, note }) {
+  return (
+    <span className="nav-link nav-link-planned" aria-disabled="true" title={note}>
+      <Clock size={16} />
+      <span>{nav}</span>
+      <span className="nav-planned-tag">PLANNED</span>
+      <span className="sr-only">: {note}</span>
+    </span>
+  )
+}
+
+function Sidebar({ route, onNavigate, open, onClose }) {
   const { user } = useAuth()
 
   return (
@@ -86,36 +107,21 @@ function Sidebar({ route, onNavigate, open, onClose, liveStatus }) {
           <ChevronRight size={16} className="text-slate-500" />
         </AppLink>
 
-        <nav className="mt-8 flex-1" aria-label="Main">
+        <nav className="sidebar-nav" aria-label="Main">
           {NAV_GROUPS.map((group) => (
-            <div className="mb-7" key={group.title}>
+            <div className="nav-group" key={group.title}>
               <p className="nav-heading">{group.title}</p>
               {group.items.map((item) => (
                 <NavLink key={item.route} {...item} active={route === item.route} onNavigate={onNavigate} />
               ))}
+              {group.planned?.map((item) => <PlannedItem key={item.key} {...item} />)}
             </div>
           ))}
         </nav>
 
         <div className="sidebar-bottom">
-          <div className="upgrade-card">
-            <div className="flex items-center gap-2 text-emerald-300">
-              <BookOpen size={17} />
-              <span className="text-sm font-semibold">Read the research brief</span>
-            </div>
-            <p className="mt-2 text-xs leading-5 text-slate-400">
-              A plain-language summary of each asset, written from your own data.
-            </p>
-            <AppLink href={ROUTES.research} onClick={onNavigate} className="upgrade-link">
-              Open research <ArrowUpRight size={14} />
-            </AppLink>
-          </div>
           <NavLink route="settings" icon={Settings} active={route === 'settings'} onNavigate={onNavigate} />
           <NavLink route="help" icon={CircleHelp} active={route === 'help'} onNavigate={onNavigate} />
-          <div className="sidebar-footer">
-            <span className={`status-dot ${liveStatus === 'live' ? '' : 'status-muted'}`} />
-            {LIVE_STATUS_LABEL[liveStatus]}
-          </div>
         </div>
       </aside>
     </>

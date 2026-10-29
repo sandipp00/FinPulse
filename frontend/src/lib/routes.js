@@ -2,6 +2,8 @@
 // top bar, live ticker); sign-in and sign-up are standalone pages.
 export const ROUTES = {
   home: '/',
+  equities: '/equities',
+  crypto: '/crypto',
   markets: '/markets',
   portfolio: '/portfolio',
   analytics: '/analytics',

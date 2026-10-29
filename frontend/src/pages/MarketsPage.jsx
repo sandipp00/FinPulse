@@ -43,6 +43,7 @@ export default function MarketsPage({
         filter={watchlist.filter}
         onFilterChange={watchlist.onFilterChange}
         liveTicks={ticks}
+        liveStatus={liveStatus}
         onSelect={watchlist.onSelect}
       />
     </>

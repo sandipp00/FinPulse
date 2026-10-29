@@ -1,5 +1,8 @@
 import { ArrowDownRight, ArrowUpRight, BarChart3, Bitcoin } from 'lucide-react'
+import { useNow } from '../hooks/useNow'
+import { tickStatus } from '../lib/dataStatus'
 import { formatPercent } from '../lib/format'
+import DataTag from './DataTag'
 import LivePrice from './LivePrice'
 
 const FILTERS = ['All assets', 'Stock', 'Crypto', 'Index']
@@ -19,25 +22,32 @@ export default function Watchlist({
   onFilterChange,
   liveTicks,
   onSelect,
+  title = 'Market watchlist',
+  subtitle = 'Live prices for crypto, latest stored prices for everything else',
+  liveStatus,
 }) {
+  const now = useNow(5000)
+
   return (
     <section className="panel assets-panel">
       <div className="panel-heading assets-heading">
         <div>
-          <h2>Market watchlist</h2>
-          <p>Live prices for crypto, latest stored prices for everything else</p>
+          <h2>{title}</h2>
+          <p>{subtitle}</p>
         </div>
-        <div className="asset-filters">
-          {FILTERS.map((item) => (
-            <button
-              key={item}
-              onClick={() => onFilterChange(item)}
-              className={filter === item ? 'filter-active' : ''}
-            >
-              {FILTER_LABEL[item] ?? item}
-            </button>
-          ))}
-        </div>
+        {onFilterChange && (
+          <div className="asset-filters">
+            {FILTERS.map((item) => (
+              <button
+                key={item}
+                onClick={() => onFilterChange(item)}
+                className={filter === item ? 'filter-active' : ''}
+              >
+                {FILTER_LABEL[item] ?? item}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="table-scroll">
@@ -81,7 +91,7 @@ export default function Watchlist({
                     {tick ? (
                       <>
                         <LivePrice tick={tick} />
-                        <span className="row-live-tag">LIVE</span>
+                        <DataTag status={tickStatus(tick, liveStatus, now)} />
                       </>
                     ) : asset.price}
                   </td>

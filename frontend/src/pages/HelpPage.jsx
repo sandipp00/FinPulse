@@ -2,7 +2,7 @@ import AppLink from '../components/AppLink'
 import { PAGES } from '../lib/pages'
 import { ROUTES } from '../lib/routes'
 
-const TOUR = ['home', 'markets', 'portfolio', 'analytics', 'research', 'risk', 'settings']
+const TOUR = ['home', 'equities', 'crypto', 'markets', 'portfolio', 'analytics', 'research', 'risk', 'settings']
 
 const GLOSSARY = [
   ['Candlestick', 'One bar of a price chart. It shows the open, high, low and close for a period, and is green when the price closed higher than it opened.'],
