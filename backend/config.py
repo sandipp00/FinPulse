@@ -66,6 +66,10 @@ BINANCE_REST_URLS = _csv(
 FRED_API_KEY = _env("FRED_API_KEY")
 FRED_BASE_URL = (_env("FRED_BASE_URL") or "https://api.stlouisfed.org/fred").rstrip("/")
 
+# FX: ECB euro reference rates through Frankfurter (free, no key). Any host
+# running the open-source Frankfurter API works here, including a self-hosted one.
+FX_BASE_URL = (_env("FX_BASE_URL") or "https://api.frankfurter.dev/v2").rstrip("/")
+
 # Paper trading (virtual money only).
 PAPER_STARTING_CASH = float(os.getenv("PAPER_STARTING_CASH", "100000"))
 PAPER_FEE_PCT = float(os.getenv("PAPER_FEE_PCT", "0.1"))

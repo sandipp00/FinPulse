@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import DataTag from '../components/DataTag'
-import MacroChart from '../components/MacroChart'
+import SeriesChart from '../components/SeriesChart'
 import { useMacroDetail, useMacroSeries } from '../hooks/useMacro'
 import { isCachedFallback, parseTimestamp } from '../lib/dataStatus'
 import {
@@ -117,7 +117,7 @@ function Detail({ seriesId, range, onRange }) {
       </div>
 
       <div className="ix-chart-wrap">
-        <MacroChart points={points} percent={percent} />
+        <SeriesChart points={points} percent={percent} />
         {points.length === 0 && <div className="candle-overlay">FRED returned no observations for this range.</div>}
       </div>
       <p className="ix-footnote">

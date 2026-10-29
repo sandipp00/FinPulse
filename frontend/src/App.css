@@ -887,7 +887,7 @@ a.workspace-switch { color: inherit; }
 .macro-card-meta .up { color: var(--up); }
 .macro-card-meta .down { color: var(--down); }
 .macro-card-id { color: var(--text-dim); font-family: var(--font-mono); font-size: var(--text-2xs); }
-.macro-chart { width: 100%; height: 380px; }
+.macro-chart { width: 100%; height: 380px; }  /* SeriesChart */
 .macro-setup h2 { color: var(--text-strong); font-size: 15px; font-weight: 650; }
 .macro-setup p, .macro-setup ol { margin-top: var(--space-2); color: var(--text-muted); font-size: var(--text-md); line-height: 1.6; }
 .macro-setup ol { padding-left: 20px; list-style: decimal; }
