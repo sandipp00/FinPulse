@@ -103,6 +103,9 @@ jobs:
           # FX answers with every pair, marked unavailable if the runner cannot reach the source.
           curl -fsS "$base/api/fx/pairs" | grep -q '"pairs"'
 
+          # The relative-statistics endpoint is up and validates its input (the CI database is empty).
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$base/api/quant/relative?symbol=AAPL&benchmark=AAPL")" = 400
+
           # News and the calendar answer even if the runner cannot reach the sources.
           curl -fsS --max-time 90 "$base/api/news" | grep -q '"sources"'
           curl -fsS --max-time 60 "$base/api/calendar" | grep -q '"events"'

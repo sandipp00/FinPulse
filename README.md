@@ -154,6 +154,12 @@ In the explorer, a comparison keeps only the dates both instruments share (daily
 - **Requests, caching and failures:** one request fetches every currency for the whole window. It is cached for an hour. When the source fails, the last response is served for up to three days, labelled `cached`. A 429 is honoured using its `Retry-After`.
 - Frankfurter's default "blended" rate is its own mix of many providers and can differ from the ECB's (on 29 Oct 2026, EUR/USD was 1.1158 blended against 1.1130 from the ECB). FinPulse asks for the ECB's rate so that the source is a single, citable one.
 
+### Relative statistics
+
+When the instrument explorer compares two instruments on daily bars, it shows how the first moved against the second: beta, correlation, R², each one's annualized return, the excess return, tracking error, the information ratio, the drawdown of each (peak, trough, recovery and duration), and a rolling 20, 60 or 120-day correlation. The same figures come from `GET /api/quant/relative?symbol=AAPL&benchmark=^GSPC&window=60`.
+
+Both series are measured only on the dates they share. Every formula and assumption is in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
+
 ### News
 
 `GET /api/news` merges five sources, newest first, and `/news` shows them with filters for topic, instrument and source.

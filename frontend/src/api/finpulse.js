@@ -199,3 +199,10 @@ export function getNews(limit = 200) {
 export function getCalendar(daysBack = 14, daysAhead = 90) {
   return getJSON(`/api/calendar?days_back=${daysBack}&days_ahead=${daysAhead}`)
 }
+
+export function getRelative(symbol, benchmark, window = 60) {
+  return getJSON(
+    `/api/quant/relative?symbol=${encodeURIComponent(symbol)}`
+    + `&benchmark=${encodeURIComponent(benchmark)}&window=${window}`,
+  )
+}

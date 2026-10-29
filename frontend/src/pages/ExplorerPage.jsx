@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react'
 import DataTag from '../components/DataTag'
 import ExplorerChart from '../components/ExplorerChart'
 import InstrumentSearch from '../components/InstrumentSearch'
+import RelativePanel from '../components/RelativePanel'
 import { useExplorerQuery } from '../hooks/useExplorerQuery'
 import { useInstrumentHistory, useInstruments } from '../hooks/useInstruments'
 import { describeSource, formatAge, isCachedFallback } from '../lib/dataStatus'
@@ -242,6 +243,11 @@ export default function ExplorerPage() {
             Bar volatility is the standard deviation of bar-to-bar returns, not annualized.
           </p>
         </section>
+      )}
+
+      {comparing && interval === '1d' && <RelativePanel symbol={instrument.symbol} benchmark={state.compare} />}
+      {comparing && interval !== '1d' && (
+        <section className="panel empty-panel">Beta, correlation and the other relative statistics use daily bars. Switch to 1d to see them.</section>
       )}
     </div>
   )
