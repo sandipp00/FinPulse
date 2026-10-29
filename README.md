@@ -154,6 +154,15 @@ In the explorer, a comparison keeps only the dates both instruments share (daily
 - **Requests, caching and failures:** one request fetches every currency for the whole window. It is cached for an hour. When the source fails, the last response is served for up to three days, labelled `cached`. A 429 is honoured using its `Retry-After`.
 - Frankfurter's default "blended" rate is its own mix of many providers and can differ from the ECB's (on 29 Oct 2026, EUR/USD was 1.1158 blended against 1.1130 from the ECB). FinPulse asks for the ECB's rate so that the source is a single, citable one.
 
+### Research assistant
+
+`/assistant` answers questions such as "How has AAPL performed?", "Compare Bitcoin with the S&P 500", "What is US inflation?", "USD/INR rate" or "What's on the calendar this week?". It uses nine read-only tools (`backend/research_tools.py`): quote, performance, compare, backtest, news, calendar, macro, FX and oil. Every figure is labelled *data* (as published) or *calculated* (by FinPulse's tested functions), and every source is listed with its time. Nothing is traded or changed. Both modes are free.
+
+- **Rule-based** (`backend/assistant_rules.py`, always on). It recognizes instrument names and question types, runs the matching tools, and writes the answer from fixed templates. There is no AI model: it cannot invent a number, it never interprets or predicts, and it says so when a question is outside what it handles.
+- **Local AI** (`backend/assistant_local.py`, optional). A model running in [Ollama](https://ollama.com) on your own computer, so nothing leaves the machine. It calls the same tools and is instructed to answer only from their results and to cite them. Small local models can still state numbers they were not given, so **every number in the answer is checked against the tool results**, and any it cannot find is flagged as unverified on the page. Only the nine tools can be called, with their own parameters, and the loop stops after six rounds. To enable it, install Ollama, run `ollama pull qwen2.5:3b` (a download of about 2 GB), and keep Ollama running. `OLLAMA_URL` and `OLLAMA_MODEL` change the server and the model. On a laptop without a dedicated GPU, expect answers to take 30 seconds to a few minutes.
+
+`POST /api/assistant/ask` with `{"question": "...", "mode": "rules" | "local"}`; `GET /api/assistant/status` says whether the local model is available.
+
 ### Relative statistics
 
 When the instrument explorer compares two instruments on daily bars, it shows how the first moved against the second: beta, correlation, R², each one's annualized return, the excess return, tracking error, the information ratio, the drawdown of each (peak, trough, recovery and duration), and a rolling 20, 60 or 120-day correlation. The same figures come from `GET /api/quant/relative?symbol=AAPL&benchmark=^GSPC&window=60`.
@@ -257,6 +266,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |
 | Analytics | `/analytics` | Buy/sell signals with backtests, and a side-by-side historical comparison |
 | Research | `/research` | A plain-language brief per asset, written by fixed rules from live price, signals, risk figures and the backtest. It is not AI. |
+| Research assistant | `/assistant` | Ask questions about the data in plain language. A rule-based mode is always on; an optional local AI mode uses Ollama on this computer |
 | Risk Monitor | `/risk` | Volatility, drawdown, 1-in-20-day loss and a correlation heatmap for every asset, plus the concentration and estimated volatility of your own paper portfolio |
 | Settings | `/settings` | Your account, a password-reset email, and live connection health |
 | Help & support | `/help` | What each page does, a glossary, and where the data comes from |

@@ -11,6 +11,7 @@ export const ROUTES = {
   calendar: '/calendar',
   markets: '/markets',
   explorer: '/explorer',
+  assistant: '/assistant',
   portfolio: '/portfolio',
   analytics: '/analytics',
   research: '/research',

@@ -207,3 +207,11 @@ export function getRelative(symbol, benchmark, window = 60) {
     + `&benchmark=${encodeURIComponent(benchmark)}&window=${window}`,
   )
 }
+
+export function getAssistantStatus() {
+  return getJSON('/api/assistant/status')
+}
+
+export function askAssistant(question, mode = 'rules') {
+  return postJSON('/api/assistant/ask', { question, mode })
+}

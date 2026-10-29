@@ -56,6 +56,11 @@ export const PAGES = {
     nav: 'Explorer',
     blurb: 'Pick any supported instrument and inspect its history, returns and volume.',
   },
+  assistant: {
+    title: 'Research assistant',
+    nav: 'Assistant',
+    blurb: 'Ask questions about the data. Answers cite every source; nothing is invented.',
+  },
   portfolio: {
     title: 'Portfolio',
     nav: 'Portfolio',

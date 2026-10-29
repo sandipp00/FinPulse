@@ -93,7 +93,7 @@ jobs:
           curl -fsS "$base/signin" | grep -q '<div id="root">'
           curl -fsS "$base/signup" | grep -q '<div id="root">'
           curl -fsS "$base/no/such/page" | grep -q '<div id="root">'
-          for page in equities crypto fx commodities macro news calendar markets explorer portfolio analytics research risk settings help; do
+          for page in equities crypto fx commodities macro news calendar markets explorer assistant portfolio analytics research risk settings help; do
             curl -fsS "$base/$page" | grep -q '<div id="root">'
           done
 
@@ -102,6 +102,10 @@ jobs:
 
           # FX answers with every pair, marked unavailable if the runner cannot reach the source.
           curl -fsS "$base/api/fx/pairs" | grep -q '"pairs"'
+
+          # The rule-based assistant answers (here: an honest "cannot answer"), with no model needed.
+          curl -fsS -X POST -H 'Content-Type: application/json' -d '{"question": "what is the weather"}' \
+            "$base/api/assistant/ask" | grep -q '"mode":"rules"'
 
           # The relative-statistics endpoint is up and validates its input (the CI database is empty).
           test "$(curl -s -o /dev/null -w '%{http_code}' "$base/api/quant/relative?symbol=AAPL&benchmark=AAPL")" = 400
