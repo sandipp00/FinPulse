@@ -8,6 +8,7 @@ candles in SQLite so charts survive restarts.
 import asyncio
 import json
 import logging
+import math
 import sqlite3
 import time
 from typing import Optional
@@ -41,6 +42,8 @@ class LiveFeed:
         self.source: Optional[str] = None
         self.last_message_at: Optional[float] = None
         self.last_error: Optional[str] = None
+        # Upstream messages dropped because they did not parse or validate.
+        self.rejected_messages = 0
 
         self._subscribers: set[asyncio.Queue] = set()
         self._task: Optional[asyncio.Task] = None
@@ -74,6 +77,7 @@ class LiveFeed:
             "last_message_age_seconds": age,
             "subscribers": len(self._subscribers),
             "last_error": self.last_error,
+            "rejected_messages": self.rejected_messages,
         }
 
     # ---- subscribers (browser clients) ---------------------------------
@@ -146,13 +150,17 @@ class LiveFeed:
                 upstream.recv(), timeout=STALE_AFTER_SECONDS
             )
             self.last_message_at = time.time()
-            payload = json.loads(raw).get("data", {})
-
-            event = payload.get("e")
-            if event == "24hrTicker":
-                self._handle_ticker(payload)
-            elif event == "kline":
-                await self._handle_kline(payload)
+            # One bad message is dropped; it must not tear down a working connection.
+            try:
+                payload = json.loads(raw).get("data", {})
+                event = payload.get("e")
+                if event == "24hrTicker":
+                    self._handle_ticker(payload)
+                elif event == "kline":
+                    await self._handle_kline(payload)
+            except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                self.rejected_messages += 1
+                log.warning("Dropped malformed upstream message: %s: %s", type(exc).__name__, exc)
 
     def _status_message(self) -> dict:
         return {"type": "status", "connected": self.connected}
@@ -162,9 +170,13 @@ class LiveFeed:
         if symbol is None:
             return
 
+        price = float(data["c"])
+        if not math.isfinite(price) or price <= 0:
+            raise ValueError(f"invalid price {data['c']!r} for {symbol}")
+
         tick = {
             "symbol": symbol,
-            "price": float(data["c"]),
+            "price": price,
             "change_pct_24h": float(data["P"]),
             "open_24h": float(data["o"]),
             "high_24h": float(data["h"]),

@@ -815,3 +815,8 @@ a.workspace-switch { color: inherit; }
   .status-bar { gap: var(--space-3); }
   .status-sub { display: none; }
 }
+
+/* Candle chart source line and the banner for a kept (cached) response */
+.candle-source { flex-basis: 100%; color: var(--text-dim); font-family: var(--font-mono); }
+.candle-cached { position: absolute; top: 8px; left: 8px; right: 70px; z-index: 3; display: flex; align-items: center; gap: 8px; border: 1px solid #5a4a1a; border-radius: 6px; background: #1d1a10ee; padding: 6px 10px; color: var(--warn); font-size: var(--text-sm); }
+.data-tag-cached { color: var(--status-stale); }

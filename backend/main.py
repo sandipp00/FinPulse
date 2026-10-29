@@ -9,8 +9,9 @@ import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend import auth, candles as candle_source, config, db, paper, risk_service, signal_service
+from backend import auth, candles as candle_source, config, db, market_service, paper, risk_service, signal_service
 from backend.live import feed
+from backend.schemas.market import QuotesResponse
 from src.analytics.financial_metrics import asset_snapshot
 
 DATABASE_PATH = config.DATABASE_PATH
@@ -246,6 +247,29 @@ def summary(symbol: Optional[str] = None):
     }
 
 
+@app.get("/api/market/quotes", response_model=QuotesResponse)
+def market_quotes():
+    """The latest observation per instrument, normalized, with source and freshness.
+
+    Live symbols come from the exchange feed; the rest are the latest stored
+    daily close. If the stored history cannot be read, live quotes are still
+    returned and stored instruments are simply absent.
+    """
+    try:
+        stored = assets()["assets"]
+    except HTTPException:
+        stored = []
+
+    quotes = market_service.build_quotes(
+        config.LIVE_SYMBOLS, dict(feed.latest), feed.connected, stored
+    )
+    return {
+        "as_of": pd.Timestamp.now(tz="UTC").to_pydatetime(),
+        "count": len(quotes),
+        "quotes": quotes,
+    }
+
+
 @app.get("/api/live/status")
 def live_status():
     return {"enabled": config.LIVE_FEED_ENABLED, **feed.status()}
@@ -275,19 +299,31 @@ async def candles(
     _require_interval(interval)
 
     try:
-        rows = await candle_source.fetch_candles(symbol, interval, limit)
+        series = await candle_source.fetch_candle_series(symbol, interval, limit, allow_stale=True)
     except candle_source.CandleSourceError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Could not load candles from the exchange: {exc}",
-        ) from exc
+        raise _exchange_error(exc) from exc
 
     return {
         "symbol": symbol,
         "interval": interval,
-        "count": len(rows),
-        "candles": rows,
+        "count": len(series.candles),
+        "candles": series.candles,
+        "meta": series.meta.model_dump(mode="json"),
     }
+
+
+def _exchange_error(exc: candle_source.CandleSourceError) -> HTTPException:
+    """502 when the exchange failed; 503 with Retry-After when it is rate limiting us."""
+    if exc.retry_after is not None:
+        return HTTPException(
+            status_code=503,
+            detail=f"The exchange is rate limiting requests: {exc}",
+            headers={"Retry-After": str(max(1, round(exc.retry_after)))},
+        )
+    return HTTPException(
+        status_code=502,
+        detail=f"Could not load candles from the exchange: {exc}",
+    )
 
 
 def _require_live_symbol(symbol: str) -> None:
@@ -326,10 +362,7 @@ async def signals(
     try:
         results = await signal_service.signals_for(symbols, interval)
     except candle_source.CandleSourceError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Could not load candles from the exchange: {exc}",
-        ) from exc
+        raise _exchange_error(exc) from exc
 
     return {
         "interval": interval,
@@ -352,10 +385,7 @@ async def backtest(
     try:
         result = await signal_service.backtest_for(symbol, interval, fee_pct / 100)
     except candle_source.CandleSourceError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Could not load candles from the exchange: {exc}",
-        ) from exc
+        raise _exchange_error(exc) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

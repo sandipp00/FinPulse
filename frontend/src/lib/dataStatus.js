@@ -4,6 +4,7 @@
 //   live        a tick from the exchange feed, received recently, feed connected
 //   stale       a live symbol whose last tick is too old, or the feed is down
 //   historical  the latest close stored in SQLite (daily history)
+//   cached      a provider response kept after the provider started failing
 //   unavailable nothing to show
 
 // Same threshold the backend uses to call the exchange feed stale (backend/live.py).
@@ -13,6 +14,7 @@ export const DATA_STATUS_BADGE = {
   live: 'LIVE',
   stale: 'STALE',
   historical: 'HIST',
+  cached: 'CACHED',
   unavailable: 'N/A',
 }
 
@@ -20,6 +22,7 @@ export const DATA_STATUS_LABEL = {
   live: 'Live from the exchange feed',
   stale: 'Last live price, no recent update',
   historical: 'Latest stored daily close, not a live quote',
+  cached: 'Kept from an earlier response; the provider is not answering',
   unavailable: 'No data available',
 }
 
@@ -94,4 +97,28 @@ export function apiState({ health, healthError, loading }) {
   if (healthError) return 'error'
   if (health?.status === 'healthy') return 'ok'
   return loading ? 'checking' : 'error'
+}
+
+const PROVIDER_NAME = { binance: 'Binance', database: 'Local database' }
+const clockTime = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' })
+
+/**
+ * One line describing where a series came from, from the `meta` the API attaches
+ * (backend/schemas/market.py SourceMeta). Null when there is no meta.
+ */
+export function describeSource(meta) {
+  if (!meta) return null
+  const provider = PROVIDER_NAME[meta.provider] ?? meta.provider
+  const fetched = parseTimestamp(meta.retrieved_at)
+  const newest = parseTimestamp(meta.source_timestamp)
+  return [
+    meta.endpoint ? `${provider} (${meta.endpoint})` : provider,
+    fetched && `fetched ${clockTime.format(fetched)} UTC`,
+    newest && `latest bar ${clockTime.format(newest)} UTC`,
+  ].filter(Boolean).join(' · ')
+}
+
+/** True when the API says the series is a kept response, not a fresh one. */
+export function isCachedFallback(meta) {
+  return meta?.status === 'cached'
 }
