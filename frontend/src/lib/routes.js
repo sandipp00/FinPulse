@@ -4,6 +4,7 @@ export const ROUTES = {
   home: '/',
   equities: '/equities',
   crypto: '/crypto',
+  macro: '/macro',
   markets: '/markets',
   explorer: '/explorer',
   portfolio: '/portfolio',

@@ -167,3 +167,11 @@ export function getInstrumentHistory(symbol, interval, limit) {
     + `&interval=${encodeURIComponent(interval)}&limit=${limit}`,
   )
 }
+
+export function getMacroSeries() {
+  return getJSON('/api/macro/series')
+}
+
+export function getMacroSeriesDetail(seriesId) {
+  return getJSON(`/api/macro/series/${encodeURIComponent(seriesId)}`)
+}

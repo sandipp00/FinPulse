@@ -93,12 +93,15 @@ jobs:
           curl -fsS "$base/signin" | grep -q '<div id="root">'
           curl -fsS "$base/signup" | grep -q '<div id="root">'
           curl -fsS "$base/no/such/page" | grep -q '<div id="root">'
-          for page in equities crypto markets explorer portfolio analytics research risk settings help; do
+          for page in equities crypto macro markets explorer portfolio analytics research risk settings help; do
             curl -fsS "$base/$page" | grep -q '<div id="root">'
           done
 
           # The instrument catalogue answers and stored history can be charted.
           curl -fsS "$base/api/instruments" | grep -q '"instruments"'
+
+          # Without a FRED key, macro data says it is not configured rather than failing.
+          curl -fsS "$base/api/macro/series" | grep -q '"configured":false'
 
           # The risk report responds even if the exchange cannot be reached from the runner.
           curl -fsS --max-time 90 "$base/api/risk" | grep -q '"assets"'

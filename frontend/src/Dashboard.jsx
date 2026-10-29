@@ -20,6 +20,7 @@ import { ROUTES } from './lib/routes'
 import AnalyticsPage from './pages/AnalyticsPage'
 import AssetClassPage from './pages/AssetClassPage'
 import ExplorerPage from './pages/ExplorerPage'
+import MacroPage from './pages/MacroPage'
 import HelpPage from './pages/HelpPage'
 import MarketsPage from './pages/MarketsPage'
 import OverviewPage from './pages/OverviewPage'
@@ -243,6 +244,7 @@ function Dashboard({ route }) {
                   }}
                 />
               )}
+              {route === 'macro' && <MacroPage />}
               {route === 'explorer' && <ExplorerPage />}
               {route === 'portfolio' && (
                 <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />

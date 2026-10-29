@@ -60,6 +60,12 @@ BINANCE_REST_URLS = _csv(
     "https://api.binance.com,https://data-api.binance.vision",
 )
 
+# US macro data from FRED (Federal Reserve Bank of St. Louis). Free key from
+# https://fred.stlouisfed.org/docs/api/api_key.html; without it macro data is
+# reported as not configured. The key is a secret: it stays on the server.
+FRED_API_KEY = _env("FRED_API_KEY")
+FRED_BASE_URL = (_env("FRED_BASE_URL") or "https://api.stlouisfed.org/fred").rstrip("/")
+
 # Paper trading (virtual money only).
 PAPER_STARTING_CASH = float(os.getenv("PAPER_STARTING_CASH", "100000"))
 PAPER_FEE_PCT = float(os.getenv("PAPER_FEE_PCT", "0.1"))

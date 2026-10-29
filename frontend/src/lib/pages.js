@@ -3,7 +3,6 @@
 export const PLANNED_MODULES = [
   { key: 'fx', nav: 'FX', note: 'Foreign-exchange pairs need a data source; planned for a later phase.' },
   { key: 'commodities', nav: 'Commodities', note: 'Gold, silver and oil need a data source; planned for a later phase.' },
-  { key: 'macro', nav: 'Macro', note: 'Economic series (e.g. FRED) are planned for a later phase.' },
   { key: 'news', nav: 'News', note: 'Source-linked headlines are planned for a later phase.' },
 ]
 
@@ -24,6 +23,11 @@ export const PAGES = {
     title: 'Crypto',
     nav: 'Crypto',
     blurb: 'Live exchange prices and stored daily history for crypto assets.',
+  },
+  macro: {
+    title: 'US macro',
+    nav: 'Macro',
+    blurb: 'Inflation, rates, Treasury yields, growth and jobs, from FRED.',
   },
   markets: {
     title: 'Markets',
