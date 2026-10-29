@@ -9,7 +9,8 @@ import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend import auth, candles as candle_source, config, db, market_service, paper, risk_service, signal_service
+from backend import auth, candles as candle_source, config, db, instruments, market_service, paper, risk_service, signal_service
+from backend.errors import exchange_error
 from backend.live import feed
 from backend.schemas.market import QuotesResponse
 from src.analytics.financial_metrics import asset_snapshot
@@ -49,6 +50,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(paper.router)
+app.include_router(instruments.router)
 
 
 def get_connection():
@@ -301,7 +303,7 @@ async def candles(
     try:
         series = await candle_source.fetch_candle_series(symbol, interval, limit, allow_stale=True)
     except candle_source.CandleSourceError as exc:
-        raise _exchange_error(exc) from exc
+        raise exchange_error(exc) from exc
 
     return {
         "symbol": symbol,
@@ -310,20 +312,6 @@ async def candles(
         "candles": series.candles,
         "meta": series.meta.model_dump(mode="json"),
     }
-
-
-def _exchange_error(exc: candle_source.CandleSourceError) -> HTTPException:
-    """502 when the exchange failed; 503 with Retry-After when it is rate limiting us."""
-    if exc.retry_after is not None:
-        return HTTPException(
-            status_code=503,
-            detail=f"The exchange is rate limiting requests: {exc}",
-            headers={"Retry-After": str(max(1, round(exc.retry_after)))},
-        )
-    return HTTPException(
-        status_code=502,
-        detail=f"Could not load candles from the exchange: {exc}",
-    )
 
 
 def _require_live_symbol(symbol: str) -> None:
@@ -362,7 +350,7 @@ async def signals(
     try:
         results = await signal_service.signals_for(symbols, interval)
     except candle_source.CandleSourceError as exc:
-        raise _exchange_error(exc) from exc
+        raise exchange_error(exc) from exc
 
     return {
         "interval": interval,
@@ -385,7 +373,7 @@ async def backtest(
     try:
         result = await signal_service.backtest_for(symbol, interval, fee_pct / 100)
     except candle_source.CandleSourceError as exc:
-        raise _exchange_error(exc) from exc
+        raise exchange_error(exc) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

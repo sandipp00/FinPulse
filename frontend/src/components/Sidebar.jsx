@@ -6,6 +6,7 @@ import {
   BookOpen,
   BriefcaseBusiness,
   Building2,
+  CandlestickChart,
   ChevronRight,
   CircleHelp,
   Clock,
@@ -34,6 +35,7 @@ const NAV_GROUPS = [
     title: 'RESEARCH',
     items: [
       { route: 'markets', icon: TrendingUp },
+      { route: 'explorer', icon: CandlestickChart },
       { route: 'analytics', icon: BarChart3 },
       { route: 'research', icon: BookOpen },
       { route: 'risk', icon: ShieldCheck },

@@ -19,6 +19,7 @@ import { PAGES } from './lib/pages'
 import { ROUTES } from './lib/routes'
 import AnalyticsPage from './pages/AnalyticsPage'
 import AssetClassPage from './pages/AssetClassPage'
+import ExplorerPage from './pages/ExplorerPage'
 import HelpPage from './pages/HelpPage'
 import MarketsPage from './pages/MarketsPage'
 import OverviewPage from './pages/OverviewPage'
@@ -138,6 +139,12 @@ function Dashboard({ route }) {
     else window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [route])
 
+  // The right panel's "Explore history" opens the explorer on that instrument.
+  const openExplorer = useCallback((symbol) => {
+    setPanelSymbol(symbol)
+    navigate(`${ROUTES.explorer}?symbol=${encodeURIComponent(symbol)}`)
+  }, [])
+
   const livePrices = useMemo(() => ({ ticks, symbols: liveSymbols }), [ticks, liveSymbols])
 
   // Stocks and indices have no live feed; the ticker shows their stored close, dated.
@@ -236,6 +243,7 @@ function Dashboard({ route }) {
                   }}
                 />
               )}
+              {route === 'explorer' && <ExplorerPage />}
               {route === 'portfolio' && (
                 <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
               )}
@@ -258,7 +266,7 @@ function Dashboard({ route }) {
               error={apiError}
               selectedSymbol={panelSymbol}
               onSelect={setPanelSymbol}
-              onOpenChart={openChart}
+              onOpenChart={openExplorer}
             />
           </div>
         </main>

@@ -156,3 +156,14 @@ export function resetPassword(token, password) {
 export function getRisk() {
   return getJSON('/api/risk')
 }
+
+export function getInstruments() {
+  return getJSON('/api/instruments')
+}
+
+export function getInstrumentHistory(symbol, interval, limit) {
+  return getJSON(
+    `/api/instruments/history?symbol=${encodeURIComponent(symbol)}`
+    + `&interval=${encodeURIComponent(interval)}&limit=${limit}`,
+  )
+}

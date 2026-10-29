@@ -71,13 +71,8 @@ function Details({ asset, tick, freshness, now, onOpenChart }) {
         )}
       </dl>
 
-      <button
-        className="rp-open"
-        onClick={() => onOpenChart(asset.symbol)}
-        disabled={!asset.stored}
-        title={asset.stored ? undefined : 'No stored history for this asset'}
-      >
-        <LineChart size={13} /> Open chart
+      <button className="rp-open" onClick={() => onOpenChart(asset.symbol)}>
+        <LineChart size={13} /> Explore history
       </button>
     </section>
   )
