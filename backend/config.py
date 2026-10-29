@@ -66,6 +66,12 @@ BINANCE_REST_URLS = _csv(
 FRED_API_KEY = _env("FRED_API_KEY")
 FRED_BASE_URL = (_env("FRED_BASE_URL") or "https://api.stlouisfed.org/fred").rstrip("/")
 
+# Crude oil spot prices from the U.S. Energy Information Administration. Free key
+# from https://www.eia.gov/opendata/register.php; without it oil prices are reported
+# as not configured. The key is a secret: it stays on the server.
+EIA_API_KEY = _env("EIA_API_KEY")
+EIA_BASE_URL = (_env("EIA_BASE_URL") or "https://api.eia.gov/v2").rstrip("/")
+
 # FX: ECB euro reference rates through Frankfurter (free, no key). Any host
 # running the open-source Frankfurter API works here, including a self-hosted one.
 FX_BASE_URL = (_env("FX_BASE_URL") or "https://api.frankfurter.dev/v2").rstrip("/")

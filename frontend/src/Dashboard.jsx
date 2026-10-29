@@ -19,6 +19,7 @@ import { PAGES } from './lib/pages'
 import { ROUTES } from './lib/routes'
 import AnalyticsPage from './pages/AnalyticsPage'
 import AssetClassPage from './pages/AssetClassPage'
+import CommoditiesPage from './pages/CommoditiesPage'
 import ExplorerPage from './pages/ExplorerPage'
 import FxPage from './pages/FxPage'
 import MacroPage from './pages/MacroPage'
@@ -246,6 +247,7 @@ function Dashboard({ route }) {
                 />
               )}
               {route === 'fx' && <FxPage />}
+              {route === 'commodities' && <CommoditiesPage />}
               {route === 'macro' && <MacroPage />}
               {route === 'explorer' && <ExplorerPage />}
               {route === 'portfolio' && (
