@@ -30,6 +30,11 @@ export const PAGES = {
     nav: 'Markets',
     blurb: 'Live candlestick charts, price history and every tracked asset.',
   },
+  explorer: {
+    title: 'Instrument explorer',
+    nav: 'Explorer',
+    blurb: 'Pick any supported instrument and inspect its history, returns and volume.',
+  },
   portfolio: {
     title: 'Portfolio',
     nav: 'Portfolio',

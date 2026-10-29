@@ -22,13 +22,13 @@ def _utc(seconds: Optional[float]) -> Optional[datetime]:
     return None if seconds is None else datetime.fromtimestamp(seconds, tz=timezone.utc)
 
 
-def _currency(symbol: str) -> Optional[str]:
+def currency_of(symbol: str) -> Optional[str]:
     if "/" in symbol:
         return symbol.split("/", 1)[1]
     return STORED_CURRENCIES.get(symbol)
 
 
-def _asset_class(value: str) -> str:
+def asset_class_of(value: str) -> str:
     value = str(value).lower()
     return value if value in UNITS else "stock"
 
@@ -52,7 +52,7 @@ def live_record(symbol: str, tick: dict, feed_connected: bool, now: float) -> Ma
         symbol=symbol,
         asset_class="crypto",
         price=tick.get("price"),
-        currency=_currency(symbol),
+        currency=currency_of(symbol),
         unit=UNITS["crypto"],
         provider="binance",
         status="real_time" if fresh else "stale",
@@ -69,7 +69,7 @@ def live_record(symbol: str, tick: dict, feed_connected: bool, now: float) -> Ma
 
 
 def stored_record(asset: dict, error: Optional[str] = None) -> MarketRecord:
-    asset_class = _asset_class(asset.get("asset_type"))
+    asset_class = asset_class_of(asset.get("asset_type"))
     symbol = asset["symbol"]
     price = asset.get("latest_price")
     return MarketRecord(
@@ -77,7 +77,7 @@ def stored_record(asset: dict, error: Optional[str] = None) -> MarketRecord:
         symbol=symbol,
         asset_class=asset_class,
         price=price,
-        currency=_currency(symbol),
+        currency=currency_of(symbol),
         unit=UNITS[asset_class],
         provider="database",
         status="historical" if price is not None else "unavailable",
@@ -111,7 +111,7 @@ def build_quotes(
                 instrument_id=f"crypto:{symbol}",
                 symbol=symbol,
                 asset_class="crypto",
-                currency=_currency(symbol),
+                currency=currency_of(symbol),
                 unit=UNITS["crypto"],
                 provider="binance",
                 status="unavailable",

@@ -140,6 +140,11 @@ Every number the API serves says where it came from and how fresh it is (models 
 - `GET /api/market/quotes` returns one normalized record per instrument: symbol, asset class, price, quote currency (crypto pairs are priced in USDT, not USD), unit, provider, provider timestamp, retrieval time, interval and a status. The status is `real_time` for a recent exchange tick, `stale` when the tick is older than 30 seconds or the feed is down, `historical` for a stored daily close, `cached` for a kept response, and `unavailable` when there is nothing. A currency that is not known is `null`, never guessed.
 - `GET /api/candles` adds a `meta` object: provider, the endpoint that answered, retrieval time, the newest bar's time and the cache age.
 
+- `GET /api/instruments` lists every instrument that can be charted: its asset class, quote currency, unit, whether it is live, the intervals it offers, and its stored coverage (bars, first and last date).
+- `GET /api/instruments/history?symbol=AAPL&interval=1d&limit=500` returns OHLCV bars for any of them in one format, with `meta`. Live crypto comes from Binance (`1m`, `15m`, `1h`, `1d`; 50-1000 bars). Stored instruments are daily only (up to 5000 bars). Add `source=database` to get a live coin's stored history instead. If Binance fails on a daily request and stored bars exist, those are returned, `source` says `database`, and a note in `meta.notes` explains why.
+
+In the explorer, a comparison keeps only the dates both instruments share (daily bars are matched by UTC day), and rebases both to 100. Prices are not converted between currencies, and the page says so when they differ.
+
 How failures are handled when fetching Binance candles:
 
 - **Malformed responses** (not a list, missing or non-numeric fields, NaN, negative prices, open/close outside the low-high range, out-of-order bars) are rejected, and the next endpoint in `BINANCE_REST_URLS` is tried.
@@ -163,6 +168,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Overview | `/` | Headline numbers, live crypto cards, asset mix, quick links |
 | Equities | `/equities` | Stocks and indices with their stored daily history and how far it reaches |
 | Crypto | `/crypto` | Live-streamed coins and stored crypto history, with data coverage |
+| Instrument explorer | `/explorer?symbol=AAPL` | Search any supported instrument; candles with volume, interval and bar-count choices, return figures, and a comparison rebased to 100. The selection is kept in the URL so a view can be shared |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |
 | Analytics | `/analytics` | Buy/sell signals with backtests, and a side-by-side historical comparison |
