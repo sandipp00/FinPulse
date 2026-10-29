@@ -335,7 +335,7 @@ button:focus-visible, input:focus-visible {
 .bt-verdict { border: 1px solid; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 650; }
 .bt-verdict.beat { border-color: var(--accent-border); background: var(--accent-bg); color: var(--up); }
 .bt-verdict.trail { border-color: #5a2a35; background: #3b2028; color: var(--down); }
-.bt-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.bt-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 14px; }
 .bt-stat { display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-sunken); padding: 10px 12px; }
 .bt-stat span { color: var(--text-faint); font-size: 9px; }
 .bt-stat strong { color: var(--text-strong); font-size: 15px; font-variant-numeric: tabular-nums; }
@@ -941,4 +941,11 @@ a.news-title:hover { color: var(--up); text-decoration: underline; }
 .rel-head { margin-top: var(--space-4); align-items: center; }
 .rel-head h3 { color: var(--text-strong); font-size: var(--text-md); font-weight: 650; }
 .rel-chart .macro-chart { height: 220px; }
+
+/* ---- Backtest settings, baseline and split ----------------------------------------- */
+.bt-controls { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: var(--space-3) 0; }
+.bt-choice { display: flex; align-items: center; gap: var(--space-2); color: var(--text-faint); font-size: var(--text-xs); }
+.bt-choice .range-control button { padding: 4px 8px; font-size: var(--text-xs); }
+.bt-split td.tone-up { color: var(--up); }
+.bt-split td.tone-down { color: var(--down); }
 
