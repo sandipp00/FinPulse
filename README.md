@@ -154,6 +154,33 @@ In the explorer, a comparison keeps only the dates both instruments share (daily
 - **Requests, caching and failures:** one request fetches every currency for the whole window. It is cached for an hour. When the source fails, the last response is served for up to three days, labelled `cached`. A 429 is honoured using its `Retry-After`.
 - Frankfurter's default "blended" rate is its own mix of many providers and can differ from the ECB's (on 29 Oct 2026, EUR/USD was 1.1158 blended against 1.1130 from the ECB). FinPulse asks for the ECB's rate so that the source is a single, citable one.
 
+### News
+
+`GET /api/news` merges five sources, newest first, and `/news` shows them with filters for topic, instrument and source.
+
+| Source | Feed | Terms |
+|---|---|---|
+| Federal Reserve | Monetary-policy press releases (RSS) | Public domain; cite the Board |
+| European Central Bank | Press releases and speeches (RSS) | Reuse allowed with "Source: ECB" |
+| U.S. Bureau of Economic Analysis | News releases (RSS) | US government, public domain |
+| CoinDesk | All news (RSS) | Personal, informational, non-commercial use |
+| SEC EDGAR | Apple's 8-K, 10-Q and 10-K filings (JSON) | Public. EDGAR requires a name and contact email in the User-Agent, so set `SEC_USER_AGENT` (for example `FinPulse/1.0 you@example.com`). Without it, filings are left out and EDGAR is not contacted |
+
+- **What is stored:** only the headline, a short plain-text snippet, the link, the source and the publication time (UTC). Never full article text. Items are kept in memory for 15 minutes and not stored in the database.
+- **Dropped items:** items without a title, an absolute `http(s)` link, or a publication time that includes a time zone are dropped and counted.
+- **Coin and stock tags:** items are tagged by keyword. Tickers match only as whole uppercase words, so "SOL" is tagged but "solid" is not.
+- **Failures:** a failing source is reported on its own, and its last items are kept for up to a day, labelled stale.
+- **Rejected sources:** Cointelegraph was considered but left out, because its terms prohibit automated content pipelines. Reuters ended its RSS feeds in 2020. NewsAPI's free plan is delayed 24 hours and limited to development use.
+
+### Economic calendar
+
+`GET /api/calendar?days_back=14&days_ahead=60` lists, by date:
+
+- **Release dates** for CPI and the Employment Situation (BLS), and GDP and Personal Income and Outlays (BEA), from FRED's release calendar (`include_release_dates_with_no_data=true` returns future dates). Uses `FRED_API_KEY`.
+- **Release times** for the BEA's releases, from its `release_dates.json`. BLS releases show the date only: BLS's machine-readable schedule refuses clients without a contact address, and FinPulse does not guess a time.
+- **FOMC and ECB policy meetings,** from a small list copied from the [Fed](https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm) and [ECB](https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html) calendars (checked 2026-10-30). Future FOMC dates are marked tentative until confirmed, as the Fed says.
+- **No consensus forecasts.** No free, legitimate source publishes them, so the field is always empty. Released values are on the Macro page.
+
 ### Refreshing stock and index history
 
 `python src/data/update_equities.py` brings AAPL, the NIFTY 50 (`^NSEI`) and the S&P 500 (`^GSPC`) up to date from Yahoo Finance (via yfinance). Yahoo data is for personal use, and FinPulse is run as a personal terminal.
@@ -217,6 +244,8 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Instrument explorer | `/explorer?symbol=AAPL` | Search any supported instrument; candles with volume, interval and bar-count choices, return figures, and a comparison rebased to 100. The selection is kept in the URL so a view can be shared |
 | FX rates | `/fx` | ECB euro reference rates (EUR/USD, EUR/GBP, EUR/JPY, EUR/INR) and cross rates derived from them (GBP/USD, USD/JPY, USD/INR), with a chart per pair. Daily, not live; no key needed |
 | Commodities | `/commodities` | WTI and Brent crude oil spot prices from the EIA, with a chart per series. Needs a free `EIA_API_KEY` |
+| News | `/news` | Headlines from the Fed, ECB, BEA, CoinDesk and SEC filings, filterable by topic, instrument and source, each linking to the original |
+| Economic calendar | `/calendar` | Upcoming CPI, jobs, GDP and PCE releases and Fed and ECB policy meetings |
 | US macro | `/macro` | Inflation, the Fed funds rate, Treasury yields, GDP and jobs from FRED, with a chart per series. Needs a free `FRED_API_KEY` |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |

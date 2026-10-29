@@ -191,3 +191,11 @@ export function getCommodities() {
 export function getCommodityHistory(series) {
   return getJSON(`/api/commodities/history?series=${encodeURIComponent(series)}`)
 }
+
+export function getNews(limit = 200) {
+  return getJSON(`/api/news?limit=${limit}`)
+}
+
+export function getCalendar(daysBack = 14, daysAhead = 90) {
+  return getJSON(`/api/calendar?days_back=${daysBack}&days_ahead=${daysAhead}`)
+}
