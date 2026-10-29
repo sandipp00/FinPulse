@@ -1,7 +1,6 @@
 // Modules shown in the sidebar that have no data source yet. They are listed so the
 // layout is visible, but they are not links and have no page: nothing to fabricate.
 export const PLANNED_MODULES = [
-  { key: 'news', nav: 'News', note: 'Source-linked headlines are planned for a later phase.' },
 ]
 
 // Titles and one-line descriptions for the dashboard pages (used by the sidebar,
@@ -36,6 +35,16 @@ export const PAGES = {
     title: 'US macro',
     nav: 'Macro',
     blurb: 'Inflation, rates, Treasury yields, growth and jobs, from FRED.',
+  },
+  news: {
+    title: 'News',
+    nav: 'News',
+    blurb: 'Headlines from the Fed, ECB, BEA, CoinDesk and SEC filings, each linked to the original.',
+  },
+  calendar: {
+    title: 'Economic calendar',
+    nav: 'Calendar',
+    blurb: 'Upcoming US data releases and Fed and ECB policy meetings.',
   },
   markets: {
     title: 'Markets',

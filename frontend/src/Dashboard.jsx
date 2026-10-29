@@ -19,10 +19,12 @@ import { PAGES } from './lib/pages'
 import { ROUTES } from './lib/routes'
 import AnalyticsPage from './pages/AnalyticsPage'
 import AssetClassPage from './pages/AssetClassPage'
+import CalendarPage from './pages/CalendarPage'
 import CommoditiesPage from './pages/CommoditiesPage'
 import ExplorerPage from './pages/ExplorerPage'
 import FxPage from './pages/FxPage'
 import MacroPage from './pages/MacroPage'
+import NewsPage from './pages/NewsPage'
 import HelpPage from './pages/HelpPage'
 import MarketsPage from './pages/MarketsPage'
 import OverviewPage from './pages/OverviewPage'
@@ -252,6 +254,8 @@ function Dashboard({ route }) {
               {route === 'fx' && <FxPage />}
               {route === 'commodities' && <CommoditiesPage />}
               {route === 'macro' && <MacroPage />}
+              {route === 'news' && <NewsPage />}
+              {route === 'calendar' && <CalendarPage />}
               {route === 'explorer' && <ExplorerPage />}
               {route === 'portfolio' && (
                 <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />

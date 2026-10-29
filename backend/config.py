@@ -72,6 +72,12 @@ FRED_BASE_URL = (_env("FRED_BASE_URL") or "https://api.stlouisfed.org/fred").rst
 EIA_API_KEY = _env("EIA_API_KEY")
 EIA_BASE_URL = (_env("EIA_BASE_URL") or "https://api.eia.gov/v2").rstrip("/")
 
+# News feeds. SEC EDGAR asks every client to identify itself with a name and a
+# contact email (https://www.sec.gov/os/accessing-edgar-data), e.g.
+# "FinPulse/1.0 you@example.com". Without it, SEC filings are left out.
+SEC_USER_AGENT = _env("SEC_USER_AGENT")
+FEED_USER_AGENT = "FinPulse/1.0 (personal research terminal)"
+
 # FX: ECB euro reference rates through Frankfurter (free, no key). Any host
 # running the open-source Frankfurter API works here, including a self-hosted one.
 FX_BASE_URL = (_env("FX_BASE_URL") or "https://api.frankfurter.dev/v2").rstrip("/")

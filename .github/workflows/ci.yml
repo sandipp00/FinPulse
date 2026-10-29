@@ -93,7 +93,7 @@ jobs:
           curl -fsS "$base/signin" | grep -q '<div id="root">'
           curl -fsS "$base/signup" | grep -q '<div id="root">'
           curl -fsS "$base/no/such/page" | grep -q '<div id="root">'
-          for page in equities crypto fx commodities macro markets explorer portfolio analytics research risk settings help; do
+          for page in equities crypto fx commodities macro news calendar markets explorer portfolio analytics research risk settings help; do
             curl -fsS "$base/$page" | grep -q '<div id="root">'
           done
 
@@ -102,6 +102,10 @@ jobs:
 
           # FX answers with every pair, marked unavailable if the runner cannot reach the source.
           curl -fsS "$base/api/fx/pairs" | grep -q '"pairs"'
+
+          # News and the calendar answer even if the runner cannot reach the sources.
+          curl -fsS --max-time 90 "$base/api/news" | grep -q '"sources"'
+          curl -fsS --max-time 60 "$base/api/calendar" | grep -q '"events"'
 
           # Without an EIA key, oil prices say they are not configured rather than failing.
           curl -fsS "$base/api/commodities" | grep -q '"configured":false'

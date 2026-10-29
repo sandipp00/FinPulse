@@ -10,8 +10,8 @@ from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend import (
-    auth, candles as candle_source, commodities, config, db, eia, fred, fx, fx_api, instruments, macro,
-    market_service, paper, risk_service, signal_service,
+    auth, candles as candle_source, commodities, config, db, econ_calendar, eia, fred, fx, fx_api, instruments,
+    macro, market_service, news, news_api, paper, risk_service, signal_service,
 )
 from backend.errors import exchange_error
 from backend.live import feed
@@ -34,6 +34,8 @@ async def lifespan(_app: FastAPI):
     await fred.close_client()
     await fx.close_client()
     await eia.close_client()
+    await news.close_client()
+    await econ_calendar.close_client()
 
 
 app = FastAPI(
@@ -60,6 +62,7 @@ app.include_router(instruments.router)
 app.include_router(macro.router)
 app.include_router(fx_api.router)
 app.include_router(commodities.router)
+app.include_router(news_api.router)
 
 
 def get_connection():
