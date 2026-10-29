@@ -82,6 +82,11 @@ FEED_USER_AGENT = "FinPulse/1.0 (personal research terminal)"
 # running the open-source Frankfurter API works here, including a self-hosted one.
 FX_BASE_URL = (_env("FX_BASE_URL") or "https://api.frankfurter.dev/v2").rstrip("/")
 
+# Local AI for the research assistant (optional): an Ollama server on this machine.
+# Free and private. Install from https://ollama.com, then: ollama pull qwen2.5:3b
+OLLAMA_URL = (_env("OLLAMA_URL") or "http://127.0.0.1:11434").rstrip("/")
+OLLAMA_MODEL = _env("OLLAMA_MODEL") or "qwen2.5:3b"
+
 # Paper trading (virtual money only).
 PAPER_STARTING_CASH = float(os.getenv("PAPER_STARTING_CASH", "100000"))
 PAPER_FEE_PCT = float(os.getenv("PAPER_FEE_PCT", "0.1"))

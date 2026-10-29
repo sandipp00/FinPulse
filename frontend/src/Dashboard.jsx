@@ -19,6 +19,7 @@ import { PAGES } from './lib/pages'
 import { ROUTES } from './lib/routes'
 import AnalyticsPage from './pages/AnalyticsPage'
 import AssetClassPage from './pages/AssetClassPage'
+import AssistantPage from './pages/AssistantPage'
 import CalendarPage from './pages/CalendarPage'
 import CommoditiesPage from './pages/CommoditiesPage'
 import ExplorerPage from './pages/ExplorerPage'
@@ -257,6 +258,7 @@ function Dashboard({ route }) {
               {route === 'news' && <NewsPage />}
               {route === 'calendar' && <CalendarPage />}
               {route === 'explorer' && <ExplorerPage />}
+              {route === 'assistant' && <AssistantPage />}
               {route === 'portfolio' && (
                 <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
               )}

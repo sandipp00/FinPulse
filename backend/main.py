@@ -10,7 +10,8 @@ from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend import (
-    auth, candles as candle_source, commodities, config, db, econ_calendar, eia, fred, fx, fx_api, instruments,
+    assistant_api, auth, candles as candle_source, commodities, config, db, econ_calendar, eia, fred, fx, fx_api,
+    instruments,
     macro, market_service, news, news_api, paper, quant_api, risk_service, signal_service,
 )
 from backend.errors import exchange_error
@@ -64,6 +65,7 @@ app.include_router(fx_api.router)
 app.include_router(commodities.router)
 app.include_router(news_api.router)
 app.include_router(quant_api.router)
+app.include_router(assistant_api.router)
 
 
 def get_connection():
