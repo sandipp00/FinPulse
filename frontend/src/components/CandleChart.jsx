@@ -10,8 +10,10 @@ import {
 import { ArrowDownRight, ArrowUpRight, RefreshCw } from 'lucide-react'
 import { useCandles } from '../hooks/useCandles'
 import { INTERVALS } from '../lib/candles'
+import { describeSource, formatAge, isCachedFallback } from '../lib/dataStatus'
 import { formatPercent, formatPrice, getAssetDetails } from '../lib/format'
 import { bollinger, ema, macd, rsi, sma } from '../lib/indicators'
+import DataTag from './DataTag'
 import LiveBadge from './LiveBadge'
 
 const UP = '#34D399'
@@ -144,7 +146,8 @@ function CandleChart({ symbols, symbol, onSymbolChange, tick, liveStatus }) {
   const [enabled, setEnabled] = useState(DEFAULT_ENABLED)
   const [hover, setHover] = useState(null)
 
-  const { base, candles, loading, error, reload } = useCandles(symbol, timeframe, tick)
+  const { base, candles, meta, loading, error, reload } = useCandles(symbol, timeframe, tick)
+  const source = describeSource(meta)
 
   const containerRef = useRef(null)
   const chartRef = useRef(null)
@@ -317,6 +320,12 @@ function CandleChart({ symbols, symbol, onSymbolChange, tick, liveStatus }) {
 
       <div className="candle-chart-wrap">
         <div ref={containerRef} className="candle-chart" />
+        {isCachedFallback(meta) && (
+          <div className="candle-cached" role="status">
+            <DataTag status="cached" />
+            The exchange is not answering. These candles were fetched {formatAge((meta.cache_age_seconds ?? 0) * 1000)}.
+          </div>
+        )}
         {loading && <div className="candle-overlay">Loading {symbol} {timeframe} candles...</div>}
         {error && (
           <div className="candle-overlay candle-error">
@@ -329,6 +338,7 @@ function CandleChart({ symbols, symbol, onSymbolChange, tick, liveStatus }) {
       <div className="chart-footnote">
         <span><i className="status-dot" /> Scroll to zoom, drag to pan, hover for exact values</span>
         <span>Indicators are computed in your browser from the candles shown</span>
+        {source && <span className="candle-source">Source: {source}</span>}
       </div>
     </section>
   )

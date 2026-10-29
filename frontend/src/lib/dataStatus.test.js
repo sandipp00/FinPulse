@@ -3,8 +3,10 @@ import {
   STALE_AFTER_MS,
   ageInDays,
   apiState,
+  describeSource,
   formatAge,
   formatAsOfDate,
+  isCachedFallback,
   latestStoredTimestamp,
   parseTimestamp,
   storedStatus,
@@ -112,5 +114,36 @@ describe('apiState', () => {
     expect(apiState({ health: { status: 'healthy' }, healthError: 'Network error', loading: false })).toBe('error')
     expect(apiState({ health: { status: 'degraded' }, loading: false })).toBe('error')
     expect(apiState({ health: null, loading: false })).toBe('error')
+  })
+})
+
+describe('describeSource', () => {
+  const meta = {
+    provider: 'binance',
+    endpoint: 'api.binance.com',
+    status: 'historical',
+    retrieved_at: '2026-10-29T17:31:02Z',
+    source_timestamp: '2026-10-29T17:00:00Z',
+    cache_age_seconds: 0,
+    notes: [],
+  }
+
+  it('names the provider, host and both timestamps', () => {
+    expect(describeSource(meta)).toBe('Binance (api.binance.com) · fetched 17:31:02 UTC · latest bar 17:00:00 UTC')
+  })
+
+  it('leaves out what the API did not send', () => {
+    expect(describeSource({ provider: 'database', status: 'historical' })).toBe('Local database')
+    expect(describeSource({ provider: 'other', endpoint: null, retrieved_at: 'garbage' })).toBe('other')
+  })
+
+  it('is null without meta (an older API)', () => {
+    expect(describeSource(undefined)).toBeNull()
+  })
+
+  it('spots a cached fallback only when the API says so', () => {
+    expect(isCachedFallback({ ...meta, status: 'cached' })).toBe(true)
+    expect(isCachedFallback(meta)).toBe(false)
+    expect(isCachedFallback(null)).toBe(false)
   })
 })

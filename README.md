@@ -133,6 +133,21 @@ cd frontend
 npm test
 ```
 
+## Market data and freshness
+
+Every number the API serves says where it came from and how fresh it is (models in `backend/schemas/market.py`):
+
+- `GET /api/market/quotes` returns one normalized record per instrument: symbol, asset class, price, quote currency (crypto pairs are priced in USDT, not USD), unit, provider, provider timestamp, retrieval time, interval and a status. The status is `real_time` for a recent exchange tick, `stale` when the tick is older than 30 seconds or the feed is down, `historical` for a stored daily close, `cached` for a kept response, and `unavailable` when there is nothing. A currency that is not known is `null`, never guessed.
+- `GET /api/candles` adds a `meta` object: provider, the endpoint that answered, retrieval time, the newest bar's time and the cache age.
+
+How failures are handled when fetching Binance candles:
+
+- **Malformed responses** (not a list, missing or non-numeric fields, NaN, negative prices, open/close outside the low-high range, out-of-order bars) are rejected, and the next endpoint in `BINANCE_REST_URLS` is tried.
+- **Timeouts**: requests time out after 10 seconds.
+- **Rate limits**: an endpoint that answers 429 or 418 is not asked again until its `Retry-After` has passed (60 seconds if the header is missing, at most 10 minutes). If every endpoint is rate limited, the API answers 503 with `Retry-After`; other failures are 502.
+- **Caching**: responses are cached for 5 seconds. When every endpoint fails, the chart is served the last good response for up to 5 minutes, labelled `cached` with its age, and the page shows a banner. Signals and backtests never use a cached response.
+- **Live feed**: one malformed live-feed message is dropped and counted (`rejected_messages` in `/api/live/status`) instead of dropping the connection.
+
 ## Paper trading
 
 Orders fill server-side at the live Binance price (the client never supplies a price), with a flat fee (`PAPER_FEE_PCT`, default 0.1%) and no slippage, leverage or shorting. A stale or missing price rejects the order. State lives in four SQLite tables (`paper_account`, `paper_positions`, `paper_orders`, `paper_equity`) in `data/finpulse.db`.

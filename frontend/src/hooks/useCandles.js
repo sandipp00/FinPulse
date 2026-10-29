@@ -10,7 +10,7 @@ const RECONCILE_DELAY_MS = 2000
  * fetch); `candles` also moves with every tick.
  */
 export function useCandles(symbol, interval, tick) {
-  const [result, setResult] = useState({ key: null, base: [], error: '' })
+  const [result, setResult] = useState({ key: null, base: [], meta: null, error: '' })
   const [reloadCount, setReloadCount] = useState(0)
   const key = `${symbol}|${interval}`
 
@@ -20,11 +20,11 @@ export function useCandles(symbol, interval, tick) {
     getCandles(symbol, interval)
       .then((response) => {
         if (cancelled) return
-        setResult({ key, base: response.candles ?? [], error: '' })
+        setResult({ key, base: response.candles ?? [], meta: response.meta ?? null, error: '' })
       })
       .catch((err) => {
         if (cancelled) return
-        setResult({ key, base: [], error: err.message || 'Unable to load candles.' })
+        setResult({ key, base: [], meta: null, error: err.message || 'Unable to load candles.' })
       })
 
     return () => {
@@ -50,11 +50,12 @@ export function useCandles(symbol, interval, tick) {
   }, [rolledOver, liveStart])
 
   const reload = useCallback(() => {
-    setResult({ key: null, base: [], error: '' })
+    setResult({ key: null, base: [], meta: null, error: '' })
     setReloadCount((n) => n + 1)
   }, [])
 
-  return { base, candles, loading, error: loading ? '' : result.error, reload }
+  // `meta`: where the server's candles came from and how fresh they are (see describeSource).
+  return { base, candles, meta: loading ? null : result.meta, loading, error: loading ? '' : result.error, reload }
 }
 
 const EMPTY = []

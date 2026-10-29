@@ -85,3 +85,38 @@ def test_status_reports_disconnected_before_start(feed):
     assert status["connected"] is False
     assert status["last_message_age_seconds"] is None
     assert status["symbols"] == ["BTC/USDT", "ETH/USDT"]
+
+
+class FakeUpstream:
+    """Hands out queued raw messages, then ends the connection."""
+
+    def __init__(self, messages):
+        self.messages = list(messages)
+
+    async def recv(self):
+        if not self.messages:
+            raise ConnectionError("closed")
+        return self.messages.pop(0)
+
+
+def test_malformed_messages_are_dropped_without_dropping_the_connection(feed):
+    import json
+
+    good = json.dumps({"data": TICKER})
+    upstream = FakeUpstream([
+        "not json",
+        json.dumps(["a", "list"]),
+        json.dumps({"data": {**TICKER, "c": "abc"}}),
+        json.dumps({"data": {**TICKER, "c": "-5"}}),
+        json.dumps({"data": {**TICKER, "c": "NaN"}}),
+        json.dumps({"data": {"e": "24hrTicker", "s": "BTCUSDT"}}),  # no price at all
+        good,
+    ])
+
+    with pytest.raises(ConnectionError):
+        asyncio.run(feed._consume(upstream))
+
+    # The good message after six bad ones still got through.
+    assert feed.latest["BTC/USDT"]["price"] == pytest.approx(65000.10)
+    assert feed.rejected_messages == 6
+    assert feed.status()["rejected_messages"] == 6
