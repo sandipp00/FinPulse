@@ -44,6 +44,7 @@ class _Entry:
     candles: list[dict]
     fetched_mono: float
     fetched_wall: float
+    timezone: Optional[str] = None
 
 
 _cache: dict[tuple[str, str], _Entry] = {}
@@ -90,6 +91,20 @@ def parse_chart(body) -> list[dict]:
     return candles
 
 
+def exchange_timezone(body) -> Optional[str]:
+    """The exchange's IANA time zone from a chart response, or None.
+
+    Yahoo stamps a daily bar at its session's open in exchange time (09:30 in New
+    York is 13:30 UTC, 09:00 in Tokyo is 00:00 UTC), so the trading date is the
+    stamp's date in this zone, not in UTC.
+    """
+    try:
+        name = body["chart"]["result"][0]["meta"]["exchangeTimezoneName"]
+    except (KeyError, IndexError, TypeError):
+        return None
+    return name if isinstance(name, str) and name else None
+
+
 def _meta(entry: _Entry, status: str, notes: list[str]) -> SourceMeta:
     last = entry.candles[-1]["time"] if entry.candles else None
     return SourceMeta(
@@ -99,6 +114,7 @@ def _meta(entry: _Entry, status: str, notes: list[str]) -> SourceMeta:
         retrieved_at=datetime.fromtimestamp(entry.fetched_wall, tz=timezone.utc),
         source_timestamp=datetime.fromtimestamp(last, tz=timezone.utc) if last else None,
         cache_age_seconds=round(_monotonic() - entry.fetched_mono, 1),
+        exchange_timezone=entry.timezone,
         notes=notes,
     )
 
@@ -119,7 +135,8 @@ async def fetch_candle_series(symbol: str, interval: str, limit: int) -> tuple[l
         })
         if response.status_code != 200:
             raise YahooHistoryError(f"Yahoo answered {response.status_code}")
-        candles = parse_chart(response.json())
+        body = response.json()
+        candles = parse_chart(body)
         if not candles:
             raise YahooHistoryError("Yahoo returned no prices")
     except (httpx.HTTPError, ValueError, YahooHistoryError) as exc:
@@ -129,6 +146,6 @@ async def fetch_candle_series(symbol: str, interval: str, limit: int) -> tuple[l
             return cached.candles[-limit:], _meta(cached, "cached", [f"Yahoo unavailable, showing the last response. {message}"])
         raise YahooHistoryError(message) from None
 
-    entry = _Entry(candles, _monotonic(), _wall())
+    entry = _Entry(candles, _monotonic(), _wall(), exchange_timezone(body))
     _cache[key] = entry
     return candles[-limit:], _meta(entry, "historical", [])

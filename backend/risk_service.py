@@ -3,9 +3,14 @@
 Sources, chosen per asset:
   * live crypto symbols: about three years of daily candles from Binance, so
     every coin (including SOL, BNB and XRP) has history;
-  * everything else (stocks, indices): the stored history in SQLite.
+  * stored instruments (AAPL, the S&P 500, NIFTY 50, gold and silver): the
+    stored history in SQLite;
+  * the other world indices and the FX pairs quoted from Yahoo, and WTI/Brent
+    through their futures CL=F and BZ=F: Yahoo daily bars from STORED_START, the
+    same start as the stored history.
 If Binance is unreachable, a symbol falls back to its stored history when it
-has any; otherwise it is left out and the response says so.
+has any; otherwise it is left out and the response says so. A Yahoo series that
+cannot be loaded is left out the same way.
 """
 import asyncio
 import time
@@ -13,12 +18,24 @@ from typing import Optional
 
 import pandas as pd
 
-from backend import candles as candle_source, config, db
+from backend import candles as candle_source, config, db, yahoo_history
+from backend.analysis_api import YAHOO_DAILY_BARS, to_closes
+from backend.instruments import yahoo_chart_symbols
+from backend.market_service import live_asset_class
 from backend.signal_service import to_closed_frame
 from src.analytics.risk import correlation_matrix, risk_metrics
 
-CACHE_SECONDS = 60
+# Daily closes change once a day; a longer cache keeps ~70 fetches per refresh rare.
+CACHE_SECONDS = 15 * 60
 HISTORY_CANDLES = 1000
+# Yahoo series start where the stored history does, so the windows are comparable.
+STORED_START = pd.Timestamp("2023-01-01")
+# Oil has no stored history and its Binance contracts are new: use Yahoo's futures.
+YAHOO_FUTURES = {"CL=F": "commodity", "BZ=F": "commodity"}
+YAHOO_CONCURRENCY = 6
+# The VIX measures expected volatility in points; it is not a price anyone holds, so
+# drawdowns, value at risk and diversification do not apply to it.
+NOT_PRICES = {"^VIX"}
 
 METHODOLOGY = {
     "returns": "Simple daily returns between consecutive daily closes.",
@@ -27,6 +44,10 @@ METHODOLOGY = {
     "expected_shortfall": "The average return on those worst 1-in-20 days.",
     "drawdown": "The decline from the highest close so far.",
     "correlation": "Pearson correlation of daily returns, measured on the dates two assets share.",
+    "sources": "Crypto: about three years of Binance daily candles. AAPL, the S&P 500, NIFTY 50, gold and silver: "
+               "the stored history. Other indices, FX pairs and WTI/Brent oil futures: Yahoo daily bars from 2023. "
+               "Only completed days are used. The VIX is left out: it measures volatility in points, "
+               "not a price.",
     "caveat": "These describe past behaviour in the data shown. They do not predict future losses.",
 }
 
@@ -60,6 +81,20 @@ async def _live_series(symbol: str) -> pd.Series:
     frame = to_closed_frame(rows, "1d")  # drop today's still-forming candle
     index = pd.to_datetime(frame["time"], unit="s", utc=True)
     return pd.Series(frame["close"].to_numpy(dtype=float), index=index)
+
+
+async def _yahoo_series(symbol: str) -> pd.Series:
+    """Completed daily closes from Yahoo, by local trading date, from STORED_START."""
+    candles, meta = await yahoo_history.fetch_candle_series(symbol, "1d", YAHOO_DAILY_BARS)
+    closes = to_closes(candles, meta.exchange_timezone)
+    return closes[closes.index >= STORED_START]
+
+
+def yahoo_symbols(stored: dict) -> dict[str, str]:
+    """symbol -> asset_type for the Yahoo-sourced assets without stored history."""
+    wanted = {s: live_asset_class(s) for s in yahoo_chart_symbols()}
+    wanted.update(YAHOO_FUTURES)
+    return {s: kind for s, kind in wanted.items() if s not in stored and s not in NOT_PRICES}
 
 
 def _compute(series: dict[str, pd.Series], kinds: dict[str, str], sources: dict[str, str]) -> tuple[list, dict]:
@@ -98,6 +133,22 @@ async def build_report() -> dict:
     for symbol, (closes, asset_type) in stored.items():
         if symbol not in series:
             series[symbol], kinds[symbol], sources[symbol] = closes, asset_type, "database"
+
+    from_yahoo = yahoo_symbols(stored)
+    gate = asyncio.Semaphore(YAHOO_CONCURRENCY)
+
+    async def limited(symbol):
+        async with gate:
+            return await _yahoo_series(symbol)
+
+    results = await asyncio.gather(*(limited(s) for s in from_yahoo), return_exceptions=True)
+    for (symbol, asset_type), result in zip(from_yahoo.items(), results):
+        if isinstance(result, yahoo_history.YahooHistoryError):
+            notes.append(f"Could not load Yahoo daily history for {symbol}. It is left out.")
+            continue
+        if isinstance(result, Exception):
+            raise result
+        series[symbol], kinds[symbol], sources[symbol] = result, asset_type, "yahoo"
 
     assets, correlation = await asyncio.to_thread(_compute, series, kinds, sources)
     short = sorted(set(series) - {asset["symbol"] for asset in assets})

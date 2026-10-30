@@ -28,7 +28,7 @@ function format(column, value) {
   return column.plain ? `${Number(value).toFixed(column.digits)}%` : formatPercent(value, column.digits)
 }
 
-const SOURCE_LABEL = { binance: 'Binance daily', database: 'Stored history' }
+const SOURCE_LABEL = { binance: 'Binance daily', database: 'Stored history', yahoo: 'Yahoo daily' }
 
 export default function RiskTable({ assets }) {
   const [sort, setSort] = useState({ key: 'annualized_volatility_pct', direction: 'desc' })

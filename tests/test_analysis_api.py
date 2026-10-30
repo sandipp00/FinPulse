@@ -1,4 +1,6 @@
 """The analysis routes: which history each asset uses, local dates, caching, errors."""
+import asyncio
+from types import SimpleNamespace
 from datetime import datetime, timezone
 
 import numpy as np
@@ -17,6 +19,34 @@ def test_each_asset_uses_its_longest_daily_history():
     assert source("wti") == ("yahoo", "CL=F")
     assert source("n225") == ("yahoo", "^N225")
     assert source("eurusd") == ("yahoo", "EUR/USD")
+
+
+def test_yahoo_bars_are_dated_in_the_exchange_time_zone():
+    # Yahoo stamps daily bars at the session open: 09:30 New York is 13:30 UTC, 09:00 Tokyo
+    # is 00:00 UTC, 10:00 Auckland is 21:00 UTC the day before.
+    new_york_open = int(datetime(2026, 10, 28, 13, 30, tzinfo=timezone.utc).timestamp())
+    tokyo_open = int(datetime(2026, 10, 28, 0, 0, tzinfo=timezone.utc).timestamp())
+    auckland_open = int(datetime(2026, 10, 27, 21, 0, tzinfo=timezone.utc).timestamp())
+    for tz, stamp in (("America/New_York", new_york_open), ("Asia/Tokyo", tokyo_open),
+                      ("Pacific/Auckland", auckland_open)):
+        closes = analysis_api.to_closes([{"time": stamp, "close": 1.0}], tz)
+        assert [d.date().isoformat() for d in closes.index] == ["2026-10-28"], tz
+
+
+async def _yahoo_series(candles, tz):
+    return candles, SimpleNamespace(exchange_timezone=tz)
+
+
+def test_yahoo_history_is_loaded_with_its_exchange_time_zone(monkeypatch):
+    new_york_open = int(datetime(2026, 10, 28, 13, 30, tzinfo=timezone.utc).timestamp())
+    candles = [{"time": new_york_open + day * 86400, "close": 100.0 + day} for day in range(2)]
+    monkeypatch.setattr(analysis_api.yahoo_history, "fetch_candle_series",
+                        lambda symbol, interval, limit: _yahoo_series(candles, "America/New_York"))
+
+    closes, provider, symbol = asyncio.run(analysis_api.load_closes(asset_news.find("n225")))
+
+    assert provider == "yahoo"
+    assert [d.date().isoformat() for d in closes.index] == ["2026-10-28", "2026-10-29"]
 
 
 def test_bars_are_dated_by_their_local_day_and_today_is_dropped():

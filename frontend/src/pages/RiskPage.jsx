@@ -1,16 +1,19 @@
+import { useState } from 'react'
 import { Activity, Link2, ShieldAlert, TrendingDown } from 'lucide-react'
 import CorrelationHeatmap from '../components/CorrelationHeatmap'
 import MetricCard from '../components/MetricCard'
 import PortfolioRisk from '../components/PortfolioRisk'
 import RiskTable from '../components/RiskTable'
 import { useRisk } from '../hooks/useRisk'
-import { averageCorrelation, mostDiversifyingPair } from '../lib/risk'
+import { CLASS_LABEL, CLASS_ORDER } from '../lib/asset'
+import { averageCorrelation, mostDiversifyingPair, riskForClass } from '../lib/risk'
 
 const short = (symbol) => symbol.replace('/USDT', '').replace('^', '')
 
 /** Volatility, drawdown, value at risk and correlations for every tracked asset. */
 export default function RiskPage({ ticks }) {
   const { data, loading, error } = useRisk()
+  const [assetClass, setAssetClass] = useState('all')
 
   if (loading) return <p className="signal-loading">Calculating risk figures from daily prices...</p>
   if (error) return <p className="signal-error">Unable to load risk figures: {error}</p>
@@ -18,7 +21,10 @@ export default function RiskPage({ ticks }) {
     return <p className="holdings-empty">No price history is available yet, so there is nothing to measure.</p>
   }
 
-  const { assets, correlation } = data
+  const classes = CLASS_ORDER.filter((key) => data.assets.some((asset) => asset.asset_type === key))
+  const shown = classes.includes(assetClass) ? assetClass : 'all'
+  const { assets, correlation } = riskForClass(data, shown)
+  const count = (key) => (key === 'all' ? data.assets.length : data.assets.filter((a) => a.asset_type === key).length)
   const most = assets.reduce((a, b) => (b.annualized_volatility_pct > a.annualized_volatility_pct ? b : a))
   const lowest = assets.reduce((a, b) => (b.current_drawdown_pct < a.current_drawdown_pct ? b : a))
   const average = averageCorrelation(correlation)
@@ -26,6 +32,15 @@ export default function RiskPage({ ticks }) {
 
   return (
     <>
+      <div className="at-tabs risk-tabs" role="tablist" aria-label="Asset class">
+        {['all', ...classes].map((key) => (
+          <button key={key} role="tab" aria-selected={shown === key} className={shown === key ? 'at-tab-active' : ''} onClick={() => setAssetClass(key)}>
+            {key === 'all' ? 'All' : CLASS_LABEL[key]}
+            <span className="at-tab-count">{count(key)}</span>
+          </button>
+        ))}
+      </div>
+
       <section className="metrics-grid">
         <MetricCard
           label="Most volatile"
@@ -46,7 +61,7 @@ export default function RiskPage({ ticks }) {
         <MetricCard
           label="Average correlation"
           value={average == null ? '—' : average.toFixed(2)}
-          change="All pairs"
+          change={shown === 'all' ? 'All pairs' : `${CLASS_LABEL[shown]} pairs`}
           positive={average != null && average < 0.5}
           icon={Link2}
           note="Closer to 1 means assets move together"
@@ -105,7 +120,7 @@ export default function RiskPage({ ticks }) {
           <li><b>Drawdown:</b> {data.methodology.drawdown}</li>
           <li><b>Correlation:</b> {data.methodology.correlation}</li>
         </ul>
-        <p>{data.methodology.caveat} Crypto uses about three years of daily Binance candles; stocks and indices use the stored history.</p>
+        <p>{data.methodology.caveat} {data.methodology.sources}</p>
       </section>
     </>
   )

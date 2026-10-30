@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { averageCorrelation, mostDiversifyingPair, portfolioVolatility, rankBy } from './risk'
+import { averageCorrelation, mostDiversifyingPair, portfolioVolatility, rankBy, riskForClass } from './risk'
 
 const correlation = {
   symbols: ['A', 'B', 'C'],
@@ -67,5 +67,23 @@ describe('rankBy', () => {
   it('does not reorder the input', () => {
     rankBy(assets, 'A', 'vol')
     expect(assets.map((a) => a.symbol)).toEqual(['A', 'B', 'C', 'D'])
+  })
+})
+
+describe('riskForClass', () => {
+  const report = {
+    assets: [{ symbol: 'A', asset_type: 'crypto' }, { symbol: 'B', asset_type: 'index' }, { symbol: 'C', asset_type: 'crypto' }],
+    correlation: { symbols: ['A', 'B', 'C'], matrix: [[1, 0.5, null], [0.5, 1, -0.2], [null, -0.2, 1]] },
+  }
+
+  it('keeps one class and cuts the matrix to its rows and columns', () => {
+    const crypto = riskForClass(report, 'crypto')
+    expect(crypto.assets.map((a) => a.symbol)).toEqual(['A', 'C'])
+    expect(crypto.correlation).toEqual({ symbols: ['A', 'C'], matrix: [[1, null], [null, 1]] })
+  })
+
+  it('returns everything for all, and nothing for a class with no assets', () => {
+    expect(riskForClass(report, 'all')).toEqual({ assets: report.assets, correlation: report.correlation })
+    expect(riskForClass(report, 'fx')).toEqual({ assets: [], correlation: { symbols: [], matrix: [] } })
   })
 })

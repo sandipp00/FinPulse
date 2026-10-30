@@ -23,6 +23,13 @@ def test_bars_with_a_missing_price_are_skipped():
     assert candles[1] == {"time": 220, "open": 1.12, "high": 1.125, "low": 1.115, "close": 1.12, "volume": 0.0}
 
 
+def test_the_exchange_time_zone_comes_from_the_chart_meta():
+    body = {"chart": {"result": [{"meta": {"exchangeTimezoneName": "America/New_York"}}]}}
+    assert yahoo_history.exchange_timezone(body) == "America/New_York"
+    assert yahoo_history.exchange_timezone(BODY) is None
+    assert yahoo_history.exchange_timezone({"chart": {"result": None}}) is None
+
+
 def test_unexpected_shapes_are_errors():
     with pytest.raises(YahooHistoryError):
         parse_chart({"chart": {"result": None}})

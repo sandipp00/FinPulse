@@ -31,6 +31,9 @@ class SourceMeta(BaseModel):
         None, description="Provider time of the newest observation (UTC)"
     )
     cache_age_seconds: Optional[float] = Field(None, description="How long ago it was fetched")
+    exchange_timezone: Optional[str] = Field(
+        None, description="IANA time zone of the exchange, when the provider says (dates daily bars)"
+    )
     notes: list[str] = Field(default_factory=list)
 
 
