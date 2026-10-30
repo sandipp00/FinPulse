@@ -14,7 +14,7 @@ import { useLivePrices } from './hooks/useLivePrices'
 import { useNotificationFeeds, useNotifications } from './hooks/useNotifications'
 import { navigate } from './hooks/useRoute'
 import { apiState, latestStoredTimestamp } from './lib/dataStatus'
-import { formatPercent, formatPrice, getAssetDetails } from './lib/format'
+import { byCryptoRank, formatPercent, formatPrice, getAssetDetails } from './lib/format'
 import { assetHref } from './lib/asset'
 import { symbolsInMarket } from './lib/liveMarkets'
 import { PAGES } from './lib/pages'
@@ -96,7 +96,7 @@ function Dashboard({ route }) {
     marketAssets.forEach((asset) => {
       if (asset.asset_type === 'crypto') symbols.add(asset.symbol)
     })
-    return [...symbols]
+    return byCryptoRank([...symbols])  // largest market cap first
   }, [tickSymbolKey, marketAssets])
 
   // Stored assets, plus any live-only coins (e.g. SOL) with no stored history.

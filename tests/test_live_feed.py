@@ -52,7 +52,7 @@ def test_ticker_updates_latest_and_broadcasts(feed):
 
 
 def test_unknown_symbol_is_ignored(feed):
-    feed._handle_ticker({**TICKER, "s": "DOGEUSDT"})
+    feed._handle_ticker({**TICKER, "s": "ZZZUSDT"})
 
     assert feed.latest == {}
 

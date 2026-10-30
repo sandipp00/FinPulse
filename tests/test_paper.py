@@ -265,7 +265,7 @@ def test_api_refuses_to_trade_without_a_fresh_price(paper_client):
 def test_api_validation(paper_client):
     post = lambda body: paper_client.post("/api/paper/orders", json=body)  # noqa: E731
 
-    assert post({"symbol": "DOGE/USDT", "side": "buy", "percent": 10}).status_code == 404
+    assert post({"symbol": "ZZZ/USDT", "side": "buy", "percent": 10}).status_code == 404
     assert post({"symbol": "BTC/USDT", "side": "buy"}).status_code == 422
     assert post({"symbol": "BTC/USDT", "side": "buy", "percent": 10, "quantity": 1}).status_code == 422
     assert post({"symbol": "BTC/USDT", "side": "hold", "percent": 10}).status_code == 422

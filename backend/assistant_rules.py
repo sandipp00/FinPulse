@@ -22,6 +22,22 @@ INSTRUMENT_ALIASES = {
     "SOL/USDT": ["solana", "sol"],
     "BNB/USDT": ["bnb", "binance coin"],
     "XRP/USDT": ["xrp", "ripple"],
+    # Common words ("near", "link", "gram") are left out so they cannot hijack a question.
+    "TRX/USDT": ["tron", "trx"],
+    "HYPE/USDT": ["hyperliquid"],
+    "ZEC/USDT": ["zcash", "zec"],
+    "DOGE/USDT": ["dogecoin", "doge"],
+    "LINK/USDT": ["chainlink"],
+    "ADA/USDT": ["cardano"],
+    "XLM/USDT": ["stellar lumens", "xlm"],
+    "NEAR/USDT": ["near protocol"],
+    "BCH/USDT": ["bitcoin cash", "bch"],
+    "LTC/USDT": ["litecoin", "ltc"],
+    "UNI/USDT": ["uniswap"],
+    "AVAX/USDT": ["avalanche", "avax"],
+    "SUI/USDT": ["sui"],
+    "GRAM/USDT": ["toncoin", "gram coin"],
+    "HBAR/USDT": ["hedera", "hbar"],
 }
 FX_ALIASES = {
     "USD/INR": ["usd/inr", "usdinr", "usd inr", "rupee", "inr"],

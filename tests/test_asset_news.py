@@ -72,7 +72,7 @@ def test_assets_are_found_by_id_or_any_of_their_symbols():
     assert asset_news.find("GC=F").id == "gold" and asset_news.find("XAU/USDT").id == "gold"
     assert asset_news.find("RWTC").id == "wti"
     assert asset_news.find("EUR/USD").id == "eurusd"
-    assert asset_news.find("DOGE/USDT") is None
+    assert asset_news.find("ZZZ/USDT") is None
 
 
 def test_yahoo_headlines_must_name_the_asset(web):
@@ -139,3 +139,9 @@ def test_registry_and_news_endpoints(client):
 
     assert client.get("/api/asset-news", params={"asset": "nifty"}).json()["items"] == []
     assert client.get("/api/asset-news", params={"asset": "nope"}).status_code == 404
+
+
+def test_every_followed_coin_has_an_asset_page():
+    assert len(config.LIVE_SYMBOLS) == 20
+    missing = [symbol for symbol in config.LIVE_SYMBOLS if asset_news.find(symbol) is None]
+    assert missing == []

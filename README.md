@@ -232,6 +232,13 @@ Both series are measured only on the dates they share. Every formula and assumpt
 - **Silver** stays on the expiring contract until it expires. In the weeks before each expiry that contract trades very thinly, so 123 of the first 961 stored days have one price for open, high, low and close, and volume is tiny. When it moves to the next contract the price can jump by about half a percent. The days are stored as reported; the updater's dry run counts single-price days, and the Commodities page explains them.
 - **Not covered:** spot (LBMA) gold and silver prices. Their display terms have not been checked.
 
+### Live crypto (Binance spot)
+
+- **The top 20 by market cap** that Binance trades, largest first: Bitcoin, Ethereum, BNB, XRP, Solana, TRON, Hyperliquid, Zcash, Dogecoin, Chainlink, Cardano, Stellar, NEAR, Bitcoin Cash, Litecoin, Uniswap, Avalanche, Sui, Gram (formerly Toncoin) and Hedera. They were chosen from CoinGecko's ranking on 2026-10-30. Stablecoins, wrapped and staked coins, tokenised real-world assets, and coins Binance does not list (Monero, LEO, WhiteBIT Coin and others) are left out. The list is `LIVE_SYMBOLS`; a ranking that changes later is not followed automatically.
+- **Live:** one Binance WebSocket streams the 24-hour ticker and 1-minute candles for all 20. Closed 1-minute candles are stored in `live_candles`, so 20 coins add about 29,000 rows a day.
+- **Everywhere:** the Crypto page and the watchlist list all 20 in market-cap order; the Overview shows the largest 8. Each has an asset terminal page and a row in the Analytics scoreboard (daily history from Binance, about 1,000 days). Signals, backtests and paper trading cover them too.
+- **News:** Yahoo headline feeds for 12 of the 15 added coins (Hyperliquid, Uniswap and Sui have none) plus CoinDesk items that name them.
+
 ### Live gold, silver and oil (Binance futures)
 
 - **Source:** Binance USD-M "TradFi" perpetual futures: gold `XAUUSDT` and silver `XAGUSDT` (listed December 2025 and January 2026, USDT per troy ounce), WTI `CLUSDT` and Brent `BZUSDT` (USDT per barrel), shown as `XAU/USDT`, `XAG/USDT`, `CL/USDT` and `BZ/USDT`. They track the real markets through Binance's index price but are not official spot or exchange prices. Public market data, no key, the same terms as the crypto feed.
@@ -290,7 +297,7 @@ The Analytics page analyses every asset the terminal follows (53), from the long
 
 `/asset?asset=gold` puts one asset on one screen, like a terminal's security page. A watchlist row, the right panel and the Commodities cards open it; the asset can be given by id (`gold`) or any of its symbols (`GC=F`, `XAU/USDT`).
 
-- **Registry:** `backend/asset_news.py` lists the 53 assets (5 crypto, AAPL, 36 world indices, gold, silver, WTI, Brent and 7 FX pairs) with the instruments that price each: a live symbol, stored daily history, an EIA series or an ECB pair. `GET /api/asset-registry` returns it.
+- **Registry:** `backend/asset_news.py` lists the 68 assets (20 crypto, AAPL, 36 world indices, gold, silver, WTI, Brent and 7 FX pairs) with the instruments that price each: a live symbol, stored daily history, an EIA series or an ECB pair. `GET /api/asset-registry` returns it.
 - **The page:** the live price with its freshness tag (LIVE, DELAYED, CLOSED, STALE) and change; a candle chart (exchange history for crypto, gold, silver and oil at 1m to 1d; stored daily bars for stocks and indices; Yahoo intraday candles for FX) with figures for the bars shown; key figures (24h range and volume or previous close, and return, volatility, drawdown and Sharpe over the stored history); reference prices (COMEX daily close, EIA spot, ECB rate); and the latest news.
 - **News:** `GET /api/asset-news?asset=gold` merges Yahoo Finance's headline feed for the asset (personal use; WTI and Brent share both oil feeds) with general-news items tagged with it (CoinDesk for crypto) or, for FX, central-bank releases. Yahoo's per-symbol feeds include general market stories, so a Yahoo headline is kept only if its title names the asset. Feeds are refreshed at most every 2 minutes, kept (labelled) for up to 6 hours if Yahoo fails, and the page re-fetches on the same schedule. Headlines and short snippets only, each linking to the original.
 - **No news, by choice:** the NIFTY 50 and the rupee pairs.
