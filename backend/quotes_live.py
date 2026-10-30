@@ -17,11 +17,13 @@ import asyncio
 import logging
 import math
 import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
 
-from backend import config
+from backend import config, tencent_quotes
 from backend.indices import INDEX_SYMBOLS
 from backend.live import LiveFeed
 
@@ -68,10 +70,29 @@ def latest_bar(series: dict) -> Optional[tuple[int, float]]:
     return None
 
 
-def build_tick(symbol: str, series: dict, session: Optional[tuple[int, int]], now: float) -> Optional[dict]:
-    """A tick from one symbol's spark series, or None if it has no usable price."""
-    previous = series.get("previousClose") or series.get("chartPreviousClose")
-    previous = float(previous) if isinstance(previous, (int, float)) and previous > 0 else None
+def local_day(when: float, gmtoffset: int) -> str:
+    """The exchange-local date of a unix time, as YYYY-MM-DD."""
+    return datetime.fromtimestamp(when + gmtoffset, tz=timezone.utc).date().isoformat()
+
+
+def close_before(daily: Optional["DailyCloses"], day: str) -> Optional[float]:
+    """The last daily close dated before `day` (the previous session's close)."""
+    if daily is None:
+        return None
+    earlier = [close for date, close in daily.closes if date < day]
+    return earlier[-1] if earlier else None
+
+
+def build_tick(symbol: str, series: dict, session: Optional[tuple[int, int]], now: float,
+               daily: Optional["DailyCloses"] = None) -> Optional[dict]:
+    """A tick from one symbol's spark series, or None if it has no usable price.
+
+    The previous close comes from the daily bars (`daily`): the close of the session
+    before the newest bar's local day. Yahoo's spark `previousClose` is used only
+    without them; it can be a day older than it should be.
+    """
+    spark_previous = series.get("previousClose") or series.get("chartPreviousClose")
+    spark_previous = float(spark_previous) if isinstance(spark_previous, (int, float)) and spark_previous > 0 else None
     # Unknown session (its lookup failed): open/closed is None and only the age counts.
     market_open = None if session is None else session[0] <= now < session[1]
 
@@ -80,12 +101,17 @@ def build_tick(symbol: str, series: dict, session: Optional[tuple[int, int]], no
         # No bar yet today: the last close is the newest value there is. While the market
         # is closed that is its current value; just after the open (Yahoo runs some
         # exchanges ~15 minutes behind) it is shown as delayed. Hours unknown: nothing.
-        if market_open is None or previous is None:
+        last = daily.closes[-1] if daily and daily.closes else None
+        if market_open is None or (last is None and spark_previous is None):
             return None
-        bar_time, price = None, previous
+        bar_time = None
+        price = last[1] if last else spark_previous
+        previous = close_before(daily, last[0]) if last else None
         delayed = market_open
     else:
         bar_time, price = bar
+        previous = close_before(daily, local_day(bar_time, daily.gmtoffset)) if daily else None
+        previous = previous or spark_previous
         delayed = market_open is not False and now - bar_time > DELAYED_AFTER_SECONDS
     return {
         "symbol": symbol,
@@ -112,6 +138,27 @@ def parse_session(body) -> Optional[tuple[int, int]]:
         return None
 
 
+@dataclass
+class DailyCloses:
+    gmtoffset: int  # the exchange's offset from UTC, seconds
+    closes: list[tuple[str, float]]  # (local date, close), oldest first
+
+
+def parse_daily(body) -> Optional[DailyCloses]:
+    """The recent daily closes (by exchange-local date) from a chart response."""
+    try:
+        result = body["chart"]["result"][0]
+        offset = int(result["meta"].get("gmtoffset") or 0)
+        times, closes = result.get("timestamp") or [], result["indicators"]["quote"][0]["close"]
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+    rows = {}
+    for when, close in zip(times, closes):
+        if isinstance(when, int) and isinstance(close, (int, float)) and math.isfinite(close) and close > 0:
+            rows[local_day(when, offset)] = float(close)
+    return DailyCloses(offset, sorted(rows.items())) if rows else None
+
+
 class YahooQuotes(LiveFeed):
     """Polls Yahoo and publishes ticks through the same subscriber queues as LiveFeed."""
 
@@ -119,6 +166,7 @@ class YahooQuotes(LiveFeed):
         super().__init__(symbols, [], market="quotes", asset_class="stock")
         self.source = config.YAHOO_QUOTE_URL
         self._sessions: dict[str, tuple[int, int]] = {}
+        self._daily: dict[str, DailyCloses] = {}
         self._sessions_at: dict[str, float] = {}
         self._fetched_at: dict[str, float] = {}
         self._client: Optional[httpx.AsyncClient] = None
@@ -161,19 +209,31 @@ class YahooQuotes(LiveFeed):
             if now_mono - self._sessions_at.get(symbol, -math.inf) < SESSION_REFRESH_SECONDS:
                 continue
             try:
-                session = parse_session(await self._get(
-                    f"/v8/finance/chart/{yahoo_symbol(symbol)}", {"range": "1d", "interval": "1d"},
-                ))
+                # Five daily bars: the session times and the closes the previous close comes from.
+                body = await self._get(f"/v8/finance/chart/{yahoo_symbol(symbol)}", {"range": "5d", "interval": "1d"})
             except (httpx.HTTPError, RuntimeError, ValueError) as exc:
                 log.warning("Yahoo session lookup for %s failed: %s", symbol, exc)
-                session = None
+                body = None
+            session, daily = (parse_session(body), parse_daily(body)) if body else (None, None)
             if session:
                 self._sessions[symbol] = session
+            if daily:
+                self._daily[symbol] = daily
             self._sessions_at[symbol] = now_mono
 
     def sessions(self) -> dict[str, tuple[int, int]]:
         """symbol -> (start, end) of its current regular session, as Yahoo last reported."""
         return dict(self._sessions)
+
+    async def _tencent(self, symbols: list[str]) -> dict[str, dict]:
+        """Tencent quotes for the symbols it covers; empty (Yahoo stays) if off or failing."""
+        if not config.TENCENT_QUOTES_ENABLED:
+            return {}
+        try:
+            return await tencent_quotes.fetch(self._client, symbols)
+        except (httpx.HTTPError, ValueError) as exc:
+            log.warning("Tencent quotes failed, using Yahoo: %s", exc)
+            return {}
 
     def _due(self, symbol: str, now: float) -> bool:
         """Fetch every round while the market is open (or its hours are unknown);
@@ -197,6 +257,7 @@ class YahooQuotes(LiveFeed):
             if not isinstance(part, dict):
                 raise ValueError("Yahoo sent a response that is not a JSON object")
             body.update(part)
+        fresher = await self._tencent(due)
 
         now = _wall()
         published = 0
@@ -216,9 +277,12 @@ class YahooQuotes(LiveFeed):
             session = self._sessions.get(symbol)
             if session and now >= session[1]:
                 self._sessions_at.pop(symbol, None)  # the session ended: look up the next one
-            tick = build_tick(symbol, series, session, now)
+            tick = build_tick(symbol, series, session, now, self._daily.get(symbol))
             if tick is None:
                 continue
+            quote = fresher.get(symbol)
+            if quote and (tick["time"] is None or quote["time"] * 1000 > tick["time"]):
+                tick = tencent_quotes.apply(tick, quote, DELAYED_AFTER_SECONDS, now)
             self.latest[symbol] = tick
             self._broadcast({"type": "tick", **tick})
             published += 1

@@ -28,6 +28,8 @@ function Field({ label, children }) {
 
 const exchangeTime = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
+const SOURCE_LABEL = { yahoo: 'Yahoo Finance quote', tencent: 'Tencent Finance quote' }
+
 function Details({ asset, tick, freshness, now, onOpenChart, onOpenAsset }) {
   const live = Boolean(tick)
   const eventTime = live ? parseTimestamp(tick.time) : null
@@ -52,9 +54,9 @@ function Details({ asset, tick, freshness, now, onOpenChart, onOpenAsset }) {
       <dl className="rp-fields">
         {live ? (
           <>
-            <Field label="Source">{tick.provider === 'yahoo' ? 'Yahoo Finance quote' : 'Exchange feed'}</Field>
+            <Field label="Source">{SOURCE_LABEL[tick.provider] ?? 'Exchange feed'}</Field>
             <Field label="Received">{formatAge(now - tick.seenAt)}</Field>
-            <Field label={tick.provider === 'yahoo' ? 'Price time' : 'Exchange time'}>
+            <Field label={SOURCE_LABEL[tick.provider] ? 'Price time' : 'Exchange time'}>
               {eventTime ? exchangeTime.format(eventTime) : '—'}
             </Field>
             {tick.high_24h != null && (
