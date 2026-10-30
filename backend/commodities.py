@@ -1,4 +1,8 @@
-"""Commodity routes: crude oil spot prices from EIA (backend/eia.py)."""
+"""Commodity routes: crude oil spot prices from EIA (backend/eia.py).
+
+Gold and silver are stored daily futures bars (see src/data/update_equities.py),
+served through /api/assets and /api/instruments like the stocks and indices.
+"""
 from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import urlparse
@@ -11,7 +15,10 @@ from backend.schemas.market import SourceMeta
 
 router = APIRouter(prefix="/api/commodities", tags=["commodities"])
 
-NOT_COVERED = "Gold and silver are not included yet: no source with verified display terms has been chosen."
+NOT_COVERED = (
+    "Gold and silver are not from EIA: they are stored end-of-day COMEX futures prices from Yahoo Finance "
+    "(personal use)."
+)
 
 
 class PricePoint(BaseModel):

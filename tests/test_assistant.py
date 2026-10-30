@@ -19,6 +19,8 @@ from backend import research_tools as tools
     ("How has AAPL performed?", [("quote", {"symbol": "AAPL"}), ("performance", {"symbol": "AAPL"})]),
     ("Compare Bitcoin with the S&P 500", [("compare", {"symbol": "BTC/USDT", "benchmark": "^GSPC"})]),
     ("compare nifty and s&p", [("compare", {"symbol": "^NSEI", "benchmark": "^GSPC"})]),
+    ("Compare gold with silver", [("compare", {"symbol": "GC=F", "benchmark": "SI=F"})]),
+    ("how has silver performed", [("quote", {"symbol": "SI=F"}), ("performance", {"symbol": "SI=F"})]),
     ("beta of solana", [("compare", {"symbol": "SOL/USDT", "benchmark": "BTC/USDT"})]),
     ("How risky is ETH?", [("performance", {"symbol": "ETH/USDT"})]),
     ("Backtest SOL", [("backtest", {"symbol": "SOL/USDT"})]),
@@ -39,7 +41,7 @@ def test_questions_route_to_the_right_tools(question, expected):
     assert understood
 
 
-@pytest.mark.parametrize("question", ["what is the weather", "method acting", "solid gold toilet", "soil quality"])
+@pytest.mark.parametrize("question", ["what is the weather", "method acting", "golden retriever", "soil quality"])
 def test_words_that_only_contain_a_name_do_not_match(question):
     assert assistant_rules.plan(assistant_rules.parse(question)) == ([], "")
 

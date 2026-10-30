@@ -7,6 +7,8 @@ export const assetDetails = {
   'XRP/USDT': { name: 'XRP', color: '#94A3B8', currency: 'USD' },
   '^NSEI': { name: 'Nifty 50', color: '#34D399', currency: 'INR' },
   '^GSPC': { name: 'S&P 500', color: '#F472B6', currency: 'USD' },
+  'GC=F': { name: 'Gold', color: '#EAB308', currency: 'USD' },
+  'SI=F': { name: 'Silver', color: '#CBD5E1', currency: 'USD' },
 }
 
 export function getAssetDetails(symbol) {

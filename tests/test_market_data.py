@@ -410,3 +410,16 @@ def test_the_sp500_is_quoted_in_usd_index_points():
     assert record.currency == "USD"
     assert record.unit == "index points"
     assert record.status == "historical"
+
+
+@pytest.mark.parametrize("symbol, price", [("GC=F", 4051.6), ("SI=F", 53.457)])
+def test_gold_and_silver_are_commodities_in_usd_per_troy_ounce(symbol, price):
+    record = market_service.stored_record({
+        "symbol": symbol, "asset_type": "commodity", "latest_price": price,
+        "latest_timestamp": "2026-10-28 00:00:00+00:00", "daily_change_pct": -0.6,
+    })
+    assert record.instrument_id == f"commodity:{symbol}"
+    assert record.asset_class == "commodity"
+    assert record.currency == "USD"
+    assert record.unit == "per troy ounce"
+    assert record.status == "historical"

@@ -1,4 +1,4 @@
-"""Append new daily bars for stored stocks and indices from Yahoo Finance (yfinance).
+"""Append new daily bars for stored stocks, indices and metals from Yahoo Finance (yfinance).
 
 Safe by construction:
   * dry run by default: reports what would be added and writes nothing;
@@ -46,7 +46,15 @@ SYMBOLS = {
     "AAPL": "stock",
     "^NSEI": "index",
     "^GSPC": "index",
+    # COMEX front-month futures (continuous contract), not spot prices.
+    "GC=F": "commodity",
+    "SI=F": "commodity",
 }
+
+# Yahoo keeps updating a futures contract's newest daily bar after settlement (into
+# the evening session), so for these asset types the newest bar is held back until
+# a later one exists.
+HOLD_BACK_NEWEST = {"commodity"}
 
 # A symbol with no stored history is downloaded from here (matches the others).
 NEW_SYMBOL_START = "2023-01-01"
@@ -115,6 +123,8 @@ def plan_symbol(conn, symbol: str, asset_type: str, fetch: Callable, today: date
 
     fetched["day"] = fetched["timestamp"].str[:10]
     complete = fetched[fetched["day"] < today.isoformat()]
+    if asset_type in HOLD_BACK_NEWEST:
+        complete = complete.iloc[:-1]
     plan.dropped_incomplete = len(fetched) - len(complete)
 
     if plan.stored_last is not None:
@@ -225,10 +235,16 @@ def report(plans: list[SymbolPlan]) -> str:
             lines.append(f"  replace {old['day']}: close {old['close']:.4f} -> {new['close']:.4f}, "
                          f"volume {old['volume']:,.0f} -> {new['volume']:,.0f}")
         if p.dropped_incomplete:
-            lines.append(f"  ignored {p.dropped_incomplete} bar(s) dated today or later (session may be unfinished)")
+            what = ("dated today or later, or the newest futures bar" if p.asset_type in HOLD_BACK_NEWEST
+                    else "dated today or later")
+            lines.append(f"  ignored {p.dropped_incomplete} bar(s) {what} (session may be unfinished)")
         if p.adds:
             days = p.new_rows["timestamp"].str[:10]
             lines.append(f"  would add {p.adds} bar(s): {days.iloc[0]} to {days.iloc[-1]}")
+            flat = p.new_rows[["open", "high", "low"]].eq(p.new_rows["close"], axis=0).all(axis=1)
+            if flat.any():
+                lines.append(f"  note: {int(flat.sum())} of them have one price for open, high, low and close "
+                             "(very thin trading, e.g. an expiring futures contract); stored as reported")
         if p.error:
             lines.append(f"  {p.error}")
     return "\n".join(lines)

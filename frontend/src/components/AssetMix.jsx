@@ -2,7 +2,8 @@ import { useMemo, memo } from 'react'
 import { Command, ShieldCheck } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
-const TYPE_COLORS = { Crypto: '#34D399', Stock: '#818CF8', Index: '#FBBF24' }
+const PLURAL = { Index: 'Indices', Commodity: 'Commodities' }
+const TYPE_COLORS = { Crypto: '#34D399', Stock: '#818CF8', Index: '#FBBF24', Commodity: '#EAB308' }
 
 function AssetMix({ assets }) {
   const allocation = useMemo(() => {
@@ -12,7 +13,7 @@ function AssetMix({ assets }) {
     }, {})
 
     return Object.entries(counts).map(([name, value]) => ({
-      name: name === 'Index' ? 'Indices' : `${name}${value > 1 ? 's' : ''}`,
+      name: PLURAL[name] ?? `${name}${value > 1 ? 's' : ''}`,
       value,
       color: TYPE_COLORS[name] ?? '#94A3B8',
     }))
