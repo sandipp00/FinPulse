@@ -19,7 +19,7 @@ const COLUMNS = [
   { key: 'trend', label: 'Trend' },
 ]
 
-const VISIBLE_ROWS = 10
+const VISIBLE_ROWS = 5
 const TREND_LABEL = { up: '▲ Up', down: '▼ Down', mixed: '◆ Mixed' }
 
 function Cell({ column, row }) {
