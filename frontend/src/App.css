@@ -1110,6 +1110,13 @@ a.news-title:hover { color: var(--up); text-decoration: underline; }
 .sb-panel { padding: var(--space-4) var(--space-4) var(--space-3); }
 .sb-tabs { margin: var(--space-3) calc(-1 * var(--space-4)) 0; }
 .risk-tabs { margin-bottom: var(--space-3); }
+.deriv-tabs { margin: var(--space-3) calc(-1 * var(--space-4)) var(--space-3); }
+.deriv-cards { margin-bottom: var(--space-4); }
+.deriv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.deriv-grid h3 { color: var(--text-strong); font-size: var(--text-sm); font-weight: 650; }
+.deriv-chart .macro-chart { height: 240px; }
+.deriv-note { margin-top: var(--space-2); color: var(--text-faint); font-size: var(--text-xs); }
+@media (max-width: 900px) { .deriv-grid { grid-template-columns: minmax(0, 1fr); } }
 .sb-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .sb-table th { border-bottom: 1px solid var(--border); padding: 0; text-align: left; white-space: nowrap; }
 .sb-table th.num { text-align: right; }

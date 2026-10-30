@@ -1,3 +1,4 @@
+import CryptoDerivatives from '../components/CryptoDerivatives'
 import Watchlist from '../components/Watchlist'
 import { formatPercent } from '../lib/format'
 import { summarize } from '../lib/marketSummary'
@@ -82,6 +83,8 @@ export default function AssetClassPage({ assetClass, assets, ticks, liveStatus, 
           />
         )}
       </div>
+
+      {assetClass === 'crypto' && <div className="page-block"><CryptoDerivatives /></div>}
     </>
   )
 }

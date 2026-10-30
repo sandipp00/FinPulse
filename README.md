@@ -248,6 +248,17 @@ Both series are measured only on the dates they share. Every formula and assumpt
 - **Trading hours:** the contracts trade around the clock, but CME gold, silver and WTI trade Sunday 18:00 to Friday 17:00 New York time with a daily 17:00 break (ICE Brent's hours are close). Outside those hours the Commodities page says the price reflects Binance trading only. Exchange holidays are not known.
 - **Settings:** `TRADFI_LIVE_SYMBOLS`, `BINANCE_FUTURES_WS_URLS` and `BINANCE_FUTURES_REST_URLS` (see `.env.example`). `LIVE_FEED_ENABLED=false` turns off every live source.
 
+### Crypto derivatives (Deribit)
+
+The Crypto page has a Derivatives panel for Bitcoin and Ethereum, from Deribit's public market-data API (no key, no account; `backend/deribit.py`, `GET /api/crypto/derivatives?currency=BTC|ETH`):
+
+- **DVOL:** Deribit's 30-day implied-volatility index, with a year of daily closes and where today sits in that year.
+- **Funding:** the perpetual's funding over the last 8 hours, annualized, and the daily average over 30 days. Positive means holders of long positions pay holders of short ones.
+- **Futures curve:** each dated future's price against the spot index, and that premium annualized (left blank under two days out, where it is mostly noise). Expiries come from the contract names; Deribit settles at 08:00 UTC.
+- **Options:** put/call open interest, and at-the-money implied volatility by expiry (the strike nearest the underlying price, the mean of its call and put).
+
+Deribit limits public requests per IP and may ban an IP that sends too many, so each coin is fetched at most once a minute (five requests), shared by everyone viewing, and the last good answer is shown for up to 10 minutes, labelled, when Deribit fails. Nothing is stored. Deribit's terms page only renders in a browser, so its data terms were not read; FinPulse uses this as a personal terminal. `DERIBIT_ENABLED=false` turns it off.
+
 ### Live stock, index and FX quotes (Yahoo Finance)
 
 - **Source:** Yahoo Finance's public chart endpoints, polled by `backend/quotes_live.py`: AAPL, the S&P 500 (`^GSPC`), the NIFTY 50 (`^NSEI`) and the seven FX pairs on the FX page. Personal use, like the stored Yahoo history.
