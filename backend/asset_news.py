@@ -63,8 +63,8 @@ CRYPTO_NOTE = "Live from Binance spot; daily history stored from Binance."
 FUTURES_NOTE = "Live price: a Binance perpetual futures contract in USDT, not an official spot or exchange price."
 FX_NOTE = "Live quote from Yahoo Finance every 15 seconds; ECB reference rate once a day."
 INDEX_NOTE = (
-    "Live quote from Yahoo Finance every 15 seconds; Yahoo delays some exchanges (about 15 minutes for Hong Kong "
-    "and Shanghai), shown as DELAYED. Charts from Yahoo."
+    "Live quote from Yahoo Finance every 15 seconds; Yahoo delays some exchanges by about 15 minutes (Hong Kong, "
+    "mainland China, Singapore, Malaysia, the Sensex), shown as DELAYED. Charts from Yahoo."
 )
 
 ASSETS = [
@@ -102,8 +102,31 @@ ASSETS = [
             ("sse", "Shanghai Composite", "000001.SS", (r"\bshanghai\b", r"\bChin(a|ese) (stocks|shares)\b")),
             ("kospi", "KOSPI", "^KS11", (r"\bkospi\b", r"\bKorea(n)? (stocks|shares)\b", r"\bseoul\b")),
             ("asx", "S&P/ASX 200", "^AXJO", (r"\bASX\b", r"\bAustralia", r"\bsydney\b")),
+            ("rut", "Russell 2000", "^RUT", (r"\brussell\b", r"\bsmall[- ]caps?\b")),
+            ("nya", "NYSE Composite", "^NYA", (r"\bNYSE\b", r"\bwall street\b", r"\bU\.?S\.? stocks\b")),
+            ("vix", "Cboe Volatility Index (VIX)", "^VIX", (r"\bVIX\b", r"\bvolatility\b", r"\bfear (gauge|index)\b")),
+            ("mxx", "S&P/BMV IPC", "^MXX", (r"\bmexic", r"\bIPC\b", r"\bpeso\b")),
+            ("stoxx", "STOXX Europe 600", "^STOXX", (r"\bSTOXX\b", r"\bEuropean (stocks|shares|equities|markets)\b")),
+            ("ibex", "IBEX 35", "^IBEX", (r"\bIBEX\b", r"\bspain\b", r"\bspanish\b", r"\bmadrid\b")),
+            ("ftsemib", "FTSE MIB", "FTSEMIB.MI", (r"\bFTSE MIB\b", r"\bital", r"\bmilan\b")),
+            ("aex", "AEX", "^AEX", (r"\bAEX\b", r"\bdutch\b", r"\bnetherlands\b", r"\bamsterdam\b")),
+            ("smi", "SMI", "^SSMI", (r"\bSMI\b", r"\bswiss\b", r"\bswitzerland\b", r"\bzurich\b")),
+            ("omx", "OMX Stockholm 30", "^OMX", (r"\bOMX\b", r"\bswed", r"\bstockholm\b", r"\bnordic\b")),
+            ("szse", "Shenzhen Component", "399001.SZ", (r"\bshenzhen\b", r"\bChin(a|ese) (stocks|shares)\b")),
+            ("twii", "Taiwan Weighted", "^TWII", (r"\btaiwan", r"\btaiex\b", r"\bTSMC\b")),
+            ("sti", "Straits Times Index", "^STI", (r"\bstraits times\b", r"\bsingapore\b")),
+            ("jkse", "Jakarta Composite", "^JKSE", (r"\bindonesia", r"\bjakarta\b")),
+            ("klse", "FTSE Bursa Malaysia KLCI", "^KLSE", (r"\bmalaysia", r"\bbursa\b", r"\bKLCI\b")),
+            ("nz50", "S&P/NZX 50", "^NZ50", (r"\bNZX\b", r"\bnew zealand\b")),
+            ("ta125", "TA-125", "^TA125.TA", (r"\bTA-?125\b", r"\btel aviv\b", r"\bisrael")),
+            ("tasi", "Tadawul All Share", "^TASI.SR", (r"\btadawul\b", r"\bsaudi\b")),
+            ("jse40", "FTSE/JSE Top 40", "^J200.JO", (r"\bJSE\b", r"\bsouth africa", r"\bjohannesburg\b", r"\brand\b")),
         )
     ],
+    Asset("sensex", "S&P BSE Sensex", "index", live="^BSESN",
+          note=INDEX_NOTE + " No news feed, by choice."),
+    Asset("niftybank", "Nifty Bank", "index", live="^NSEBANK",
+          note=INDEX_NOTE + " No news feed, by choice."),
     Asset("gold", "Gold", "commodity", live="XAU/USDT", stored="GC=F", yahoo_news=("GC=F",),
           keywords=(r"\bgold\b", r"\bbullion\b", r"\bprecious metals?\b"),
           note=FUTURES_NOTE + " Daily history: COMEX futures from Yahoo."),

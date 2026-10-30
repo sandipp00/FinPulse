@@ -20,6 +20,28 @@ export const assetDetails = {
   '000001.SS': { name: 'Shanghai Composite', color: '#EF4444', currency: 'CNY' },
   '^KS11': { name: 'KOSPI', color: '#38BDF8', currency: 'KRW' },
   '^AXJO': { name: 'S&P/ASX 200', color: '#FBBF24', currency: 'AUD' },
+  '^RUT': { name: 'Russell 2000', color: '#C084FC', currency: 'USD' },
+  '^NYA': { name: 'NYSE Composite', color: '#7DD3FC', currency: 'USD' },
+  // The VIX is in volatility points, not a price: no currency symbol.
+  '^VIX': { name: 'VIX', color: '#F43F5E', currency: null },
+  '^MXX': { name: 'S&P/BMV IPC', color: '#34D399', currency: 'MXN' },
+  '^STOXX': { name: 'STOXX Europe 600', color: '#A5B4FC', currency: 'EUR' },
+  '^IBEX': { name: 'IBEX 35', color: '#FCA5A5', currency: 'EUR' },
+  'FTSEMIB.MI': { name: 'FTSE MIB', color: '#86EFAC', currency: 'EUR' },
+  '^AEX': { name: 'AEX', color: '#FDBA74', currency: 'EUR' },
+  '^SSMI': { name: 'SMI', color: '#F87171', currency: 'CHF' },
+  '^OMX': { name: 'OMX Stockholm 30', color: '#60A5FA', currency: 'SEK' },
+  '399001.SZ': { name: 'Shenzhen Component', color: '#FB923C', currency: 'CNY' },
+  '^TWII': { name: 'Taiwan Weighted', color: '#5EEAD4', currency: 'TWD' },
+  '^BSESN': { name: 'Sensex', color: '#2DD4BF', currency: 'INR' },
+  '^NSEBANK': { name: 'Nifty Bank', color: '#4ADE80', currency: 'INR' },
+  '^STI': { name: 'Straits Times', color: '#F472B6', currency: 'SGD' },
+  '^JKSE': { name: 'Jakarta Composite', color: '#FCD34D', currency: 'IDR' },
+  '^KLSE': { name: 'FTSE Bursa Malaysia KLCI', color: '#93C5FD', currency: 'MYR' },
+  '^NZ50': { name: 'S&P/NZX 50', color: '#A3E635', currency: 'NZD' },
+  '^TA125.TA': { name: 'TA-125', color: '#67E8F9', currency: 'ILS' },
+  '^TASI.SR': { name: 'Tadawul All Share', color: '#22C55E', currency: 'SAR' },
+  '^J200.JO': { name: 'FTSE/JSE Top 40', color: '#EAB308', currency: 'ZAR' },
   'GC=F': { name: 'Gold', color: '#EAB308', currency: 'USD' },
   'SI=F': { name: 'Silver', color: '#CBD5E1', currency: 'USD' },
   'XAU/USDT': { name: 'Gold (live)', color: '#EAB308', currency: 'USD' },
@@ -50,9 +72,9 @@ const priceFormatters = new Map()
 function priceFormatter(currency, digits) {
   const key = `${currency}|${digits}`
   if (!priceFormatters.has(key)) {
+    // No currency (e.g. the VIX, in points): a plain number.
     priceFormatters.set(key, new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
+      ...(currency ? { style: 'currency', currency } : { style: 'decimal' }),
       minimumFractionDigits: 2,
       maximumFractionDigits: digits,
     }))

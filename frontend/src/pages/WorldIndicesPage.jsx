@@ -75,7 +75,8 @@ export default function WorldIndicesPage({ ticks = {}, marketStatus = {} }) {
       <p className="macro-notice">
         Live index values from Yahoo Finance, refreshed every 15 seconds (personal use). <b>LIVE</b>: the market is
         open; <b>CLOSED</b>: the last value of the session; <b>DELAYED</b>: Yahoo&apos;s newest value is a few minutes
-        old (Hong Kong and Shanghai run about 15 minutes behind). Change is since the previous close. Click an index
+        old (Yahoo runs some exchanges about 15 minutes behind, such as Hong Kong, mainland China, Singapore and
+        Malaysia). Change is since the previous close. Click an index
         for its chart and news.
         {' '}<span className="wi-counts">Now: {counts.live ?? 0} live · {counts.delayed ?? 0} delayed · {counts.closed ?? 0} closed</span>
       </p>

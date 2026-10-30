@@ -154,3 +154,42 @@ def test_more_than_twenty_symbols_are_split_into_batches():
 
     assert sizes == [20, 3]
     assert set(quotes.latest) == set(symbols)
+
+
+def test_no_bar_yet_shows_the_last_close_closed_or_delayed():
+    empty = {"timestamp": [], "close": [], "previousClose": 17.2}
+    closed = build_tick("^VIX", empty, US, NOW)
+    assert closed["price"] == 17.2 and closed["market_open"] is False and closed["time"] is None
+    assert closed["delayed"] is False
+    just_opened = build_tick("^VIX", empty, NSE, NOW)  # open, but Yahoo has no bar yet
+    assert just_opened["price"] == 17.2 and just_opened["delayed"] is True
+    assert build_tick("^VIX", empty, None, NOW) is None  # hours unknown: nothing is shown
+
+
+def test_closed_markets_are_fetched_every_five_minutes_but_re_sent_every_round(monkeypatch):
+    clock = {"wall": NOW}
+    monkeypatch.setattr(quotes_live, "_wall", lambda: clock["wall"])
+    asked = []
+
+    def handle(request):
+        if request.url.path.startswith("/v8/finance/chart/"):
+            session = NSE if "NSEI" in request.url.path else US  # NIFTY open, AAPL closed
+            return httpx.Response(200, json={"chart": {"result": [{"meta": {"currentTradingPeriod": {
+                "regular": {"start": session[0], "end": session[1]}}}}]}})
+        names = request.url.params["symbols"].split(",")
+        asked.append(names)
+        return httpx.Response(200, json={name: spark(100.0, previous=99.0) for name in names})
+
+    quotes = poller(handle, symbols=("^NSEI", "AAPL"))
+    asyncio.run(quotes.poll())
+    clock["wall"] += 15
+    queue = quotes.subscribe()
+    asyncio.run(quotes.poll())
+
+    assert asked == [["^NSEI", "AAPL"], ["^NSEI"]]  # AAPL's market is closed: not asked again yet
+    resent = [m for m in (queue.get_nowait() for _ in range(queue.qsize())) if m.get("symbol") == "AAPL"]
+    assert resent and resent[0]["received_at"] == NOW + 15  # but its last price is re-sent, fresh
+
+    clock["wall"] += quotes_live.CLOSED_POLL_SECONDS
+    asyncio.run(quotes.poll())
+    assert asked[-1] == ["^NSEI", "AAPL"]

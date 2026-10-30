@@ -14,7 +14,7 @@ export const PAGES = {
   indices: {
     title: 'World indices',
     nav: 'World indices',
-    blurb: '15 benchmark stock indices across the Americas, Europe and Asia-Pacific, live while their markets are open.',
+    blurb: '36 benchmark stock indices across the Americas, Europe, Asia-Pacific and the Middle East & Africa, live while their markets are open.',
   },
   equities: {
     title: 'Equities',
