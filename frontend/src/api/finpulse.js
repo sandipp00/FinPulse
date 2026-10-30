@@ -231,3 +231,11 @@ export function getAssetRegistry() {
 export function getAssetNews(asset) {
   return getJSON(`/api/asset-news?asset=${encodeURIComponent(asset)}`)
 }
+
+export function getAnalysisScoreboard() {
+  return getJSON('/api/analysis/scoreboard')
+}
+
+export function getAssetAnalysis(asset) {
+  return getJSON(`/api/analysis/asset?asset=${encodeURIComponent(asset)}`)
+}

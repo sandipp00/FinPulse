@@ -84,7 +84,7 @@ export const PAGES = {
   analytics: {
     title: 'Analytics',
     nav: 'Analytics',
-    blurb: 'Buy/sell signals, how they backtested, and how assets compare.',
+    blurb: 'Returns, risk and trend for every asset, a full analysis of any one, and buy/sell signals with backtests.',
   },
   research: {
     title: 'Research',
