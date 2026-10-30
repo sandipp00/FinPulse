@@ -3,6 +3,7 @@ import { ArrowDownRight, ArrowUpRight, CandlestickChart } from 'lucide-react'
 import AppLink from '../components/AppLink'
 import DataTag from '../components/DataTag'
 import EarningsPanel from '../components/EarningsPanel'
+import FactorsPanel from '../components/FactorsPanel'
 import VixCurvePanel from '../components/VixCurvePanel'
 import ExplorerChart from '../components/ExplorerChart'
 import LivePrice from '../components/LivePrice'
@@ -20,6 +21,7 @@ import { formatCompact, formatPercent, formatPrice, getAssetDetails } from '../l
 import { formatRate, toRatePoints } from '../lib/fx'
 import { formatObservationDate, withinYears } from '../lib/macro'
 import { ROUTES } from '../lib/routes'
+import { FACTOR_INDICES } from '../lib/factors'
 
 const INTERVAL_LABEL = { '1m': '1m', '15m': '15m', '1h': '1h', '1d': '1D' }
 const CHART_BARS = 500
@@ -330,6 +332,9 @@ export default function AssetPage({ ticks = {}, marketStatus = {}, marketAssets 
             : asset.ecb && <EcbPanel pair={asset.ecb} />}
           <KeyFigures asset={asset} tick={tick} stored={stored} instrument={instrument} />
           {asset.asset_class === 'stock' && asset.live && <EarningsPanel key={asset.live} symbol={asset.live} />}
+          {asset.live && (asset.asset_class === 'stock' || FACTOR_INDICES.includes(asset.live)) && (
+            <FactorsPanel key={asset.live} symbol={asset.live} />
+          )}
           {asset.live === '^VIX' && <VixCurvePanel />}
           <Related asset={asset} stored={stored} hasTick={Boolean(tick)} />
         </div>

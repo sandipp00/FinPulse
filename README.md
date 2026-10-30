@@ -265,6 +265,23 @@ The Risk Monitor and the VIX asset page show Cboe's volatility indices for five 
 - Yahoo has only today's value for the 1-year index, so it is on the curve but has no history.
 - Cboe's own VIX futures settlement prices are not used: cboe.com's terms require Cboe's consent to store and display them.
 
+### Factor exposure (Fama-French)
+
+Each US stock's asset page, and those of the S&P 500, Dow, Nasdaq, Russell 2000 and NYSE Composite, has a Factor exposure panel (`backend/famafrench.py`, `GET /api/factors?symbol=NVDA`; the regression is in `src/analytics/factor_model.py`).
+
+- **Model:** daily excess returns regressed on the Fama-French market, size (SMB) and value (HML) factors plus momentum (the Carhart four-factor model), over the last 756 trading days the asset and the factors share. The panel shows each beta with its t-statistic and a plain-words reading, R², and alpha a year. Exposures with |t| under about 2 are shown faint as "no clear tilt".
+- **Factors:** the Kenneth R. French Data Library's daily files (free CSV downloads; Fama and French 1993, Carhart 1997). They are published monthly with a lag, so the window ends at the factors' latest date. Cached 24 hours and kept up to 45 days when the library cannot be reached. `FAMA_FRENCH_ENABLED=false` turns it off.
+- **Caveat:** asset returns are Yahoo price returns without dividends while the factors include them, so alpha reads low by roughly the dividend yield. The S&P 500 shows it: market beta 0.98, R² 0.998, alpha −1.3% a year.
+
+### Positioning (CFTC Commitments of Traders)
+
+The Positioning page (`/positioning`; `backend/cftc.py`, `GET /api/cftc`) shows where speculators stand in 12 futures markets: gold, silver, WTI crude, natural gas, the E-mini S&P 500 and Nasdaq-100, CME Bitcoin and Ether, the euro, yen and pound, and the 10-year Treasury note. It uses the CFTC's public reporting API (public domain, no key; source: U.S. Commodity Futures Trading Commission).
+
+- **Who:** "managed money" (hedge funds and commodity trading advisers) from the Disaggregated report for metals and energy, and "leveraged funds" from the Traders in Financial Futures report for the rest, with asset managers alongside.
+- **What:** net contracts (long minus short), net as a share of open interest, the 1-week change, and where this week sits among three years of weekly values (a percentile, relative to the market's own history). Each market has a 3-year weekly chart.
+- **When:** positions as of each Tuesday, published Friday. Two requests per refresh, cached 6 hours, the last good report kept up to 14 days when the CFTC fails. `CFTC_ENABLED=false` turns it off.
+- Currency futures are priced in dollars per foreign unit, so net long yen means betting USD/JPY falls. Positioning is a description, not a forecast.
+
 ### Earnings (Nasdaq)
 
 Earnings dates and results for the 30 US stocks come from Nasdaq's website API (`api.nasdaq.com`, no key; unofficial, used for personal use; `backend/earnings.py`, `GET /api/earnings[?symbol=NVDA]`). Nasdaq's vendor is Zacks Investment Research.
