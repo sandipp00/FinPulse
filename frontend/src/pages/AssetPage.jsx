@@ -36,28 +36,51 @@ function Stat({ label, children, tone }) {
   )
 }
 
-/** One column per asset class, its assets listed underneath. FX pairs show their code (EUR/USD). */
-function Picker({ groups, current, onPick }) {
+/**
+ * Asset-class tabs, then the chosen class's assets as chips with their live price
+ * and change. FX pairs show their code (EUR/USD). The tabs open on the class of the
+ * asset being shown; browsing another class does not leave the current asset.
+ */
+function Picker({ groups, current, currentClass, onPick, ticks }) {
+  const [browsing, setBrowsing] = useState(currentClass)
+  const shown = groups.find((group) => group.assetClass === browsing) ?? groups[0]
   return (
     <nav className="panel at-picker" aria-label="Assets">
-      {groups.map((group) => (
-        <div key={group.assetClass} className="at-picker-group" role="group" aria-label={group.label}>
-          <span className="at-picker-label">{group.label}</span>
-          <div className="at-picker-list">
-            {group.assets.map((asset) => (
-              <button
-                key={asset.id}
-                onClick={() => onPick(asset.id)}
-                className={asset.id === current ? 'at-picker-active' : ''}
-                aria-pressed={asset.id === current}
-                title={asset.name}
-              >
-                {asset.asset_class === 'fx' ? asset.live : asset.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
+      <div className="at-tabs" role="tablist" aria-label="Asset class">
+        {groups.map((group) => (
+          <button
+            key={group.assetClass}
+            role="tab"
+            aria-selected={group === shown}
+            className={group === shown ? 'at-tab-active' : ''}
+            onClick={() => setBrowsing(group.assetClass)}
+          >
+            {group.label}
+            <span className="at-tab-count">{group.assets.length}</span>
+          </button>
+        ))}
+      </div>
+      <div className="at-chips" role="tabpanel" aria-label={shown.label}>
+        {shown.assets.map((asset) => {
+          const tick = ticks[asset.live]
+          const change = tick?.change_pct_24h
+          return (
+            <button
+              key={asset.id}
+              onClick={() => onPick(asset.id)}
+              className={`at-chip ${asset.id === current ? 'at-chip-active' : ''}`}
+              aria-pressed={asset.id === current}
+              title={asset.name}
+            >
+              <span className="at-chip-name">{asset.asset_class === 'fx' ? asset.live : asset.name}</span>
+              <span className="at-chip-quote num">
+                {tick ? formatPrice(tick.price, asset.live) : '—'}
+                {change != null && <b className={toneOf(change)}>{formatPercent(change)}</b>}
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </nav>
   )
 }
@@ -296,7 +319,7 @@ export default function AssetPage({ ticks = {}, marketStatus = {}, marketAssets 
 
   return (
     <div className="ix at">
-      <Picker groups={groups} current={asset.id} onPick={setQuery} />
+      <Picker key={asset.asset_class} groups={groups} current={asset.id} currentClass={asset.asset_class} onPick={setQuery} ticks={ticks} />
       <Header asset={asset} tick={tick} freshness={tickStatus(tick, marketStatus, now)} stored={stored} instrument={instrument} />
       <div className="at-grid">
         <div className="at-main">
