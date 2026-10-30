@@ -229,6 +229,14 @@ Both series are measured only on the dates they share. Every formula and assumpt
 - **Silver** stays on the expiring contract until it expires. In the weeks before each expiry that contract trades very thinly, so 123 of the first 961 stored days have one price for open, high, low and close, and volume is tiny. When it moves to the next contract the price can jump by about half a percent. The days are stored as reported; the updater's dry run counts single-price days, and the Commodities page explains them.
 - **Not covered:** spot (LBMA) gold and silver prices. Their display terms have not been checked.
 
+### Live gold and silver (Binance futures)
+
+- **Source:** Binance USD-M "TradFi" perpetual futures, `XAUUSDT` and `XAGUSDT` (listed December 2025 and January 2026), shown as `XAU/USDT` and `XAG/USDT`. They are priced in USDT per troy ounce and track spot gold and silver through Binance's index price. They are not official spot prices. Public market data, no key, the same terms as the crypto feed.
+- **How:** a second live feed (`metals_feed` in `backend/live.py`) streams the 24-hour ticker and 1-minute candles from `wss://fstream.binance.com/market`. Ticks go out on the same `/ws/prices` socket with `asset_class: "commodity"`, and status messages name their market, so one feed failing does not mark the other offline. Closed 1-minute candles are stored in `live_candles`, like crypto. Chart history comes from `https://fapi.binance.com/fapi/v1/klines` (1m, 15m, 1h, 1d).
+- **Where:** the Commodities page (live cards above the COMEX end-of-day ones), the ticker, the watchlist and the explorer. Signals, backtests and paper trading stay crypto-only.
+- **Trading hours:** the contracts trade around the clock, but COMEX gold and silver trade Sunday 18:00 to Friday 17:00 New York time with a daily 17:00 break. Outside those hours the Commodities page says the price reflects Binance trading only. Exchange holidays are not known.
+- **Settings:** `METAL_LIVE_SYMBOLS`, `BINANCE_FUTURES_WS_URLS` and `BINANCE_FUTURES_REST_URLS` (see `.env.example`). `LIVE_FEED_ENABLED=false` turns off both live feeds.
+
 ### US macro (FRED)
 
 Eight series from FRED: CPI (`CPIAUCSL`), core PCE prices (`PCEPILFE`), the effective Fed funds rate (`FEDFUNDS`), 2- and 10-year Treasury yields (`DGS2`, `DGS10`), real GDP (`GDPC1`), the unemployment rate (`UNRATE`) and nonfarm payrolls (`PAYEMS`).

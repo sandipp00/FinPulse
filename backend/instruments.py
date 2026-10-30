@@ -1,7 +1,8 @@
 """Instrument catalogue and one history endpoint for every supported instrument.
 
 Two sources, chosen per instrument:
-  * live crypto symbols: candles from Binance (any interval in candles.INTERVALS);
+  * live symbols: candles from Binance (any interval in candles.INTERVALS), spot
+    for crypto and futures for live gold and silver (XAU/USDT, XAG/USDT);
   * stored instruments (stocks, indices, gold and silver futures, some crypto):
     daily bars from SQLite.
 
@@ -18,7 +19,7 @@ from pydantic import BaseModel
 
 from backend import candles as candle_source, config
 from backend.errors import exchange_error
-from backend.market_service import UNITS, asset_class_of, currency_of
+from backend.market_service import UNITS, asset_class_of, currency_of, live_asset_class
 from backend.schemas.market import AssetClass, Candle, SourceMeta
 
 router = APIRouter(prefix="/api/instruments", tags=["instruments"])
@@ -108,9 +109,10 @@ def catalogue() -> dict[str, Instrument]:
     stored = _stored_coverage()
     instruments: dict[str, Instrument] = {}
 
-    for symbol in config.LIVE_SYMBOLS:
+    for symbol in [*config.LIVE_SYMBOLS, *config.METAL_LIVE_SYMBOLS]:
+        asset_class = live_asset_class(symbol)
         instruments[symbol] = Instrument(
-            symbol=symbol, asset_class="crypto", currency=currency_of(symbol), unit=UNITS["crypto"],
+            symbol=symbol, asset_class=asset_class, currency=currency_of(symbol), unit=UNITS[asset_class],
             live=True, intervals=list(candle_source.INTERVALS),
             stored=stored[symbol][1] if symbol in stored else None,
         )

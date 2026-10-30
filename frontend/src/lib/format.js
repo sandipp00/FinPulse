@@ -9,6 +9,8 @@ export const assetDetails = {
   '^GSPC': { name: 'S&P 500', color: '#F472B6', currency: 'USD' },
   'GC=F': { name: 'Gold', color: '#EAB308', currency: 'USD' },
   'SI=F': { name: 'Silver', color: '#CBD5E1', currency: 'USD' },
+  'XAU/USDT': { name: 'Gold (live)', color: '#EAB308', currency: 'USD' },
+  'XAG/USDT': { name: 'Silver (live)', color: '#CBD5E1', currency: 'USD' },
 }
 
 export function getAssetDetails(symbol) {

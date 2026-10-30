@@ -15,6 +15,7 @@ import { useNotificationFeeds, useNotifications } from './hooks/useNotifications
 import { navigate } from './hooks/useRoute'
 import { apiState, latestStoredTimestamp } from './lib/dataStatus'
 import { formatPercent, formatPrice, getAssetDetails } from './lib/format'
+import { isLiveMetal } from './lib/metals'
 import { PAGES } from './lib/pages'
 import { ROUTES } from './lib/routes'
 import AnalyticsPage from './pages/AnalyticsPage'
@@ -57,7 +58,7 @@ function Dashboard({ route }) {
   const [pageLoadedAt] = useState(() => Date.now())
 
   const { assets: marketAssets, loading: assetLoading, error: apiError } = useAssets()
-  const { ticks, history, status: liveStatus } = useLivePrices()
+  const { ticks, history, status: liveStatus, metalsStatus } = useLivePrices()
   const { user, logout } = useAuth()
   const { unread } = useNotifications()
   const backend = useBackendStatus()
@@ -78,7 +79,11 @@ function Dashboard({ route }) {
   // Keyed on the symbol names rather than `ticks` itself: ticks change every
   // fraction of a second, but the list of symbols almost never does, and a
   // stable list lets the panels that depend on it skip re-rendering.
-  const tickSymbolKey = Object.keys(ticks).join(',')
+  // Live gold and silver tick on the same socket but are kept apart: the crypto-only
+  // pages (signals, paper trading, live market) use `liveSymbols`.
+  const tickSymbolKey = Object.keys(ticks).filter((symbol) => !isLiveMetal(ticks[symbol])).join(',')
+  const metalSymbolKey = Object.keys(ticks).filter((symbol) => isLiveMetal(ticks[symbol])).join(',')
+  const metalSymbols = useMemo(() => (metalSymbolKey ? metalSymbolKey.split(',') : []), [metalSymbolKey])
   const liveSymbols = useMemo(() => {
     const symbols = new Set(tickSymbolKey ? tickSymbolKey.split(',') : [])
     marketAssets.forEach((asset) => {
@@ -104,8 +109,14 @@ function Dashboard({ route }) {
         stored: false,
         type: 'Crypto',
       }))
+    const liveMetals = metalSymbols.map((symbol) => ({
+      symbol,
+      asset_type: 'commodity',
+      stored: false,
+      type: 'Commodity',
+    }))
 
-    return [...stored, ...liveOnly].map((asset) => {
+    return [...stored, ...liveOnly, ...liveMetals].map((asset) => {
       const details = getAssetDetails(asset.symbol)
       return {
         ...asset,
@@ -116,7 +127,7 @@ function Dashboard({ route }) {
         positive: Number(asset.daily_change_pct) >= 0,
       }
     })
-  }, [marketAssets, liveSymbols])
+  }, [marketAssets, liveSymbols, metalSymbols])
 
   const filteredAssets = useMemo(() => displayAssets.filter((asset) => {
     const matchesType = filter === 'All assets' || asset.type === filter
@@ -184,7 +195,14 @@ function Dashboard({ route }) {
             liveStatus={liveStatus}
           />
 
-          <LiveTicker ticks={ticks} symbols={liveSymbols} status={liveStatus} storedAssets={storedTickerAssets} />
+          <LiveTicker
+            ticks={ticks}
+            symbols={liveSymbols}
+            status={liveStatus}
+            metalSymbols={metalSymbols}
+            metalsStatus={metalsStatus}
+            storedAssets={storedTickerAssets}
+          />
 
           <div className="workspace">
             <div className="dashboard-content">
@@ -254,7 +272,14 @@ function Dashboard({ route }) {
               )}
               {route === 'fx' && <FxPage />}
               {route === 'commodities' && (
-                <CommoditiesPage marketAssets={marketAssets} assetLoading={assetLoading} assetError={apiError} />
+                <CommoditiesPage
+                  marketAssets={marketAssets}
+                  assetLoading={assetLoading}
+                  assetError={apiError}
+                  ticks={ticks}
+                  metalSymbols={metalSymbols}
+                  metalsStatus={metalsStatus}
+                />
               )}
               {route === 'macro' && <MacroPage />}
               {route === 'news' && <NewsPage />}

@@ -8,8 +8,11 @@ import LivePrice from './LivePrice'
 const FILTERS = ['All assets', 'Stock', 'Crypto', 'Index', 'Commodity']
 const FILTER_LABEL = { Stock: 'Stocks', Index: 'Indices' }
 
+const METAL_GLYPH = { 'GC=F': 'Au', 'XAU/USDT': 'Au', 'SI=F': 'Ag', 'XAG/USDT': 'Ag' }
+
 function AssetGlyph({ symbol }) {
   if (symbol === 'BTC/USDT') return <Bitcoin size={20} />
+  if (METAL_GLYPH[symbol]) return METAL_GLYPH[symbol]
   if (symbol.startsWith('^')) return <BarChart3 size={18} />
   return symbol === 'AAPL' ? 'A' : 'Ξ'
 }
@@ -23,7 +26,7 @@ export default function Watchlist({
   liveTicks,
   onSelect,
   title = 'Market watchlist',
-  subtitle = 'Live prices for crypto, latest stored prices for everything else',
+  subtitle = 'Live prices for crypto, gold and silver; latest stored prices for everything else',
   liveStatus,
 }) {
   const now = useNow(5000)

@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react'
 import DataTag from '../components/DataTag'
+import LivePrice from '../components/LivePrice'
 import SeriesChart from '../components/SeriesChart'
 import { useCommodities, useCommodityHistory } from '../hooks/useCommodities'
+import { useNow } from '../hooks/useNow'
 import { navigate } from '../hooks/useRoute'
-import { isCachedFallback, parseTimestamp } from '../lib/dataStatus'
+import { isCachedFallback, parseTimestamp, tickStatus } from '../lib/dataStatus'
 import { formatQuote } from '../lib/explorer'
 import { formatPercent, getAssetDetails } from '../lib/format'
 import { formatObservationDate, toChartPoints, withinYears } from '../lib/macro'
+import { metalsMarketOpen } from '../lib/metals'
 import { ROUTES } from '../lib/routes'
 
 const RANGES = [
@@ -53,6 +56,59 @@ function Card({ item, active, onSelect }) {
   )
 }
 
+const openExplorer = (symbol) => navigate(`${ROUTES.explorer}?symbol=${encodeURIComponent(symbol)}`)
+
+function LiveMetalCard({ symbol, tick, status, now }) {
+  const freshness = tickStatus(tick, status, now)
+  const change = tick?.change_pct_24h
+  const up = change != null && change >= 0
+  return (
+    <button className="macro-card" onClick={() => openExplorer(symbol)} title={`Open ${symbol} in the explorer`}>
+      <span className="macro-card-top">
+        <span>Live · Binance perpetual</span>
+        <DataTag status={freshness} />
+      </span>
+      <strong className="macro-card-title">{getAssetDetails(symbol).name}</strong>
+      <span className="macro-card-value num">{tick ? <LivePrice tick={tick} /> : '—'}</span>
+      <span className="macro-card-meta">
+        {tick ? '24h change' : 'Waiting for the first price…'}
+        {change != null && <b className={`num ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {formatPercent(change)}</b>}
+      </span>
+      <small className="macro-card-id">{symbol} · USDT per troy ounce · open in explorer</small>
+    </button>
+  )
+}
+
+/** Live gold and silver from Binance's USD-M perpetual futures, ticking on the price socket. */
+function LiveMetals({ ticks, symbols, status }) {
+  const now = useNow(5000)
+  if (symbols.length === 0) {
+    return status === 'connecting' ? null : (
+      <p className="macro-notice ix-warn">
+        Live gold and silver are unavailable: no price has arrived from Binance&apos;s futures feed.
+      </p>
+    )
+  }
+  const open = metalsMarketOpen(new Date(now))
+  return (
+    <>
+      <p className="macro-notice">
+        Live gold and silver are Binance perpetual futures contracts (XAUUSDT, XAGUSDT), priced in USDT and tracking
+        spot gold and silver. They are not official spot prices. They trade around the clock.
+        {!open && (
+          <b className="ix-warn">
+            {' '}The gold and silver markets are closed now (COMEX trades Sunday 18:00 to Friday 17:00 New York
+            time, with a daily break at 17:00), so these prices reflect Binance trading only.
+          </b>
+        )}
+      </p>
+      <section className="macro-grid" aria-label="Live gold and silver">
+        {symbols.map((symbol) => <LiveMetalCard key={symbol} symbol={symbol} tick={ticks[symbol]} status={status} now={now} />)}
+      </section>
+    </>
+  )
+}
+
 function MetalCard({ asset }) {
   const change = asset.daily_change_pct
   const up = change != null && change >= 0
@@ -60,11 +116,11 @@ function MetalCard({ asset }) {
   return (
     <button
       className="macro-card"
-      onClick={() => navigate(`${ROUTES.explorer}?symbol=${encodeURIComponent(asset.symbol)}`)}
+      onClick={() => openExplorer(asset.symbol)}
       title={`Open ${asset.symbol} in the explorer`}
     >
       <span className="macro-card-top">
-        <span>COMEX futures</span>
+        <span>COMEX futures · end of day</span>
         <DataTag status={asset.latest_price == null ? 'unavailable' : 'historical'} />
       </span>
       <strong className="macro-card-title">{getAssetDetails(asset.symbol).name}</strong>
@@ -156,10 +212,13 @@ function History({ seriesId, range, onRange, releaseNote }) {
   )
 }
 
-/** Commodities: gold and silver futures from the database, then WTI and Brent spot prices from EIA. */
-export default function CommoditiesPage({ marketAssets = [], assetLoading = false, assetError = null }) {
+/** Commodities: live gold and silver, their end-of-day COMEX prices, then WTI and Brent from EIA. */
+export default function CommoditiesPage({
+  marketAssets = [], assetLoading = false, assetError = null, ticks = {}, metalSymbols = [], metalsStatus = 'connecting',
+}) {
   return (
     <div className="ix">
+      <LiveMetals ticks={ticks} symbols={metalSymbols} status={metalsStatus} />
       <Metals assets={marketAssets} loading={assetLoading} error={assetError} />
       <Oil />
     </div>

@@ -33,6 +33,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "DATABASE_PATH", path)
     monkeypatch.setattr(config, "LIVE_FEED_ENABLED", False)
     monkeypatch.setattr(config, "LIVE_SYMBOLS", ["BTC/USDT", "SOL/USDT"])
+    monkeypatch.setattr(config, "METAL_LIVE_SYMBOLS", ["XAU/USDT"])
     candle_source._cache.clear()
     with TestClient(main.app) as test_client:
         yield test_client
@@ -66,7 +67,7 @@ def by_symbol(client):
 def test_catalogue_lists_live_and_stored_instruments(client):
     items = by_symbol(client)
 
-    assert set(items) == {"BTC/USDT", "SOL/USDT", "AAPL", "^NSEI"}
+    assert set(items) == {"BTC/USDT", "SOL/USDT", "XAU/USDT", "AAPL", "^NSEI"}
 
     btc = items["BTC/USDT"]
     assert btc["live"] is True
@@ -75,6 +76,13 @@ def test_catalogue_lists_live_and_stored_instruments(client):
     assert btc["stored"]["bars"] == 2
 
     assert items["SOL/USDT"]["stored"] is None  # live only
+
+    gold = items["XAU/USDT"]  # live gold: Binance futures, intraday intervals
+    assert gold["live"] is True
+    assert gold["asset_class"] == "commodity"
+    assert gold["unit"] == "per troy ounce"
+    assert gold["currency"] == "USDT"
+    assert gold["intervals"] == ["1m", "15m", "1h", "1d"]
 
     aapl = items["AAPL"]
     assert aapl["live"] is False
@@ -91,7 +99,7 @@ def test_catalogue_lists_live_and_stored_instruments(client):
 def test_catalogue_without_a_database_still_lists_live_symbols(client, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATABASE_PATH", tmp_path / "missing.db")
 
-    assert set(by_symbol(client)) == {"BTC/USDT", "SOL/USDT"}
+    assert set(by_symbol(client)) == {"BTC/USDT", "SOL/USDT", "XAU/USDT"}
 
 
 # ---- stored history ----------------------------------------------------
