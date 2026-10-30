@@ -34,6 +34,15 @@ from backend import research_tools as tools
     ("USD/INR rate", [("fx", {"pair": "USD/INR"})]),
     ("Brent oil price", [("oil", {"series_id": "RBRTE"})]),
     ("oil prices", [("oil", {"series_id": "RWTC"}), ("oil", {"series_id": "RBRTE"})]),
+    # Stocks, by name or ticker, against the S&P 500 by default.
+    ("How has Nvidia performed?", [("quote", {"symbol": "NVDA"}), ("performance", {"symbol": "NVDA"})]),
+    ("Compare Nvidia with AMD", [("compare", {"symbol": "NVDA", "benchmark": "AMD"})]),
+    ("beta of tesla", [("compare", {"symbol": "TSLA", "benchmark": "^GSPC"})]),
+    ("How risky is Berkshire?", [("performance", {"symbol": "BRK-B"})]),
+    ("Compare Visa and Mastercard", [("compare", {"symbol": "V", "benchmark": "MA"})]),
+    ("Latest news on Tesla", [("news", {"instrument": "TSLA"})]),
+    ("How has the Dow done vs the S&P 500", [("compare", {"symbol": "^DJI", "benchmark": "^GSPC"})]),
+    ("nikkei performance", [("quote", {"symbol": "^N225"}), ("performance", {"symbol": "^N225"})]),
 ])
 def test_questions_route_to_the_right_tools(question, expected):
     calls, understood = assistant_rules.plan(assistant_rules.parse(question))
@@ -41,7 +50,8 @@ def test_questions_route_to_the_right_tools(question, expected):
     assert understood
 
 
-@pytest.mark.parametrize("question", ["what is the weather", "method acting", "golden retriever", "soil quality"])
+@pytest.mark.parametrize("question", ["what is the weather", "method acting", "golden retriever", "soil quality",
+                                      "artificial intelligence", "metadata", "cost of living", "a visage"])
 def test_words_that_only_contain_a_name_do_not_match(question):
     assert assistant_rules.plan(assistant_rules.parse(question)) == ([], "")
 
@@ -240,3 +250,21 @@ def test_ask_validates_input(client, payload):
 def test_ask_from_another_site_is_refused(client):
     response = client.post("/api/assistant/ask", json={"question": "AAPL"}, headers={"Origin": "https://evil.example"})
     assert response.status_code == 403
+
+
+def test_news_on_a_stock_uses_its_own_headline_feed(monkeypatch):
+    from backend import asset_news
+
+    async def headlines(asset):
+        assert asset.live == "NVDA"
+        return {"items": [{"title": "Nvidia beats", "url": "https://example.com/n", "source_name": "Yahoo Finance",
+                           "published_at": "2026-10-30T18:14:00Z"}], "total": 1, "sources": []}
+
+    async def general():
+        raise AssertionError("the general feeds are not needed for a stock with its own feed")
+
+    monkeypatch.setattr(asset_news, "asset_headlines", headlines)
+    monkeypatch.setattr(tools.news, "collect", general)
+    result = asyncio.run(tools.news_items(instrument="NVDA"))
+    assert result["error"] is None and result["facts"][0]["value"] == "Nvidia beats"
+    assert result["sources"][0]["url"] == "https://example.com/n"
