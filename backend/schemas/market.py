@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 # unavailable  no observation at all
 DataStatus = Literal["real_time", "delayed", "historical", "cached", "stale", "unavailable"]
 
-AssetClass = Literal["crypto", "stock", "index"]
+AssetClass = Literal["crypto", "stock", "index", "commodity"]
 
 
 class SourceMeta(BaseModel):

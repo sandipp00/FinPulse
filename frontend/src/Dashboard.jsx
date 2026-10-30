@@ -34,7 +34,7 @@ import ResearchPage from './pages/ResearchPage'
 import RiskPage from './pages/RiskPage'
 import SettingsPage from './pages/SettingsPage'
 
-const TYPE_LABEL = { crypto: 'Crypto', index: 'Index', stock: 'Stock' }
+const TYPE_LABEL = { crypto: 'Crypto', index: 'Index', stock: 'Stock', commodity: 'Commodity' }
 
 // Pages that show the stored-asset list, and so should say when it is loading or failed.
 const USES_ASSET_DATA = new Set(['home', 'equities', 'crypto', 'markets', 'analytics'])
@@ -155,7 +155,7 @@ function Dashboard({ route }) {
 
   const livePrices = useMemo(() => ({ ticks, symbols: liveSymbols }), [ticks, liveSymbols])
 
-  // Stocks and indices have no live feed; the ticker shows their stored close, dated.
+  // Stocks, indices and metals have no live feed; the ticker shows their stored close, dated.
   const storedTickerAssets = useMemo(
     () => marketAssets.filter((asset) => asset.asset_type !== 'crypto'),
     [marketAssets],
@@ -253,7 +253,9 @@ function Dashboard({ route }) {
                 />
               )}
               {route === 'fx' && <FxPage />}
-              {route === 'commodities' && <CommoditiesPage />}
+              {route === 'commodities' && (
+                <CommoditiesPage marketAssets={marketAssets} assetLoading={assetLoading} assetError={apiError} />
+              )}
               {route === 'macro' && <MacroPage />}
               {route === 'news' && <NewsPage />}
               {route === 'calendar' && <CalendarPage />}

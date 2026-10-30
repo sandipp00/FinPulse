@@ -3,7 +3,7 @@ import { Search } from 'lucide-react'
 import { searchInstruments } from '../lib/explorer'
 import { getAssetDetails } from '../lib/format'
 
-const CLASS_LABEL = { crypto: 'Crypto', stock: 'Stock', index: 'Index' }
+const CLASS_LABEL = { crypto: 'Crypto', stock: 'Stock', index: 'Index', commodity: 'Commodity' }
 
 /**
  * A searchable instrument picker (ARIA combobox): type to filter, arrow keys to

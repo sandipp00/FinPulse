@@ -259,7 +259,7 @@ def test_list_without_a_key(client, server, monkeypatch):
 
     assert body_["configured"] is False
     assert body_["citation"].startswith("Source: U.S. Energy Information Administration (")
-    assert "Gold and silver are not included" in body_["not_covered"]
+    assert "Gold and silver are not from EIA" in body_["not_covered"]
     assert {c["status"] for c in body_["commodities"]} == {"unavailable"}
     assert server.requests == []
 

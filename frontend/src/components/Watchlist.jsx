@@ -5,7 +5,7 @@ import { formatPercent } from '../lib/format'
 import DataTag from './DataTag'
 import LivePrice from './LivePrice'
 
-const FILTERS = ['All assets', 'Stock', 'Crypto', 'Index']
+const FILTERS = ['All assets', 'Stock', 'Crypto', 'Index', 'Commodity']
 const FILTER_LABEL = { Stock: 'Stocks', Index: 'Indices' }
 
 function AssetGlyph({ symbol }) {

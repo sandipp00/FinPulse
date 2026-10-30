@@ -2,7 +2,8 @@
 
 Two sources, chosen per instrument:
   * live crypto symbols: candles from Binance (any interval in candles.INTERVALS);
-  * stored instruments (stocks, indices, some crypto): daily bars from SQLite.
+  * stored instruments (stocks, indices, gold and silver futures, some crypto):
+    daily bars from SQLite.
 
 `source=auto` uses Binance for live symbols and the database otherwise. If
 Binance fails for a daily request and the instrument has stored daily bars,

@@ -287,3 +287,40 @@ def test_an_unknown_replace_symbol_stops_before_anything(db, tmp_path, capsys):
     assert code == 2
     assert "unknown symbol(s) TSLA" in capsys.readouterr().out
     assert fetch.calls == []
+
+
+# ---- gold and silver futures -------------------------------------------------------
+
+def test_the_newest_futures_bar_is_held_back(db, tmp_path, capsys):
+    metals = {**GOOD, "GC=F": [("2026-10-27", 4074.6), ("2026-10-28", 4051.6), ("2026-10-29", 4011.2)]}
+
+    run(db, tmp_path, metals, "--apply")
+
+    out = capsys.readouterr().out
+    assert "GC=F (commodity): ready" in out
+    assert "ignored 1 bar(s) dated today or later, or the newest futures bar" in out
+    # 2026-10-29 is before today, but it is the newest bar, which Yahoo may still be updating.
+    assert [r[0][:10] for r in rows(db, "GC=F")] == ["2026-10-27", "2026-10-28"]
+    assert len(rows(db, "AAPL")) == 5  # stocks still take their newest completed bar
+
+
+def test_single_price_bars_are_reported_and_stored(db, tmp_path, capsys):
+    thin = pd.DataFrame([
+        {"timestamp": pd.Timestamp(day, tz="UTC"), "symbol": "SI=F", "open": o, "high": h, "low": low, "close": c,
+         "volume": v}
+        for day, o, h, low, c, v in [("2026-10-23", 53.71, 53.71, 53.71, 53.71, 15),
+                                     ("2026-10-26", 54.10, 54.10, 54.10, 54.10, 128),
+                                     ("2026-10-27", 53.73, 54.29, 53.65, 54.29, 229),
+                                     ("2026-10-28", 53.92, 53.92, 53.40, 53.46, 331)]
+    ])
+    base = fake_fetch(GOOD)
+
+    def fetch(symbol, start):
+        return thin.copy() if symbol == "SI=F" else base(symbol, start)
+
+    up.main(["--db", str(db), "--backup-dir", str(tmp_path / "backups"), "--apply"], fetch=fetch, now=NOW)
+
+    out = capsys.readouterr().out
+    assert "would add 3 bar(s): 2026-10-23 to 2026-10-27" in out
+    assert "note: 2 of them have one price for open, high, low and close" in out
+    assert len(rows(db, "SI=F")) == 3

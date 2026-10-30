@@ -44,6 +44,7 @@ export function volumeUnit(instrument) {
   if (!instrument) return null
   if (instrument.asset_class === 'crypto') return instrument.symbol.split('/')[0]
   if (instrument.asset_class === 'stock') return 'shares'
+  if (instrument.asset_class === 'commodity') return 'contracts'
   return null
 }
 

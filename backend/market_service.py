@@ -13,9 +13,10 @@ from backend.schemas.market import MarketRecord
 
 # Quote currency of stored instruments that are not "BASE/QUOTE" pairs. An
 # instrument missing here gets currency None rather than a guess.
-STORED_CURRENCIES = {"AAPL": "USD", "^NSEI": "INR", "^GSPC": "USD"}
+STORED_CURRENCIES = {"AAPL": "USD", "^NSEI": "INR", "^GSPC": "USD", "GC=F": "USD", "SI=F": "USD"}
 
-UNITS = {"crypto": "per coin", "stock": "per share", "index": "index points"}
+# Gold (GC=F) and silver (SI=F) are COMEX futures, both quoted per troy ounce.
+UNITS = {"crypto": "per coin", "stock": "per share", "index": "index points", "commodity": "per troy ounce"}
 
 
 def _utc(seconds: Optional[float]) -> Optional[datetime]:

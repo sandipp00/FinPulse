@@ -198,12 +198,12 @@ Both series are measured only on the dates they share. Every formula and assumpt
 
 ### Refreshing stock and index history
 
-`python src/data/update_equities.py` brings AAPL, the NIFTY 50 (`^NSEI`) and the S&P 500 (`^GSPC`) up to date from Yahoo Finance (via yfinance). Yahoo data is for personal use, and FinPulse is run as a personal terminal.
+`python src/data/update_equities.py` brings AAPL, the NIFTY 50 (`^NSEI`), the S&P 500 (`^GSPC`), gold (`GC=F`) and silver (`SI=F`) up to date from Yahoo Finance (via yfinance). Yahoo data is for personal use, and FinPulse is run as a personal terminal.
 
 - **Dry run by default:** it prints what it would add, per symbol, and writes nothing. Add `--apply` to write.
 - **Backup first:** with `--apply`, the database is copied to `data/backups/` (git-ignored) with SQLite's backup API, and the copy is checked row by row and with an integrity check before anything is written.
 - **Append-only:** only days after a symbol's newest stored bar are inserted, with `INSERT OR IGNORE`, so existing rows are not changed. A new symbol is downloaded from 2023-01-01.
-- **Only finished days:** bars dated today (UTC) or later are ignored, since the session may still be running.
+- **Only finished days:** bars dated today (UTC) or later are ignored, since the session may still be running. For gold and silver the newest bar is also held back until a later one exists, because Yahoo keeps updating a futures bar after settlement, into the evening session.
 - **Adjustment check:** Yahoo's prices are dividend- and split-adjusted, and recalculated after each one. The script re-downloads the last ten days already stored and compares them. If they no longer match, that symbol is skipped and reported, rather than mixing two adjustment bases in one series.
 - **`--replace-newest SYMBOL`:** the one exception to append-only. It replaces that symbol's newest stored bar with Yahoo's final values, but only when that bar is the sole mismatch and at least three older days match exactly. That is the signature of a bar saved before its session closed. The old and new values are printed.
 
@@ -219,7 +219,15 @@ Both series are measured only on the dates they share. Every formula and assumpt
   - **Caching:** responses are cached for an hour. When EIA fails, the last response is kept for up to three days, labelled `cached`.
   - **Rate limits:** after a 429, FinPulse waits 60 seconds before asking again.
 - **The key:** it goes in the URL, as with FRED, so it is kept out of logs and error messages, and tests check this.
-- **Not covered:** gold and silver are not included yet. FRED dropped its gold and silver series in 2022, and no source with verified display terms has been chosen.
+- **Gold and silver** are not from EIA; see the next section.
+
+### Gold and silver (Yahoo Finance)
+
+- **Source:** COMEX front-month futures, gold (`GC=F`) and silver (`SI=F`), in US dollars per troy ounce, from Yahoo Finance via yfinance. They are futures settlement prices, not spot prices, and are labelled end of day (`HIST`), never live. Yahoo data is for personal use.
+- **Storage:** daily bars in `market_prices` with `asset_type` `commodity`, stored from 2023-01-03 and refreshed by `src/data/update_equities.py`. So gold and silver work everywhere a stored instrument does: the Commodities page, watchlist, explorer, comparisons, backtests, risk and the assistant.
+- **Gold** follows the most-traded contract: its closes match the active COMEX contract exactly.
+- **Silver** stays on the expiring contract until it expires. In the weeks before each expiry that contract trades very thinly, so 123 of the first 961 stored days have one price for open, high, low and close, and volume is tiny. When it moves to the next contract the price can jump by about half a percent. The days are stored as reported; the updater's dry run counts single-price days, and the Commodities page explains them.
+- **Not covered:** spot (LBMA) gold and silver prices. Their display terms have not been checked.
 
 ### US macro (FRED)
 
@@ -258,7 +266,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Crypto | `/crypto` | Live-streamed coins and stored crypto history, with data coverage |
 | Instrument explorer | `/explorer?symbol=AAPL` | Search any supported instrument; candles with volume, interval and bar-count choices, return figures, and a comparison rebased to 100. The selection is kept in the URL so a view can be shared |
 | FX rates | `/fx` | ECB euro reference rates (EUR/USD, EUR/GBP, EUR/JPY, EUR/INR) and cross rates derived from them (GBP/USD, USD/JPY, USD/INR), with a chart per pair. Daily, not live; no key needed |
-| Commodities | `/commodities` | WTI and Brent crude oil spot prices from the EIA, with a chart per series. Needs a free `EIA_API_KEY` |
+| Commodities | `/commodities` | Gold and silver (end-of-day COMEX futures, opening in the explorer), and WTI and Brent crude oil spot prices from the EIA with a chart per series. Oil needs a free `EIA_API_KEY` |
 | News | `/news` | Headlines from the Fed, ECB, BEA, CoinDesk and SEC filings, filterable by topic, instrument and source, each linking to the original |
 | Economic calendar | `/calendar` | Upcoming CPI, jobs, GDP and PCE releases and Fed and ECB policy meetings |
 | US macro | `/macro` | Inflation, the Fed funds rate, Treasury yields, GDP and jobs from FRED, with a chart per series. Needs a free `FRED_API_KEY` |
