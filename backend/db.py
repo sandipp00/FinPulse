@@ -40,6 +40,14 @@ CREATE TABLE IF NOT EXISTS login_ips (
 );
 
 -- A random key generated once per installation, used to hash IP addresses.
+-- Each user's own watchlist: instrument symbols in the order they chose.
+CREATE TABLE IF NOT EXISTS watchlist_items (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    symbol TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    PRIMARY KEY (user_id, symbol)
+);
+
 CREATE TABLE IF NOT EXISTS app_secret (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     value BLOB NOT NULL

@@ -763,6 +763,16 @@ a.workspace-switch { color: inherit; }
 .rp-heading { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-2); }
 .rp-heading h2 { color: var(--text-strong); font-size: var(--text-md); font-weight: 650; }
 .rp-heading span { color: var(--text-faint); font-size: var(--text-xs); }
+.rp-edit { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; color: var(--amber); font-size: var(--text-xs); }
+.rp-editor { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-3); }
+.rp-edit-list { max-height: 420px; overflow-y: auto; }
+.rp-edit-row { display: grid; grid-template-columns: minmax(0, 1fr) 24px 24px 24px; align-items: center; gap: 4px; padding: 4px 8px; font-size: var(--text-sm); }
+.rp-edit-row button { display: inline-flex; align-items: center; justify-content: center; height: 22px; border: 1px solid var(--border); border-radius: 2px; color: var(--text-muted); }
+.rp-edit-row button:hover:not(:disabled) { border-color: var(--amber-border); color: var(--amber); }
+.rp-edit-row button:disabled { opacity: .3; }
+.rp-edit-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.rp-edit-actions .rp-open { margin-top: 0; }
+.rp-edit-actions .rp-open:disabled { opacity: .45; }
 .rp-message { border: 1px dashed var(--border-strong); border-radius: 2px; padding: var(--space-3); color: var(--text-muted); font-size: var(--text-sm); }
 .rp-error { border-style: solid; border-color: var(--down-border); background: var(--down-bg); color: var(--down); }
 .rp-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 2px; background: var(--panel-soft); }

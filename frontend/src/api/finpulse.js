@@ -96,6 +96,21 @@ async function postJSON(path, body) {
   return response.json()
 }
 
+async function putJSON(path, body) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body ?? {}),
+  })
+
+  if (!response.ok) {
+    noteUnauthorized(path, response.status)
+    throw new Error(describeError(response.status, await response.text()))
+  }
+  return response.json()
+}
+
 export function getPaperPortfolio() {
   return getJSON('/api/paper/portfolio')
 }
@@ -250,6 +265,14 @@ export function getCryptoDerivatives(currency) {
 
 export function getFactorExposure(symbol) {
   return getJSON(`/api/factors?symbol=${encodeURIComponent(symbol)}`)
+}
+
+export function getWatchlist() {
+  return getJSON('/api/watchlist')
+}
+
+export function saveWatchlist(symbols) {
+  return putJSON('/api/watchlist', { symbols })
 }
 
 export function getEarnings(symbol) {

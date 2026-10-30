@@ -409,6 +409,13 @@ Every price carries a freshness tag: `LIVE` for a recent tick while the feed is 
 
 The risk figures come from `GET /api/risk`: about three years of daily Binance candles for the live crypto; the stored history for AAPL, the S&P 500, NIFTY 50, gold and silver; and Yahoo daily bars from 2023 for the other world indices, the FX pairs and WTI/Brent (futures `CL=F`, `BZ=F`). Only completed days are used, and Yahoo bars are dated in the exchange's own time zone. The VIX is left out (it is volatility in points, not a price), as is the Tadawul (Yahoo has about one day of its history). A source that fails leaves its assets out with a note. Cached for 15 minutes. The page has tabs per asset class, which also narrow the correlation heatmap.
 
+## Your watchlist
+
+The watchlist in the right-hand panel starts as the default list. **Edit** lets you add any instrument the terminal can show (search by name or symbol), reorder, remove, or go back to the default list, up to 60 instruments.
+
+- **Signed in:** saved to your account (`watchlist_items` table; `GET`/`PUT /api/watchlist`). It follows you to any browser and is deleted with the account. The whole list is replaced in one transaction, and unknown or repeated symbols are refused.
+- **Guest:** saved in this browser only (local storage).
+
 ## Notifications and shortcuts
 
 - **Bell:** the top-bar bell shows an unread count and opens a panel with two tabs. *Activity* lists what happened; *Price alerts* lets you set "tell me when BTC rises to or above $X" (or falls to or below). An alert fires once, when the live price reaches it, and a pop-up appears so you notice even with the bell closed. The bell also announces when an asset's **daily buy/sell rating changes**. An alert that is already true is refused, since it would fire instantly.
