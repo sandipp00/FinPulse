@@ -1,18 +1,31 @@
 import { memo } from 'react'
-import { ArrowUpRight, BarChart3, BookOpen, BriefcaseBusiness, ShieldCheck, TrendingUp } from 'lucide-react'
+import {
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  BriefcaseBusiness,
+  CandlestickChart,
+  MessageSquareText,
+  MonitorDot,
+  ShieldCheck,
+  TrendingUp,
+} from 'lucide-react'
 import { PAGES } from '../lib/pages'
 import { ROUTES } from '../lib/routes'
 import AppLink from './AppLink'
 
 const LINKS = [
+  { route: 'asset', icon: MonitorDot },
   { route: 'markets', icon: TrendingUp },
+  { route: 'explorer', icon: CandlestickChart },
   { route: 'analytics', icon: BarChart3 },
-  { route: 'risk', icon: ShieldCheck },
   { route: 'research', icon: BookOpen },
+  { route: 'risk', icon: ShieldCheck },
+  { route: 'assistant', icon: MessageSquareText },
   { route: 'portfolio', icon: BriefcaseBusiness },
 ]
 
-/** The overview's "where to next" panel: one card per page. */
+/** The overview's "where to next" menu: one row per page, filling the panel's height. */
 function QuickLinks() {
   return (
     <div className="panel quick-links">
@@ -22,18 +35,16 @@ function QuickLinks() {
           <p>Jump into the part of FinPulse you need</p>
         </div>
       </div>
-      <div className="quick-grid">
+      <nav className="quick-list" aria-label="Explore FinPulse">
         {LINKS.map(({ route, icon: Icon }) => (
-          <AppLink key={route} href={ROUTES[route]} className="quick-card">
-            <span className="icon-tile"><Icon size={18} /></span>
-            <span className="quick-text">
-              <strong>{PAGES[route].title}</strong>
-              <small>{PAGES[route].blurb}</small>
-            </span>
-            <ArrowUpRight size={15} className="quick-arrow" />
+          <AppLink key={route} href={ROUTES[route]} className="quick-row">
+            <span className="quick-icon"><Icon size={16} /></span>
+            <span className="quick-title">{PAGES[route].title}</span>
+            <span className="quick-blurb">{PAGES[route].blurb}</span>
+            <ArrowRight size={14} className="quick-arrow" />
           </AppLink>
         ))}
-      </div>
+      </nav>
     </div>
   )
 }
