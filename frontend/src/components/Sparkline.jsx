@@ -29,7 +29,7 @@ export default function Sparkline({ values, positive }) {
       <polyline
         points={points}
         fill="none"
-        stroke={positive ? '#34D399' : '#F87171'}
+        stroke={positive ? '#2FD16B' : '#FF4D4D'}
         strokeWidth="1.8"
         strokeLinejoin="round"
         strokeLinecap="round"

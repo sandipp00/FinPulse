@@ -121,9 +121,9 @@ function Sidebar({ route, onNavigate, open, onClose }) {
           <div className="workspace-avatar">{user ? user.email[0].toUpperCase() : '?'}</div>
           <div className="min-w-0 flex-1 text-left">
             <div className="truncate text-sm font-medium text-white">{user ? user.email : 'Guest'}</div>
-            <div className="mt-1 text-xs text-slate-500">{user ? 'Account and settings' : 'Sign in to paper trade'}</div>
+            <div className="mt-1 text-xs text-neutral-500">{user ? 'Account and settings' : 'Sign in to paper trade'}</div>
           </div>
-          <ChevronRight size={16} className="text-slate-500" />
+          <ChevronRight size={16} className="text-neutral-500" />
         </AppLink>
 
         <nav className="sidebar-nav" aria-label="Main">

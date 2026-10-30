@@ -150,31 +150,31 @@ function BacktestCard({ symbol, interval }) {
       <div className="bt-chart">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data.equity_curve} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid stroke="#1E293B" strokeDasharray="3 5" vertical={false} />
+            <CartesianGrid stroke="#1F1F1F" strokeDasharray="3 5" vertical={false} />
             <XAxis
               dataKey="time"
               minTickGap={40}
-              tick={{ fill: '#64748B', fontSize: 10 }}
+              tick={{ fill: '#6E6E6E', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(value) => formatDate(value, interval)}
             />
             <YAxis
               width={54}
-              tick={{ fill: '#64748B', fontSize: 10 }}
+              tick={{ fill: '#6E6E6E', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(value) => `${value}%`}
             />
             <Tooltip
-              contentStyle={{ background: '#101827', border: '1px solid #263347', borderRadius: 12, color: '#E2E8F0' }}
-              labelStyle={{ color: '#94A3B8' }}
+              contentStyle={{ background: '#000000', border: '1px solid #263347', borderRadius: 12, color: '#F2F2F2' }}
+              labelStyle={{ color: '#8C8C8C' }}
               labelFormatter={(value) => formatDate(value, interval)}
               formatter={(value, name) => [formatPercent(value, 1), name]}
             />
-            <Legend iconType="plainline" wrapperStyle={{ fontSize: 10, color: '#94A3B8' }} />
-            <Line type="monotone" dataKey="strategy" name="Signal strategy" stroke="#34D399" strokeWidth={2} dot={false} isAnimationActive={false} />
-            <Line type="monotone" dataKey="buy_hold" name="Buy & hold" stroke="#64748B" strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+            <Legend iconType="plainline" wrapperStyle={{ fontSize: 10, color: '#8C8C8C' }} />
+            <Line type="monotone" dataKey="strategy" name="Signal strategy" stroke="#2FD16B" strokeWidth={2} dot={false} isAnimationActive={false} />
+            <Line type="monotone" dataKey="buy_hold" name="Buy & hold" stroke="#6E6E6E" strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
             <Line type="monotone" dataKey="trend" name="50/200 trend rule" stroke="#FBBF24" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>

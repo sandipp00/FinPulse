@@ -58,7 +58,7 @@ function PriceChart({
           <select
             value={selectedSymbol}
             onChange={(event) => onSelectSymbol(event.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-neutral-200"
             aria-label="Select asset for historical chart"
           >
             {assets.map((asset) => (
@@ -87,7 +87,7 @@ function PriceChart({
             {formatPercent(chartReturn)}
           </span>
         )}
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-neutral-500">
           {selectedAsset ? `${selectedAsset.observations} stored observations` : 'Historical data'}
         </span>
       </div>
@@ -98,7 +98,7 @@ function PriceChart({
 
       <div className="performance-chart">
         {loading ? (
-          <div className="flex h-full items-center justify-center text-sm text-slate-400">
+          <div className="flex h-full items-center justify-center text-sm text-neutral-400">
             Loading historical prices...
           </div>
         ) : error ? (
@@ -106,7 +106,7 @@ function PriceChart({
             {error}
           </div>
         ) : chartData.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-slate-400">
+          <div className="flex h-full items-center justify-center text-sm text-neutral-400">
             No historical prices are available for this selection.
           </div>
         ) : (
@@ -114,39 +114,39 @@ function PriceChart({
             <AreaChart data={chartData} margin={{ top: 12, right: 5, left: -8, bottom: 0 }}>
               <defs>
                 <linearGradient id="historicalGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#34D399" stopOpacity={0.24} />
-                  <stop offset="100%" stopColor="#34D399" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#2FD16B" stopOpacity={0.24} />
+                  <stop offset="100%" stopColor="#2FD16B" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="#1E293B" strokeDasharray="3 5" vertical={false} />
+              <CartesianGrid stroke="#1F1F1F" strokeDasharray="3 5" vertical={false} />
               <XAxis
                 dataKey="date"
                 minTickGap={24}
-                tick={{ fill: '#64748B', fontSize: 11 }}
+                tick={{ fill: '#6E6E6E', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
                 width={70}
-                tick={{ fill: '#64748B', fontSize: 11 }}
+                tick={{ fill: '#6E6E6E', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(value) => Number(value).toLocaleString('en-US', { maximumFractionDigits: 0 })}
               />
               <Tooltip
-                contentStyle={{ background: '#101827', border: '1px solid #263347', borderRadius: 12, color: '#E2E8F0' }}
-                labelStyle={{ color: '#94A3B8' }}
+                contentStyle={{ background: '#000000', border: '1px solid #263347', borderRadius: 12, color: '#F2F2F2' }}
+                labelStyle={{ color: '#8C8C8C' }}
                 formatter={(value) => [formatPrice(value, selectedSymbol), 'Closing price']}
               />
               <Area
                 type="monotone"
                 dataKey="price"
                 name="Closing price"
-                stroke="#34D399"
+                stroke="#2FD16B"
                 strokeWidth={2.5}
                 fill="url(#historicalGradient)"
                 dot={false}
-                activeDot={{ r: 4, fill: '#34D399', stroke: '#0B1220', strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: '#2FD16B', stroke: '#000000', strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>

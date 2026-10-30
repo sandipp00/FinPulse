@@ -225,7 +225,7 @@ function Dashboard({ route }) {
               </section>
 
               {USES_ASSET_DATA.has(route) && assetLoading && (
-                <p className="mb-4 text-sm text-slate-400">Loading market data from your local database...</p>
+                <p className="mb-4 text-sm text-neutral-400">Loading market data from your local database...</p>
               )}
               {USES_ASSET_DATA.has(route) && apiError && (
                 <p className="mb-4 rounded-lg border border-red-900 bg-red-950/40 p-3 text-sm text-red-300">

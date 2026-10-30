@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { formatPercent, getAssetDetails } from '../lib/format'
 
-const TOOLTIP_STYLE = { background: '#101827', border: '1px solid #263347', borderRadius: 12, color: '#E2E8F0' }
+const TOOLTIP_STYLE = { background: '#000000', border: '1px solid #263347', borderRadius: 12, color: '#F2F2F2' }
 
 function MetricBars({ title, note, data, field, suffix = '%' }) {
   return (
@@ -12,12 +12,12 @@ function MetricBars({ title, note, data, field, suffix = '%' }) {
       <div className="compare-chart-body">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-            <CartesianGrid stroke="#1E293B" strokeDasharray="3 5" vertical={false} />
-            <XAxis dataKey="short" tick={{ fill: '#64748B', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#64748B', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}${suffix}`} width={52} />
+            <CartesianGrid stroke="#1F1F1F" strokeDasharray="3 5" vertical={false} />
+            <XAxis dataKey="short" tick={{ fill: '#6E6E6E', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#6E6E6E', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}${suffix}`} width={52} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
-              cursor={{ fill: '#1E293B66' }}
+              cursor={{ fill: '#1F1F1F66' }}
               formatter={(value) => [`${Number(value).toFixed(1)}${suffix}`, title]}
               labelFormatter={(_, payload) => payload?.[0]?.payload?.symbol ?? ''}
             />

@@ -40,7 +40,7 @@ function EquityCurve({ points, startingCash }) {
   }
 
   const up = data.at(-1).equity >= startingCash
-  const color = up ? '#34D399' : '#F87171'
+  const color = up ? '#2FD16B' : '#FF4D4D'
 
   return (
     <div className="equity-chart">
@@ -52,14 +52,14 @@ function EquityCurve({ points, startingCash }) {
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#1E293B" strokeDasharray="3 5" vertical={false} />
+          <CartesianGrid stroke="#1F1F1F" strokeDasharray="3 5" vertical={false} />
           <XAxis
             dataKey="ts"
             type="number"
             domain={['dataMin', 'dataMax']}
             scale="time"
             minTickGap={50}
-            tick={{ fill: '#64748B', fontSize: 10 }}
+            tick={{ fill: '#6E6E6E', fontSize: 10 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={formatTime}
@@ -67,15 +67,15 @@ function EquityCurve({ points, startingCash }) {
           <YAxis
             width={64}
             domain={[Math.min(...values) - padding, Math.max(...values) + padding]}
-            tick={{ fill: '#64748B', fontSize: 10 }}
+            tick={{ fill: '#6E6E6E', fontSize: 10 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={money}
           />
-          <ReferenceLine y={startingCash} stroke="#475569" strokeDasharray="4 4" />
+          <ReferenceLine y={startingCash} stroke="#5A5A5A" strokeDasharray="4 4" />
           <Tooltip
-            contentStyle={{ background: '#101827', border: '1px solid #263347', borderRadius: 12, color: '#E2E8F0' }}
-            labelStyle={{ color: '#94A3B8' }}
+            contentStyle={{ background: '#000000', border: '1px solid #263347', borderRadius: 12, color: '#F2F2F2' }}
+            labelStyle={{ color: '#8C8C8C' }}
             labelFormatter={formatTime}
             formatter={(value) => [`$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}`, 'Equity']}
           />

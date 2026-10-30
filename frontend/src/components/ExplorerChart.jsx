@@ -8,10 +8,10 @@ import {
   createChart,
 } from 'lightweight-charts'
 
-const UP = '#34D399'
-const DOWN = '#F87171'
-const PRIMARY = '#34D399'
-const OTHER = '#818CF8'
+const UP = '#2FD16B'
+const DOWN = '#FF4D4D'
+const PRIMARY = '#2FD16B'
+const OTHER = '#4FC3F7'
 
 function priceFormatFor(price) {
   const precision = price < 10 ? 4 : 2
@@ -34,13 +34,13 @@ function ExplorerChart({ candles, showVolume, comparison, intraday, asLine = fal
       autoSize: true,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#94A3B8',
+        textColor: '#8C8C8C',
         fontSize: 11,
       },
-      grid: { vertLines: { color: '#1E293B55' }, horzLines: { color: '#1E293B' } },
+      grid: { vertLines: { color: '#1F1F1F80' }, horzLines: { color: '#1F1F1F' } },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: '#1E293B' },
-      timeScale: { borderColor: '#1E293B', secondsVisible: false },
+      rightPriceScale: { borderColor: '#1F1F1F' },
+      timeScale: { borderColor: '#1F1F1F', secondsVisible: false },
     })
     chartRef.current = chart
     return () => {
@@ -63,7 +63,7 @@ function ExplorerChart({ candles, showVolume, comparison, intraday, asLine = fal
       const other = chart.addSeries(LineSeries, { ...line, color: OTHER })
       primary.setData(comparison.points.map((point) => ({ time: point.time, value: point.primary })))
       other.setData(comparison.points.map((point) => ({ time: point.time, value: point.other })))
-      primary.createPriceLine({ price: 100, color: '#475569', lineWidth: 1, lineStyle: 2, axisLabelVisible: false })
+      primary.createPriceLine({ price: 100, color: '#5A5A5A', lineWidth: 1, lineStyle: 2, axisLabelVisible: false })
       seriesRef.current = [primary, other]
     } else if (candles.length > 0 && asLine) {
       const line = chart.addSeries(LineSeries, { color: PRIMARY, lineWidth: 2, priceFormat: priceFormatFor(candles.at(-1).close) })

@@ -16,19 +16,19 @@ import { bollinger, ema, macd, rsi, sma } from '../lib/indicators'
 import DataTag from './DataTag'
 import LiveBadge from './LiveBadge'
 
-const UP = '#34D399'
-const DOWN = '#F87171'
+const UP = '#2FD16B'
+const DOWN = '#FF4D4D'
 const VISIBLE_CANDLES = 150
 
 // Overlay indicators draw on the price pane; RSI and MACD get their own panes.
 const INDICATORS = [
-  { id: 'volume', label: 'Volume', color: '#64748B' },
+  { id: 'volume', label: 'Volume', color: '#6E6E6E' },
   { id: 'sma20', label: 'SMA 20', color: '#FBBF24' },
-  { id: 'sma50', label: 'SMA 50', color: '#818CF8' },
-  { id: 'ema20', label: 'EMA 20', color: '#38BDF8' },
-  { id: 'bb', label: 'Bollinger', color: '#94A3B8' },
+  { id: 'sma50', label: 'SMA 50', color: '#4FC3F7' },
+  { id: 'ema20', label: 'EMA 20', color: '#FFA028' },
+  { id: 'bb', label: 'Bollinger', color: '#8C8C8C' },
   { id: 'rsi', label: 'RSI 14', color: '#A78BFA' },
-  { id: 'macd', label: 'MACD', color: '#38BDF8' },
+  { id: 'macd', label: 'MACD', color: '#FFA028' },
 ]
 
 const DEFAULT_ENABLED = { volume: true, sma20: true, sma50: false, ema20: false, bb: false, rsi: false, macd: false }
@@ -166,17 +166,17 @@ function CandleChart({ symbols, symbol, onSymbolChange, tick, liveStatus }) {
       autoSize: true,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#94A3B8',
+        textColor: '#8C8C8C',
         fontSize: 11,
-        panes: { separatorColor: '#1E293B', separatorHoverColor: '#34D39933' },
+        panes: { separatorColor: '#1F1F1F', separatorHoverColor: '#2FD16B33' },
       },
       grid: {
-        vertLines: { color: '#1E293B55' },
-        horzLines: { color: '#1E293B' },
+        vertLines: { color: '#1F1F1F80' },
+        horzLines: { color: '#1F1F1F' },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: '#1E293B' },
-      timeScale: { borderColor: '#1E293B', timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderColor: '#1F1F1F' },
+      timeScale: { borderColor: '#1F1F1F', timeVisible: true, secondsVisible: false },
     })
     chartRef.current = chart
 

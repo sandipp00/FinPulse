@@ -5,7 +5,7 @@ function MetricCard({ label, value, change, positive, icon: Icon, note }) {
   return (
     <div className="metric-card">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-slate-400">{label}</p>
+        <p className="text-sm text-neutral-400">{label}</p>
         <span className="icon-tile"><Icon size={18} /></span>
       </div>
       <div className="mt-5 flex flex-wrap items-baseline gap-2">
@@ -17,7 +17,7 @@ function MetricCard({ label, value, change, positive, icon: Icon, note }) {
           </span>
         )}
       </div>
-      <p className="mt-2 text-xs text-slate-500">{note}</p>
+      <p className="mt-2 text-xs text-neutral-500">{note}</p>
     </div>
   )
 }

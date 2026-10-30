@@ -3,7 +3,7 @@ import { Command, ShieldCheck } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
 const PLURAL = { Index: 'Indices', Commodity: 'Commodities' }
-const TYPE_COLORS = { Crypto: '#34D399', Stock: '#818CF8', Index: '#FBBF24', Commodity: '#EAB308' }
+const TYPE_COLORS = { Crypto: '#2FD16B', Stock: '#4FC3F7', Index: '#FBBF24', Commodity: '#EAB308' }
 
 function AssetMix({ assets }) {
   const allocation = useMemo(() => {
@@ -15,7 +15,7 @@ function AssetMix({ assets }) {
     return Object.entries(counts).map(([name, value]) => ({
       name: PLURAL[name] ?? `${name}${value > 1 ? 's' : ''}`,
       value,
-      color: TYPE_COLORS[name] ?? '#94A3B8',
+      color: TYPE_COLORS[name] ?? '#8C8C8C',
     }))
   }, [assets])
 
@@ -48,13 +48,13 @@ function AssetMix({ assets }) {
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ background: '#101827', border: '1px solid #263347', borderRadius: 12, color: '#E2E8F0' }}
+                contentStyle={{ background: '#000000', border: '1px solid #263347', borderRadius: 12, color: '#F2F2F2' }}
                 formatter={(value, name) => [`${value} asset${value === 1 ? '' : 's'}`, name]}
               />
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-slate-400">No assets loaded</div>
+          <div className="flex h-full items-center justify-center text-sm text-neutral-400">No assets loaded</div>
         )}
         <div className="allocation-center">
           <span>Tracked</span>
