@@ -11,6 +11,15 @@ export const assetDetails = {
   'SI=F': { name: 'Silver', color: '#CBD5E1', currency: 'USD' },
   'XAU/USDT': { name: 'Gold (live)', color: '#EAB308', currency: 'USD' },
   'XAG/USDT': { name: 'Silver (live)', color: '#CBD5E1', currency: 'USD' },
+  'CL/USDT': { name: 'WTI crude (live)', color: '#F59E0B', currency: 'USD' },
+  'BZ/USDT': { name: 'Brent crude (live)', color: '#FB923C', currency: 'USD' },
+  'USD/INR': { name: 'US dollar / Indian rupee', color: '#94A3B8', currency: 'INR' },
+  'EUR/USD': { name: 'Euro / US dollar', color: '#94A3B8', currency: 'USD' },
+  'GBP/USD': { name: 'Pound / US dollar', color: '#94A3B8', currency: 'USD' },
+  'USD/JPY': { name: 'US dollar / Japanese yen', color: '#94A3B8', currency: 'JPY' },
+  'EUR/INR': { name: 'Euro / Indian rupee', color: '#94A3B8', currency: 'INR' },
+  'EUR/GBP': { name: 'Euro / pound', color: '#94A3B8', currency: 'GBP' },
+  'EUR/JPY': { name: 'Euro / Japanese yen', color: '#94A3B8', currency: 'JPY' },
 }
 
 export function getAssetDetails(symbol) {

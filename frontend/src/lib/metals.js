@@ -1,5 +1,5 @@
-// Live gold and silver: Binance USD-M perpetual futures, which trade around the
-// clock while the gold and silver markets they track do not.
+// Live gold, silver and oil: Binance USD-M perpetual futures, which trade around the
+// clock while the futures markets they track do not.
 
 const nyParts = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/New_York',
@@ -8,17 +8,13 @@ const nyParts = new Intl.DateTimeFormat('en-US', {
   hourCycle: 'h23',
 })
 
-/** True for a tick from the live metals feed (as opposed to crypto). */
-export function isLiveMetal(tick) {
-  return tick?.asset_class === 'commodity'
-}
-
 /**
- * Whether COMEX gold and silver futures are trading at `date`: Sunday 18:00 to
- * Friday 17:00 New York time, with a daily break from 17:00 to 18:00. Exchange
- * holidays are not known here, so on a holiday this still says open.
+ * Whether CME gold, silver and WTI futures are trading at `date`: Sunday 18:00 to
+ * Friday 17:00 New York time, with a daily break from 17:00 to 18:00. ICE Brent's
+ * hours are close to these. Exchange holidays are not known here, so on a holiday
+ * this still says open.
  */
-export function metalsMarketOpen(date) {
+export function futuresMarketOpen(date) {
   const parts = Object.fromEntries(nyParts.formatToParts(date).map((part) => [part.type, part.value]))
   const hour = Number(parts.hour)
   const day = parts.weekday

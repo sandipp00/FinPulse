@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from backend import live
+from backend import feeds as live
 from backend.live import LiveFeed, to_stream_name
 
 TICKER = {
@@ -126,7 +126,7 @@ def test_malformed_messages_are_dropped_without_dropping_the_connection(feed):
 # ---- live gold and silver (Binance futures) ------------------------------------
 
 def test_metal_ticks_and_status_say_which_market_they_belong_to():
-    metals = LiveFeed(["XAU/USDT"], ["wss://example.invalid/market"], market="metals", asset_class="commodity")
+    metals = LiveFeed(["XAU/USDT"], ["wss://example.invalid/market"], market="tradfi", asset_class="commodity")
     queue = metals.subscribe()
 
     metals._handle_ticker({**TICKER, "s": "XAUUSDT", "c": "4000.55"})
@@ -134,7 +134,7 @@ def test_metal_ticks_and_status_say_which_market_they_belong_to():
     tick = queue.get_nowait()
     assert tick["symbol"] == "XAU/USDT" and tick["asset_class"] == "commodity"
     assert tick["price"] == pytest.approx(4000.55)
-    assert metals._status_message() == {"type": "status", "market": "metals", "connected": False}
+    assert metals._status_message() == {"type": "status", "market": "tradfi", "connected": False}
     assert metals._stream_url("wss://example.invalid/market") == (
         "wss://example.invalid/market/stream?streams=xauusdt@ticker/xauusdt@kline_1m"
     )
@@ -142,7 +142,7 @@ def test_metal_ticks_and_status_say_which_market_they_belong_to():
 
 def test_one_client_queue_receives_ticks_from_both_feeds(monkeypatch):
     crypto = LiveFeed(["BTC/USDT"], ["wss://example.invalid"])
-    metals = LiveFeed(["XAU/USDT"], ["wss://example.invalid/market"], market="metals", asset_class="commodity")
+    metals = LiveFeed(["XAU/USDT"], ["wss://example.invalid/market"], market="tradfi", asset_class="commodity")
     monkeypatch.setattr(live, "FEEDS", [crypto, metals])
 
     queue = live.subscribe_all()
@@ -156,7 +156,7 @@ def test_one_client_queue_receives_ticks_from_both_feeds(monkeypatch):
     metals.connected = True
     assert live.connected_for("XAU/USDT") is True
     assert live.connected_for("BTC/USDT") is False
-    assert live.markets() == {"crypto": False, "metals": True}
+    assert live.markets() == {"crypto": False, "tradfi": True}
 
     live.unsubscribe_all(queue)
     assert not crypto._subscribers and not metals._subscribers

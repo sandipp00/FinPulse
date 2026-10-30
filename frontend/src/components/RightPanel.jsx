@@ -44,18 +44,29 @@ function Details({ asset, tick, freshness, now, onOpenChart }) {
 
       <div className="rp-price num">
         {live ? <LivePrice tick={tick} /> : asset.price}
-        {live ? <Change value={tick.change_pct_24h} suffix=" 24h" /> : <Change value={asset.daily_change_pct} suffix=" 1d" />}
+        {live
+          ? <Change value={tick.change_pct_24h} suffix={tick.change_window === '1d' ? ' 1d' : ' 24h'} />
+          : <Change value={asset.daily_change_pct} suffix=" 1d" />}
       </div>
 
       <dl className="rp-fields">
         {live ? (
           <>
-            <Field label="Source">Exchange feed</Field>
+            <Field label="Source">{tick.provider === 'yahoo' ? 'Yahoo Finance quote' : 'Exchange feed'}</Field>
             <Field label="Received">{formatAge(now - tick.seenAt)}</Field>
-            <Field label="Exchange time">{eventTime ? exchangeTime.format(eventTime) : '—'}</Field>
-            <Field label="24h high">{formatPrice(tick.high_24h, asset.symbol)}</Field>
-            <Field label="24h low">{formatPrice(tick.low_24h, asset.symbol)}</Field>
-            <Field label="24h volume">{formatCompact(tick.volume_24h)}</Field>
+            <Field label={tick.provider === 'yahoo' ? 'Price time' : 'Exchange time'}>
+              {eventTime ? exchangeTime.format(eventTime) : '—'}
+            </Field>
+            {tick.high_24h != null && (
+              <>
+                <Field label="24h high">{formatPrice(tick.high_24h, asset.symbol)}</Field>
+                <Field label="24h low">{formatPrice(tick.low_24h, asset.symbol)}</Field>
+                <Field label="24h volume">{formatCompact(tick.volume_24h)}</Field>
+              </>
+            )}
+            {tick.previous_close != null && (
+              <Field label="Previous close">{formatPrice(tick.previous_close, asset.symbol)}</Field>
+            )}
           </>
         ) : (
           <Field label="Source">{asset.stored ? 'Stored daily closes' : '—'}</Field>

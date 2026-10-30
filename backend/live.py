@@ -182,6 +182,7 @@ class LiveFeed:
         tick = {
             "symbol": symbol,
             "asset_class": self.asset_class,
+            "market": self.market,
             "price": price,
             "change_pct_24h": float(data["P"]),
             "open_24h": float(data["o"]),
@@ -257,39 +258,10 @@ class LiveFeed:
             )
 
 
-# Crypto (spot) and gold and silver (futures) run as two independent feeds. Paper
-# trading and signals use `feed` alone; the price socket and quotes use both.
+# Crypto (spot) and the TradFi futures (gold, silver, oil) run as independent feeds;
+# backend/feeds.py groups them with the Yahoo quotes. Paper trading and signals use
+# `feed` alone.
 feed = LiveFeed(config.LIVE_SYMBOLS, config.BINANCE_WS_URLS)
-metals_feed = LiveFeed(
-    config.METAL_LIVE_SYMBOLS, config.BINANCE_FUTURES_WS_URLS, market="metals", asset_class="commodity",
+tradfi_feed = LiveFeed(
+    config.TRADFI_LIVE_SYMBOLS, config.BINANCE_FUTURES_WS_URLS, market="tradfi", asset_class="commodity",
 )
-FEEDS = [f for f in (feed, metals_feed) if f.symbols]
-
-
-def all_latest() -> dict[str, dict]:
-    return {s: t for f in FEEDS for s, t in f.latest.items()}
-
-
-def all_symbols() -> list[str]:
-    return [s for f in FEEDS for s in f.symbols]
-
-
-def connected_for(symbol: str) -> bool:
-    return any(f.connected for f in FEEDS if symbol in f.symbols)
-
-
-def markets() -> dict[str, bool]:
-    return {f.market: f.connected for f in FEEDS}
-
-
-def subscribe_all() -> asyncio.Queue:
-    """One queue fed by every feed, so a client gets all ticks in one stream."""
-    queue: asyncio.Queue = asyncio.Queue(maxsize=SUBSCRIBER_QUEUE_SIZE)
-    for f in FEEDS:
-        f._subscribers.add(queue)
-    return queue
-
-
-def unsubscribe_all(queue: asyncio.Queue) -> None:
-    for f in FEEDS:
-        f.unsubscribe(queue)

@@ -26,7 +26,7 @@ export default function Watchlist({
   liveTicks,
   onSelect,
   title = 'Market watchlist',
-  subtitle = 'Live prices for crypto, gold and silver; latest stored prices for everything else',
+  subtitle = 'Live prices where available, tagged CLOSED or DELAYED when they are not current',
   liveStatus,
 }) {
   const now = useNow(5000)
@@ -101,7 +101,7 @@ export default function Watchlist({
                   <td>
                     <span className={`change-pill ${positive ? 'positive' : 'negative'}`}>
                       {positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                      {tick ? `${formatPercent(tick.change_pct_24h)} 24h` : asset.change}
+                      {tick ? `${formatPercent(tick.change_pct_24h)} ${tick.change_window === '1d' ? '1d' : '24h'}` : asset.change}
                     </span>
                   </td>
                   <td className="price-cell">{formatPercent(asset.total_return_pct)}</td>
@@ -127,7 +127,7 @@ export default function Watchlist({
       </div>
       <div className="table-footer">
         <span>{loading ? 'Loading assets...' : `Showing ${assets.length} of ${totalCount} tracked assets`}</span>
-        <span>Stocks and indices show the latest stored close, not a live quote.</span>
+        <span>LIVE: current price. CLOSED: market shut, last session price. HIST: stored daily close.</span>
       </div>
     </section>
   )

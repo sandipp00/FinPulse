@@ -9,7 +9,7 @@ import { isCachedFallback, parseTimestamp, tickStatus } from '../lib/dataStatus'
 import { formatQuote } from '../lib/explorer'
 import { formatPercent, getAssetDetails } from '../lib/format'
 import { formatObservationDate, toChartPoints, withinYears } from '../lib/macro'
-import { metalsMarketOpen } from '../lib/metals'
+import { futuresMarketOpen } from '../lib/metals'
 import { ROUTES } from '../lib/routes'
 
 const RANGES = [
@@ -58,6 +58,8 @@ function Card({ item, active, onSelect }) {
 
 const openExplorer = (symbol) => navigate(`${ROUTES.explorer}?symbol=${encodeURIComponent(symbol)}`)
 
+const OIL = new Set(['CL/USDT', 'BZ/USDT'])
+
 function LiveMetalCard({ symbol, tick, status, now }) {
   const freshness = tickStatus(tick, status, now)
   const change = tick?.change_pct_24h
@@ -74,35 +76,38 @@ function LiveMetalCard({ symbol, tick, status, now }) {
         {tick ? '24h change' : 'Waiting for the first price…'}
         {change != null && <b className={`num ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {formatPercent(change)}</b>}
       </span>
-      <small className="macro-card-id">{symbol} · USDT per troy ounce · open in explorer</small>
+      <small className="macro-card-id">
+        {symbol} · USDT {OIL.has(symbol) ? 'per barrel' : 'per troy ounce'} · open in explorer
+      </small>
     </button>
   )
 }
 
-/** Live gold and silver from Binance's USD-M perpetual futures, ticking on the price socket. */
+/** Live gold, silver and oil from Binance's USD-M perpetual futures, ticking on the price socket. */
 function LiveMetals({ ticks, symbols, status }) {
   const now = useNow(5000)
   if (symbols.length === 0) {
-    return status === 'connecting' ? null : (
+    return status.tradfi === 'connecting' ? null : (
       <p className="macro-notice ix-warn">
-        Live gold and silver are unavailable: no price has arrived from Binance&apos;s futures feed.
+        Live gold, silver and oil are unavailable: no price has arrived from Binance&apos;s futures feed.
       </p>
     )
   }
-  const open = metalsMarketOpen(new Date(now))
+  const open = futuresMarketOpen(new Date(now))
   return (
     <>
       <p className="macro-notice">
-        Live gold and silver are Binance perpetual futures contracts (XAUUSDT, XAGUSDT), priced in USDT and tracking
-        spot gold and silver. They are not official spot prices. They trade around the clock.
+        Live gold, silver and crude oil are Binance perpetual futures contracts (XAUUSDT, XAGUSDT, CLUSDT for WTI,
+        BZUSDT for Brent), priced in USDT and tracking the real markets. They are not official spot or exchange
+        prices. They trade around the clock.
         {!open && (
           <b className="ix-warn">
-            {' '}The gold and silver markets are closed now (COMEX trades Sunday 18:00 to Friday 17:00 New York
+            {' '}The gold, silver and oil futures markets are closed now (about Sunday 18:00 to Friday 17:00 New York
             time, with a daily break at 17:00), so these prices reflect Binance trading only.
           </b>
         )}
       </p>
-      <section className="macro-grid" aria-label="Live gold and silver">
+      <section className="macro-grid" aria-label="Live gold, silver and oil">
         {symbols.map((symbol) => <LiveMetalCard key={symbol} symbol={symbol} tick={ticks[symbol]} status={status} now={now} />)}
       </section>
     </>
@@ -214,11 +219,11 @@ function History({ seriesId, range, onRange, releaseNote }) {
 
 /** Commodities: live gold and silver, their end-of-day COMEX prices, then WTI and Brent from EIA. */
 export default function CommoditiesPage({
-  marketAssets = [], assetLoading = false, assetError = null, ticks = {}, metalSymbols = [], metalsStatus = 'connecting',
+  marketAssets = [], assetLoading = false, assetError = null, ticks = {}, tradfiSymbols = [], marketStatus = {},
 }) {
   return (
     <div className="ix">
-      <LiveMetals ticks={ticks} symbols={metalSymbols} status={metalsStatus} />
+      <LiveMetals ticks={ticks} symbols={tradfiSymbols} status={marketStatus} />
       <Metals assets={marketAssets} loading={assetLoading} error={assetError} />
       <Oil />
     </div>

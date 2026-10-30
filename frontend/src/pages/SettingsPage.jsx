@@ -145,7 +145,7 @@ function AboutCard() {
   return (
     <div className="panel settings-card">
       <h2>About</h2>
-      <Row label="Data" value="Binance (crypto; live gold and silver futures), Yahoo Finance (stocks, indices, COMEX metals; stored)" />
+      <Row label="Data" value="Binance (crypto; gold, silver and oil futures, live), Yahoo Finance (stocks, indices and FX quotes every 15s; daily history)" />
       <Row label="Paper trading" value="Virtual money, live prices, simulated fees" />
       <Row label="Signals" value="Educational. Not investment advice." />
       <div className="settings-actions">

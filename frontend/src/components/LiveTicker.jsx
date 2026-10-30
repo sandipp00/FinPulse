@@ -17,6 +17,9 @@ function Change({ value, suffix }) {
   )
 }
 
+// Live and closed markets are the normal case; only the exceptions get a tag.
+const TAGGED = new Set(['stale', 'delayed', 'closed'])
+
 function LiveItem({ symbol, tick, status, now }) {
   const freshness = tickStatus(tick, status, now)
   return (
@@ -25,8 +28,8 @@ function LiveItem({ symbol, tick, status, now }) {
       {tick ? (
         <>
           <LivePrice tick={tick} />
-          <Change value={tick.change_pct_24h} suffix=" 24h" />
-          {freshness === 'stale' && <DataTag status="stale" />}
+          <Change value={tick.change_pct_24h} suffix={tick.change_window === '1d' ? ' 1d' : ' 24h'} />
+          {TAGGED.has(freshness) && <DataTag status={freshness} />}
         </>
       ) : (
         <span className="live-ticker-wait">{getAssetDetails(symbol).name}…</span>
@@ -36,11 +39,13 @@ function LiveItem({ symbol, tick, status, now }) {
 }
 
 /**
- * Strip of prices above the page content: live crypto from the exchange feed, live
- * gold and silver (judged by their own feed's status), then the latest stored close
- * for stocks, indices and COMEX metals, tagged with its date.
+ * Strip of prices above the page content: live crypto, then live gold, silver and
+ * oil (Binance futures), then stocks, indices and FX (Yahoo quotes), each judged
+ * by its own feed; then the stored close, dated, for anything without a live quote.
  */
-export default function LiveTicker({ ticks, symbols, status, metalSymbols = [], metalsStatus, storedAssets = [] }) {
+export default function LiveTicker({
+  ticks, symbols, status, tradfiSymbols = [], quoteSymbols = [], marketStatus = {}, storedAssets = [],
+}) {
   const now = useNow(5000)
 
   return (
@@ -49,9 +54,13 @@ export default function LiveTicker({ ticks, symbols, status, metalSymbols = [], 
       <div className="live-ticker-items">
         {symbols.map((symbol) => <LiveItem key={symbol} symbol={symbol} tick={ticks[symbol]} status={status} now={now} />)}
 
-        {metalSymbols.length > 0 && <span className="live-ticker-divider" aria-hidden="true" />}
-        {metalSymbols.map((symbol) => (
-          <LiveItem key={symbol} symbol={symbol} tick={ticks[symbol]} status={metalsStatus} now={now} />
+        {[tradfiSymbols, quoteSymbols].map((group) => group.length > 0 && (
+          <span key={group[0]} className="live-ticker-group">
+            <span className="live-ticker-divider" aria-hidden="true" />
+            {group.map((symbol) => (
+              <LiveItem key={symbol} symbol={symbol} tick={ticks[symbol]} status={marketStatus} now={now} />
+            ))}
+          </span>
         ))}
 
         {storedAssets.length > 0 && <span className="live-ticker-divider" aria-hidden="true" />}

@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import DataTag from '../components/DataTag'
 import SeriesChart from '../components/SeriesChart'
 import { useFxHistory, useFxPairs } from '../hooks/useFx'
-import { isCachedFallback, parseTimestamp } from '../lib/dataStatus'
+import { useNow } from '../hooks/useNow'
+import { isCachedFallback, parseTimestamp, tickStatus } from '../lib/dataStatus'
 import { describeRate, formatRate, rateDecimals, toRatePoints } from '../lib/fx'
 import { formatPercent } from '../lib/format'
 import { formatObservationDate, withinYears } from '../lib/macro'
@@ -17,7 +18,21 @@ const fetchedFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute
 
 const tagFor = (pair) => (pair.status === 'unavailable' ? 'unavailable' : isCachedFallback(pair.meta) ? 'cached' : 'historical')
 
-function PairCard({ pair, active, onSelect }) {
+function LiveRate({ tick, status }) {
+  if (!tick) return null
+  const up = tick.change_pct_24h != null && tick.change_pct_24h >= 0
+  return (
+    <span className="macro-card-meta">
+      <span>Live <span className="num">{formatRate(tick.price)}</span></span>
+      {tick.change_pct_24h != null && (
+        <b className={`num ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {formatPercent(tick.change_pct_24h)}</b>
+      )}
+      <DataTag status={status} />
+    </span>
+  )
+}
+
+function PairCard({ pair, active, onSelect, tick, liveStatus }) {
   const available = pair.status !== 'unavailable'
   const up = pair.change_pct != null && pair.change_pct >= 0
   return (
@@ -44,6 +59,7 @@ function PairCard({ pair, active, onSelect }) {
           </>
         ) : (pair.error ?? 'Unavailable')}
       </span>
+      <LiveRate tick={tick} status={liveStatus} />
       <small className="macro-card-id">{pair.quote} per 1 {pair.base}</small>
     </button>
   )
@@ -98,9 +114,10 @@ function History({ pair, range, onRange }) {
   )
 }
 
-/** FX: ECB euro reference rates, plus cross rates derived from them. */
-export default function FxPage() {
+/** FX: ECB euro reference rates, cross rates derived from them, and live Yahoo quotes. */
+export default function FxPage({ ticks = {}, marketStatus = {} }) {
   const { data, loading, error } = useFxPairs()
+  const now = useNow(5000)
   const [selected, setSelected] = useState('')
   const [range, setRange] = useState(1)
 
@@ -115,13 +132,21 @@ export default function FxPage() {
       <p className="macro-notice">
         {data.notice} Pairs marked <b>Derived cross</b> are calculated by FinPulse from two ECB euro rates and are not
         published by the ECB. <a href={data.source_url} target="_blank" rel="noreferrer">About the ECB reference rates</a>.
+        {' '}<b>Live</b> rates are near-real-time quotes from Yahoo Finance (personal use), refreshed every 15 seconds.
       </p>
       {available.length === 0 && (
         <section className="panel empty-panel ix-error">The FX source is unavailable. {data.pairs[0]?.error}</section>
       )}
       <section className="macro-grid" aria-label="FX pairs">
         {data.pairs.map((pair) => (
-          <PairCard key={pair.pair} pair={pair} active={pair.pair === current} onSelect={setSelected} />
+          <PairCard
+            key={pair.pair}
+            pair={pair}
+            active={pair.pair === current}
+            onSelect={setSelected}
+            tick={ticks[pair.pair]}
+            liveStatus={tickStatus(ticks[pair.pair], marketStatus, now)}
+          />
         ))}
       </section>
       {current && <History pair={current} range={range} onRange={setRange} />}

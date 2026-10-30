@@ -15,7 +15,7 @@ from backend import (
     macro, market_service, news, news_api, paper, quant_api, risk_service, signal_service,
 )
 from backend.errors import exchange_error
-from backend import live
+from backend import feeds as live
 from backend.live import feed
 from backend.schemas.market import QuotesResponse
 from src.analytics.financial_metrics import asset_snapshot
@@ -280,7 +280,7 @@ def market_quotes():
     except HTTPException:
         stored = []
 
-    live_symbols = [*config.LIVE_SYMBOLS, *config.METAL_LIVE_SYMBOLS]
+    live_symbols = [*config.LIVE_SYMBOLS, *config.TRADFI_LIVE_SYMBOLS, *config.YAHOO_LIVE_SYMBOLS]
     quotes = market_service.build_quotes(
         live_symbols, live.all_latest(), {s: live.connected_for(s) for s in live_symbols}, stored
     )
@@ -323,7 +323,7 @@ async def candles(
     ),
 ):
     """OHLCV candles for a live symbol (crypto, or live gold and silver), oldest first."""
-    _require_live_symbol(symbol, metals=True)
+    _require_live_symbol(symbol, tradfi=True)
     _require_interval(interval)
 
     try:
@@ -340,9 +340,9 @@ async def candles(
     }
 
 
-def _require_live_symbol(symbol: str, metals: bool = False) -> None:
+def _require_live_symbol(symbol: str, tradfi: bool = False) -> None:
     """Signals and backtests are crypto-only; charts also take live gold and silver."""
-    allowed = [*config.LIVE_SYMBOLS, *config.METAL_LIVE_SYMBOLS] if metals else config.LIVE_SYMBOLS
+    allowed = [*config.LIVE_SYMBOLS, *config.TRADFI_LIVE_SYMBOLS] if tradfi else config.LIVE_SYMBOLS
     if symbol not in allowed:
         raise HTTPException(
             status_code=404,

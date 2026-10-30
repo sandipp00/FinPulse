@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { getPricesSocketUrl } from '../config'
-import { isLiveMetal } from '../lib/metals'
 
 const HISTORY_LENGTH = 60
 const RETRY_MIN_MS = 1000
@@ -45,14 +44,15 @@ function appendHistory(history, tick) {
  *   'offline' means our socket is open but the server's upstream exchange
  *   connection is down (no fresh data is coming).
  *
- * `status` is the crypto feed's; `metalsStatus` is the live gold and silver
- * feed's (Binance futures), which connects and fails on its own.
+ * `status` is the crypto feed's (it drives the app-wide badge). `marketStatus`
+ * has one status per market: crypto, tradfi (Binance gold, silver and oil
+ * futures) and quotes (Yahoo stocks, indices and FX), which fail independently.
  */
 export function useLivePrices() {
   const [ticks, setTicks] = useState({})
   const [history, setHistory] = useState({})
   const [status, setStatus] = useState('connecting')
-  const [metalsStatus, setMetalsStatus] = useState('connecting')
+  const [marketStatus, setMarketStatus] = useState({ crypto: 'connecting', tradfi: 'connecting', quotes: 'connecting' })
 
   useEffect(() => {
     let socket = null
@@ -70,19 +70,24 @@ export function useLivePrices() {
 
       if (message.type === 'snapshot') {
         setStatus(message.connected ? 'live' : 'offline')
-        if (message.markets && 'metals' in message.markets) {
-          setMetalsStatus(message.markets.metals ? 'live' : 'offline')
+        if (message.markets) {
+          setMarketStatus((current) => ({
+            ...current,
+            ...Object.fromEntries(Object.entries(message.markets).map(([market, up]) => [market, up ? 'live' : 'offline'])),
+          }))
         }
         for (const tick of message.ticks) {
           setTicks((current) => mergeTick(current, tick))
           setHistory((current) => appendHistory(current, tick))
         }
       } else if (message.type === 'status') {
-        const setFor = message.market === 'metals' ? setMetalsStatus : setStatus
-        setFor(message.connected ? 'live' : 'offline')
+        const market = message.market ?? 'crypto'
+        if (market === 'crypto') setStatus(message.connected ? 'live' : 'offline')
+        setMarketStatus((current) => ({ ...current, [market]: message.connected ? 'live' : 'offline' }))
       } else if (message.type === 'tick') {
-        if (isLiveMetal(message)) setMetalsStatus('live')
-        else setStatus('live')
+        const market = message.market ?? 'crypto'
+        if (market === 'crypto') setStatus('live')
+        setMarketStatus((current) => (current[market] === 'live' ? current : { ...current, [market]: 'live' }))
         setTicks((current) => mergeTick(current, message))
         setHistory((current) => appendHistory(current, message))
       }
@@ -97,7 +102,7 @@ export function useLivePrices() {
       socket.onclose = () => {
         if (disposed) return
         setStatus('reconnecting')
-        setMetalsStatus('reconnecting')
+        setMarketStatus({ crypto: 'reconnecting', tradfi: 'reconnecting', quotes: 'reconnecting' })
         const delay = Math.min(RETRY_MIN_MS * 2 ** attempt, RETRY_MAX_MS)
         attempt += 1
         retryTimer = setTimeout(connect, delay)
@@ -115,5 +120,5 @@ export function useLivePrices() {
     }
   }, [])
 
-  return { ticks, history, status, metalsStatus }
+  return { ticks, history, status, marketStatus }
 }

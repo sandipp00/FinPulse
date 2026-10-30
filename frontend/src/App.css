@@ -212,6 +212,7 @@ button:focus-visible, input:focus-visible {
 .live-ticker { position: sticky; top: var(--topbar-h); height: var(--ticker-h); z-index: 15; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border); background: #0b1220ee; padding: 0 var(--space-5); backdrop-filter: blur(12px); }
 .live-ticker-items { display: flex; min-width: 0; flex: 1; gap: 26px; overflow-x: auto; scrollbar-width: none; }
 .live-ticker-items::-webkit-scrollbar { display: none; }
+.live-ticker-group { display: contents; }
 .live-ticker-item { display: flex; flex-shrink: 0; align-items: center; gap: 8px; font-size: 11px; color: var(--text); }
 .live-ticker-symbol { color: var(--text-muted); font-size: 10px; font-weight: 700; letter-spacing: .5px; }
 .live-ticker-change { display: inline-flex; align-items: center; font-size: 10px; font-weight: 650; }
@@ -732,6 +733,8 @@ a.workspace-switch { color: inherit; }
 .data-tag-live { color: var(--status-live); }
 .data-tag-stale { color: var(--status-stale); }
 .data-tag-historical { color: var(--status-historical); }
+.data-tag-delayed { color: var(--status-stale); }
+.data-tag-closed { color: var(--status-historical); }
 .data-tag-unavailable { color: var(--status-unavailable); }
 .data-tag-detail { font-weight: 600; letter-spacing: 0; }
 .market-table .data-tag { margin-left: 7px; }

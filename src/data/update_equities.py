@@ -1,4 +1,5 @@
-"""Append new daily bars for stored stocks, indices and metals from Yahoo Finance (yfinance).
+"""Append new daily bars for stored instruments: stocks, indices and metals from Yahoo
+Finance (yfinance), and BTC/ETH from Binance's public daily klines.
 
 Safe by construction:
   * dry run by default: reports what would be added and writes nothing;
@@ -18,6 +19,8 @@ Safe by construction:
     data/backups/ and the copy is checked before anything is written.
 
 Yahoo Finance data is for personal use; FinPulse is run as a personal terminal.
+Crypto daily bars come from the same Binance endpoint (and the same exchange) as
+the stored history, so the adjustment check compares like with like.
 
     python src/data/update_equities.py            # dry run
     python src/data/update_equities.py --apply    # back up, then append
@@ -49,7 +52,13 @@ SYMBOLS = {
     # COMEX front-month futures (continuous contract), not spot prices.
     "GC=F": "commodity",
     "SI=F": "commodity",
+    # Binance spot daily klines (see fetch_binance_daily).
+    "BTC/USDT": "crypto",
+    "ETH/USDT": "crypto",
 }
+
+BINANCE_REST_URLS = ("https://api.binance.com", "https://data-api.binance.vision")
+BINANCE_PAGE = 1000
 
 # Yahoo keeps updating a futures contract's newest daily bar after settlement (into
 # the evening session), so for these asset types the newest bar is held back until
@@ -91,7 +100,47 @@ class SymbolPlan:
         return self.adds + (1 if self.replacement else 0)
 
 
+def fetch_binance_daily(symbol: str, start: str) -> pd.DataFrame:
+    """Daily bars from `start` (UTC), in the shape fetch_stock_data returns."""
+    import httpx
+
+    start_ms = int(datetime.fromisoformat(start).replace(tzinfo=timezone.utc).timestamp() * 1000)
+    last_error = None
+    for base in BINANCE_REST_URLS:
+        rows, since = [], start_ms
+        try:
+            while True:
+                response = httpx.get(f"{base}/api/v3/klines", timeout=20, params={
+                    "symbol": symbol.replace("/", ""), "interval": "1d", "startTime": since, "limit": BINANCE_PAGE,
+                })
+                response.raise_for_status()
+                page = response.json()
+                rows.extend(page)
+                if len(page) < BINANCE_PAGE:
+                    break
+                since = page[-1][0] + 1
+        except (httpx.HTTPError, ValueError) as exc:
+            last_error = exc
+            continue
+        if not rows:
+            raise ValueError(f"No daily klines returned for {symbol}")
+        return pd.DataFrame({
+            "timestamp": pd.to_datetime([r[0] for r in rows], unit="ms", utc=True),
+            "symbol": symbol,
+            "open": [float(r[1]) for r in rows], "high": [float(r[2]) for r in rows],
+            "low": [float(r[3]) for r in rows], "close": [float(r[4]) for r in rows],
+            "volume": [float(r[5]) for r in rows],
+        })
+    raise ValueError(f"Binance unavailable for {symbol}: {last_error}")
+
+
+def source_name(symbol: str) -> str:
+    return "Binance" if "/" in symbol else "Yahoo"
+
+
 def default_fetch(symbol: str, start: str) -> pd.DataFrame:
+    if "/" in symbol:
+        return fetch_binance_daily(symbol, start)
     from src.data.stock_data import fetch_stock_data  # imports yfinance only when used
     return fetch_stock_data(symbol, start=start)
 
@@ -138,7 +187,8 @@ def plan_symbol(conn, symbol: str, asset_type: str, fetch: Callable, today: date
         plan.overlap_max_diff_pct = float(diffs.max() * 100)
         bad = overlap[diffs > MATCH_TOLERANCE]
         plan.mismatches = [
-            f"{row.day}: stored {row.close_stored:.4f}, Yahoo now {row.close_new:.4f}" for row in bad.itertuples()
+            f"{row.day}: stored {row.close_stored:.4f}, {source_name(symbol)} now {row.close_new:.4f}"
+            for row in bad.itertuples()
         ]
         if plan.mismatches:
             only_newest = set(bad["day"]) == {plan.stored_last}
@@ -148,7 +198,8 @@ def plan_symbol(conn, symbol: str, asset_type: str, fetch: Callable, today: date
                 plan.replacement = (old, new)
             else:
                 plan.status = "skipped"
-                plan.error = "Yahoo's prices for stored days have changed (dividend, split or a corrected bar)"
+                plan.error = (f"{source_name(symbol)}'s prices for stored days have changed "
+                              "(dividend, split or a corrected bar)")
                 if replace_newest and not only_newest:
                     plan.error += "; not only the newest bar differs, so it is not replaced"
                 elif replace_newest:

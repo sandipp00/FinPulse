@@ -1,6 +1,6 @@
 """Historical OHLCV candles for the live symbols, from Binance klines.
 
-Crypto comes from the spot API; live gold and silver (config.METAL_LIVE_SYMBOLS)
+Crypto comes from the spot API; live gold and silver (config.TRADFI_LIVE_SYMBOLS)
 from the USD-M futures API, which returns klines in the same format.
 
 Binance's public REST API needs no key. Responses are cached for a few seconds
@@ -207,7 +207,7 @@ def validate_request(symbol: str, interval: str, limit: int) -> None:
 
 def _endpoints(symbol: str) -> tuple[list[str], str]:
     """(REST bases, klines path) for a symbol's market."""
-    if symbol in config.METAL_LIVE_SYMBOLS:
+    if symbol in config.TRADFI_LIVE_SYMBOLS:
         return config.BINANCE_FUTURES_REST_URLS, "/fapi/v1/klines"
     return config.BINANCE_REST_URLS, "/api/v3/klines"
 
