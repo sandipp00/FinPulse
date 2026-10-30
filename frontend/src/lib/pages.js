@@ -91,6 +91,11 @@ export const PAGES = {
     nav: 'Research',
     blurb: 'A plain-language brief for each asset, written from your own data.',
   },
+  positioning: {
+    title: 'Positioning',
+    nav: 'Positioning',
+    blurb: 'Where hedge funds and other speculators stand in 12 futures markets, weekly, from the CFTC.',
+  },
   risk: {
     title: 'Risk monitor',
     nav: 'Risk Monitor',

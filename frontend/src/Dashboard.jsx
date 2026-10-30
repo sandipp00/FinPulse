@@ -39,6 +39,7 @@ import MarketsPage from './pages/MarketsPage'
 import OverviewPage from './pages/OverviewPage'
 import PortfolioPage from './pages/PortfolioPage'
 import ResearchPage from './pages/ResearchPage'
+import PositioningPage from './pages/PositioningPage'
 import RiskPage from './pages/RiskPage'
 import SettingsPage from './pages/SettingsPage'
 
@@ -319,6 +320,7 @@ function Dashboard({ route }) {
                 <ResearchPage ticks={ticks} liveSymbols={liveSymbols} liveStatus={liveStatus} />
               )}
               {route === 'risk' && <RiskPage ticks={ticks} />}
+              {route === 'positioning' && <PositioningPage />}
               {route === 'settings' && <SettingsPage liveStatus={liveStatus} />}
               {route === 'help' && <HelpPage />}
             </div>

@@ -10,9 +10,10 @@ from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend import (
-    analysis_api, asset_news, assistant_api, auth, candles as candle_source, commodities, config, db, deribit,
-    earnings, econ_calendar, eia, famafrench, fred, fx, fx_api, indices, instruments, macro, market_hours,
-    market_service, news, news_api, paper, quant_api, risk_service, signal_service, watchlist, yahoo_history,
+    analysis_api, asset_news, assistant_api, auth, candles as candle_source, cftc, commodities, config, db,
+    deribit, earnings, econ_calendar, eia, famafrench, fred, fx, fx_api, indices, instruments, macro,
+    market_hours, market_service, news, news_api, paper, quant_api, risk_service, signal_service, watchlist,
+    yahoo_history,
 )
 from backend.errors import exchange_error
 from backend import feeds as live
@@ -43,6 +44,7 @@ async def lifespan(_app: FastAPI):
     await yahoo_history.close_client()
     await deribit.close_client()
     await famafrench.close_client()
+    await cftc.close_client()
     await earnings.close_client()
 
 
@@ -79,6 +81,7 @@ app.include_router(quant_api.router)
 app.include_router(assistant_api.router)
 app.include_router(deribit.router)
 app.include_router(famafrench.router)
+app.include_router(cftc.router)
 app.include_router(watchlist.router)
 app.include_router(earnings.router)
 

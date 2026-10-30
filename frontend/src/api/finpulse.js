@@ -267,6 +267,10 @@ export function getFactorExposure(symbol) {
   return getJSON(`/api/factors?symbol=${encodeURIComponent(symbol)}`)
 }
 
+export function getCftc() {
+  return getJSON('/api/cftc')
+}
+
 export function getWatchlist() {
   return getJSON('/api/watchlist')
 }
