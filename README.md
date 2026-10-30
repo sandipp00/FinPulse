@@ -265,6 +265,16 @@ The Risk Monitor and the VIX asset page show Cboe's volatility indices for five 
 - Yahoo has only today's value for the 1-year index, so it is on the curve but has no history.
 - Cboe's own VIX futures settlement prices are not used: cboe.com's terms require Cboe's consent to store and display them.
 
+### Earnings (Nasdaq)
+
+Earnings dates and results for the 30 US stocks come from Nasdaq's website API (`api.nasdaq.com`, no key; unofficial, used for personal use; `backend/earnings.py`, `GET /api/earnings[?symbol=NVDA]`). Nasdaq's vendor is Zacks Investment Research.
+
+- **Next report:** Nasdaq either *expects* a date (with before the open or after the close, the consensus EPS forecast, the number of analysts and the EPS a year earlier) or *estimates* one from the company's past reporting dates, which may move. Or it has no date yet, usually because the company has just reported. Each is labelled.
+- **Past quarters:** the last four quarters' reported EPS against the consensus, with the surprise. Berkshire Hathaway has no analyst consensus, so it has none.
+- **Where:** the Calendar page (soonest first, grouped by day), each stock's asset page, and "Earnings in the next 7 days" on the Overview.
+- **Gentle on Nasdaq:** two requests per stock, each stock cached for 6 hours, and its last good answer kept for up to 3 days (marked) when Nasdaq fails. `EARNINGS_ENABLED=false` turns it off.
+- EPS figures are as Nasdaq reports them. Analysts usually forecast adjusted EPS, which can differ from the GAAP figure in the filing.
+
 ### Crypto derivatives (Deribit)
 
 The Crypto page has a Derivatives panel for Bitcoin and Ethereum, from Deribit's public market-data API (no key, no account; `backend/deribit.py`, `GET /api/crypto/derivatives?currency=BTC|ETH`):

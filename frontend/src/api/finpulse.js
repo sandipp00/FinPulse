@@ -251,3 +251,7 @@ export function getCryptoDerivatives(currency) {
 export function getVixCurve() {
   return getJSON('/api/vix-curve')
 }
+
+export function getEarnings(symbol) {
+  return getJSON(symbol ? `/api/earnings?symbol=${encodeURIComponent(symbol)}` : '/api/earnings')
+}

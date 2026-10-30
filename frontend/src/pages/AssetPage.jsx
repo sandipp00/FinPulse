@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, CandlestickChart } from 'lucide-react'
 import AppLink from '../components/AppLink'
 import DataTag from '../components/DataTag'
+import EarningsPanel from '../components/EarningsPanel'
 import VixCurvePanel from '../components/VixCurvePanel'
 import ExplorerChart from '../components/ExplorerChart'
 import LivePrice from '../components/LivePrice'
@@ -328,6 +329,7 @@ export default function AssetPage({ ticks = {}, marketStatus = {}, marketAssets 
             ? <CandlesPanel key={instrument.symbol} instrument={instrument} />
             : asset.ecb && <EcbPanel pair={asset.ecb} />}
           <KeyFigures asset={asset} tick={tick} stored={stored} instrument={instrument} />
+          {asset.asset_class === 'stock' && asset.live && <EarningsPanel key={asset.live} symbol={asset.live} />}
           {asset.live === '^VIX' && <VixCurvePanel />}
           <Related asset={asset} stored={stored} hasTick={Boolean(tick)} />
         </div>
