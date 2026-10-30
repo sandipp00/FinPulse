@@ -15,6 +15,7 @@ import {
   Clock,
   Landmark,
   LayoutDashboard,
+  MonitorDot,
   MessageSquareText,
   Newspaper,
   Settings,
@@ -45,6 +46,7 @@ const NAV_GROUPS = [
   {
     title: 'RESEARCH',
     items: [
+      { route: 'asset', icon: MonitorDot },
       { route: 'markets', icon: TrendingUp },
       { route: 'explorer', icon: CandlestickChart },
       { route: 'analytics', icon: BarChart3 },

@@ -56,6 +56,11 @@ export const PAGES = {
     nav: 'Explorer',
     blurb: 'Pick any supported instrument and inspect its history, returns and volume.',
   },
+  asset: {
+    title: 'Asset terminal',
+    nav: 'Asset terminal',
+    blurb: 'One asset on one screen: live price, chart, key figures, related prices and its latest news.',
+  },
   assistant: {
     title: 'Research assistant',
     nav: 'Assistant',

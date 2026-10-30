@@ -10,6 +10,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend import (
+    asset_news,
     assistant_api, auth, candles as candle_source, commodities, config, db, econ_calendar, eia, fred, fx, fx_api,
     instruments,
     macro, market_service, news, news_api, paper, quant_api, risk_service, signal_service,
@@ -67,6 +68,7 @@ app.include_router(macro.router)
 app.include_router(fx_api.router)
 app.include_router(commodities.router)
 app.include_router(news_api.router)
+app.include_router(asset_news.router)
 app.include_router(quant_api.router)
 app.include_router(assistant_api.router)
 
