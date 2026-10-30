@@ -270,3 +270,7 @@ export function getWatchlist() {
 export function saveWatchlist(symbols) {
   return putJSON('/api/watchlist', { symbols })
 }
+
+export function getEarnings(symbol) {
+  return getJSON(symbol ? `/api/earnings?symbol=${encodeURIComponent(symbol)}` : '/api/earnings')
+}
