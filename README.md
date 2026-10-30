@@ -265,6 +265,16 @@ Each US stock's asset page, and those of the S&P 500, Dow, Nasdaq, Russell 2000 
 - **Factors:** the Kenneth R. French Data Library's daily files (free CSV downloads; Fama and French 1993, Carhart 1997). They are published monthly with a lag, so the window ends at the factors' latest date. Cached 24 hours and kept up to 45 days when the library cannot be reached. `FAMA_FRENCH_ENABLED=false` turns it off.
 - **Caveat:** asset returns are Yahoo price returns without dividends while the factors include them, so alpha reads low by roughly the dividend yield. The S&P 500 shows it: market beta 0.98, R² 0.998, alpha −1.3% a year.
 
+### Earnings (Nasdaq)
+
+Earnings dates and results for the 30 US stocks come from Nasdaq's website API (`api.nasdaq.com`, no key; unofficial, used for personal use; `backend/earnings.py`, `GET /api/earnings[?symbol=NVDA]`). Nasdaq's vendor is Zacks Investment Research.
+
+- **Next report:** Nasdaq either *expects* a date (with before the open or after the close, the consensus EPS forecast, the number of analysts and the EPS a year earlier) or *estimates* one from the company's past reporting dates, which may move. Or it has no date yet, usually because the company has just reported. Each is labelled.
+- **Past quarters:** the last four quarters' reported EPS against the consensus, with the surprise. Berkshire Hathaway has no analyst consensus, so it has none.
+- **Where:** the Calendar page (soonest first, grouped by day), each stock's asset page, and "Earnings in the next 7 days" on the Overview.
+- **Gentle on Nasdaq:** two requests per stock, each stock cached for 6 hours, and its last good answer kept for up to 3 days (marked) when Nasdaq fails. `EARNINGS_ENABLED=false` turns it off.
+- EPS figures are as Nasdaq reports them. Analysts usually forecast adjusted EPS, which can differ from the GAAP figure in the filing.
+
 ### Crypto derivatives (Deribit)
 
 The Crypto page has a Derivatives panel for Bitcoin and Ethereum, from Deribit's public market-data API (no key, no account; `backend/deribit.py`, `GET /api/crypto/derivatives?currency=BTC|ETH`):

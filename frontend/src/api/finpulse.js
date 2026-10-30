@@ -251,3 +251,7 @@ export function getCryptoDerivatives(currency) {
 export function getFactorExposure(symbol) {
   return getJSON(`/api/factors?symbol=${encodeURIComponent(symbol)}`)
 }
+
+export function getEarnings(symbol) {
+  return getJSON(symbol ? `/api/earnings?symbol=${encodeURIComponent(symbol)}` : '/api/earnings')
+}

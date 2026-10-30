@@ -1125,6 +1125,18 @@ a.news-title:hover { color: var(--up); text-decoration: underline; }
 .down-bg { background: rgba(239, 68, 68, .7); }
 .factor-value { color: var(--text-strong); text-align: right; }
 .factor-t { color: var(--text-faint); font-size: var(--text-xs); text-align: right; }
+.earn-next { color: var(--text-muted); font-size: var(--text-sm); line-height: 1.5; }
+.earn-next b { color: var(--text-strong); }
+.earn-detail { display: block; color: var(--text-faint); font-size: var(--text-xs); }
+.earn-badge { margin-left: 8px; }
+.earn-badge, .cal-status.earn-expected, .cal-status.earn-estimated { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 6px; font-size: var(--text-2xs); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+.earn-expected { border-color: var(--amber-border) !important; color: var(--amber); }
+.earn-estimated { color: var(--text-muted); }
+.cal-heading { margin-top: var(--space-4); }
+.pulse-earnings { margin-top: var(--space-4); border-top: 1px solid var(--border); padding-top: var(--space-3); }
+.pulse-earnings h3 { color: var(--text-faint); font-size: var(--text-xs); font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+.pulse-earnings .pulse-more { margin-top: var(--space-2); }
+.pulse-day { flex-shrink: 0; color: var(--text); font-size: var(--text-sm); }
 .market-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
 .board-panel { padding: var(--space-3) var(--space-4); }
 .board-panel h2 { color: var(--amber); font-size: var(--text-xs); font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
