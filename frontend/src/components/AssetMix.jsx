@@ -2,22 +2,17 @@ import { useMemo, memo } from 'react'
 import { Command, ShieldCheck } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
-const PLURAL = { Index: 'Indices', Commodity: 'Commodities' }
-const TYPE_COLORS = { Crypto: '#2FD16B', Stock: '#4FC3F7', Index: '#FBBF24', Commodity: '#EAB308' }
+const CLASSES = [
+  ['stock', 'Stocks', '#4FC3F7'], ['index', 'Indices', '#FBBF24'], ['crypto', 'Crypto', '#2FD16B'],
+  ['fx', 'FX pairs', '#A78BFA'], ['commodity', 'Commodities', '#F97316'],
+]
 
-function AssetMix({ assets }) {
-  const allocation = useMemo(() => {
-    const counts = assets.reduce((result, asset) => {
-      result[asset.type] = (result[asset.type] || 0) + 1
-      return result
-    }, {})
-
-    return Object.entries(counts).map(([name, value]) => ({
-      name: PLURAL[name] ?? `${name}${value > 1 ? 's' : ''}`,
-      value,
-      color: TYPE_COLORS[name] ?? '#8C8C8C',
-    }))
-  }, [assets])
+/** How many instruments FinPulse follows in each class (`counts` from lib/overview coverage). */
+function AssetMix({ counts }) {
+  const allocation = useMemo(
+    () => CLASSES.filter(([key]) => counts[key]).map(([key, name, color]) => ({ name, value: counts[key], color })),
+    [counts],
+  )
 
   const total = allocation.reduce((sum, item) => sum + item.value, 0)
 
@@ -25,8 +20,8 @@ function AssetMix({ assets }) {
     <div className="panel allocation-panel">
       <div className="panel-heading">
         <div>
-          <h2>Tracked asset mix</h2>
-          <p>Count of assets by market type, not portfolio allocation</p>
+          <h2>What FinPulse follows</h2>
+          <p>Assets by market, each with a live price, charts and an asset page</p>
         </div>
         <button className="subtle-icon" aria-label="Asset mix information"><Command size={17} /></button>
       </div>
@@ -57,7 +52,7 @@ function AssetMix({ assets }) {
           <div className="flex h-full items-center justify-center text-sm text-neutral-400">No assets loaded</div>
         )}
         <div className="allocation-center">
-          <span>Tracked</span>
+          <span>Assets</span>
           <strong>{total}</strong>
         </div>
       </div>
@@ -71,7 +66,7 @@ function AssetMix({ assets }) {
       </div>
       <div className="allocation-note">
         <ShieldCheck size={15} />
-        <span>This visual summarizes database coverage; it does not represent invested capital.</span>
+        <span>A count of followed assets, not a portfolio allocation.</span>
       </div>
     </div>
   )

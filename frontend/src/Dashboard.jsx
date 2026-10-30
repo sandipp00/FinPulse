@@ -233,16 +233,16 @@ function Dashboard({ route }) {
 
               {route === 'home' && (
                 <OverviewPage
-                  marketAssets={marketAssets}
-                  displayAssets={displayAssets}
                   assetLoading={assetLoading}
                   apiError={apiError}
                   ticks={ticks}
                   history={history}
                   liveSymbols={liveSymbols}
                   liveStatus={liveStatus}
+                  marketStatus={marketStatus}
                   chartSymbol={chartSymbol}
                   onOpenChart={openChart}
+                  onOpenAsset={openAsset}
                 />
               )}
               {(route === 'equities' || route === 'crypto') && (
