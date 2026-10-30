@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { ArrowDownRight, ArrowUpRight, LineChart } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, LineChart, MonitorDot } from 'lucide-react'
 import { useNow } from '../hooks/useNow'
 import { formatAge, formatAsOfDate, parseTimestamp, storedStatus, tickStatus } from '../lib/dataStatus'
 import { formatCompact, formatPercent, formatPrice } from '../lib/format'
@@ -28,7 +28,7 @@ function Field({ label, children }) {
 
 const exchangeTime = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
-function Details({ asset, tick, freshness, now, onOpenChart }) {
+function Details({ asset, tick, freshness, now, onOpenChart, onOpenAsset }) {
   const live = Boolean(tick)
   const eventTime = live ? parseTimestamp(tick.time) : null
 
@@ -82,6 +82,11 @@ function Details({ asset, tick, freshness, now, onOpenChart }) {
         )}
       </dl>
 
+      {onOpenAsset && (
+        <button className="rp-open" onClick={() => onOpenAsset(asset.symbol)}>
+          <MonitorDot size={13} /> Asset terminal: price, chart and news
+        </button>
+      )}
       <button className="rp-open" onClick={() => onOpenChart(asset.symbol)}>
         <LineChart size={13} /> Explore history
       </button>
@@ -93,7 +98,7 @@ function Details({ asset, tick, freshness, now, onOpenChart }) {
  * Right-hand panel on every dashboard page: a compact watchlist and the details of
  * the selected instrument. Live symbols show the feed price; others show the stored close.
  */
-function RightPanel({ assets, ticks, liveStatus, loading, error, selectedSymbol, onSelect, onOpenChart }) {
+function RightPanel({ assets, ticks, liveStatus, loading, error, selectedSymbol, onSelect, onOpenChart, onOpenAsset }) {
   const now = useNow(5000)
   const selected = assets.find((asset) => asset.symbol === selectedSymbol) ?? assets[0]
 
@@ -148,6 +153,7 @@ function RightPanel({ assets, ticks, liveStatus, loading, error, selectedSymbol,
           freshness={freshnessOf(selected)}
           now={now}
           onOpenChart={onOpenChart}
+          onOpenAsset={onOpenAsset}
         />
       )}
     </aside>

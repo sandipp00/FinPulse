@@ -246,6 +246,15 @@ Both series are measured only on the dates they share. Every formula and assumpt
 - **Failures:** a failed poll backs off (up to 2 minutes) and the quotes are marked stale; a failed session lookup leaves the price shown and judged by its age only.
 - **Settings:** `YAHOO_LIVE_SYMBOLS` and `YAHOO_QUOTE_URL` (see `.env.example`).
 
+### Asset terminal and per-asset news
+
+`/asset?asset=gold` puts one asset on one screen, like a terminal's security page. A watchlist row, the right panel and the Commodities cards open it; the asset can be given by id (`gold`) or any of its symbols (`GC=F`, `XAU/USDT`).
+
+- **Registry:** `backend/asset_news.py` lists the 19 assets (5 crypto, AAPL, the S&P 500, the NIFTY 50, gold, silver, WTI, Brent and 7 FX pairs) with the instruments that price each: a live symbol, stored daily history, an EIA series or an ECB pair. `GET /api/asset-registry` returns it.
+- **The page:** the live price with its freshness tag (LIVE, DELAYED, CLOSED, STALE) and change; a candle chart (exchange history for crypto, gold, silver and oil at 1m to 1d; stored daily bars for stocks and indices; the ECB reference series for FX) with figures for the bars shown; key figures (24h range and volume or previous close, and return, volatility, drawdown and Sharpe over the stored history); reference prices (COMEX daily close, EIA spot, ECB rate); and the latest news.
+- **News:** `GET /api/asset-news?asset=gold` merges Yahoo Finance's headline feed for the asset (personal use; WTI and Brent share both oil feeds) with general-news items tagged with it (CoinDesk for crypto) or, for FX, central-bank releases. Yahoo's per-symbol feeds include general market stories, so a Yahoo headline is kept only if its title names the asset. Feeds are refreshed at most every 2 minutes, kept (labelled) for up to 6 hours if Yahoo fails, and the page re-fetches on the same schedule. Headlines and short snippets only, each linking to the original.
+- **No news, by choice:** the NIFTY 50 and the rupee pairs.
+
 ### US macro (FRED)
 
 Eight series from FRED: CPI (`CPIAUCSL`), core PCE prices (`PCEPILFE`), the effective Fed funds rate (`FEDFUNDS`), 2- and 10-year Treasury yields (`DGS2`, `DGS10`), real GDP (`GDPC1`), the unemployment rate (`UNRATE`) and nonfarm payrolls (`PAYEMS`).
@@ -283,10 +292,11 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Crypto | `/crypto` | Live-streamed coins and stored crypto history, with data coverage |
 | Instrument explorer | `/explorer?symbol=AAPL` | Search any supported instrument; candles with volume, interval and bar-count choices, return figures, and a comparison rebased to 100. The selection is kept in the URL so a view can be shared |
 | FX rates | `/fx` | ECB euro reference rates (EUR/USD, EUR/GBP, EUR/JPY, EUR/INR) and cross rates derived from them (GBP/USD, USD/JPY, USD/INR), with a chart per pair. Daily, not live; no key needed |
-| Commodities | `/commodities` | Gold and silver (end-of-day COMEX futures, opening in the explorer), and WTI and Brent crude oil spot prices from the EIA with a chart per series. Oil needs a free `EIA_API_KEY` |
+| Commodities | `/commodities` | Live gold, silver and oil (Binance futures), end-of-day COMEX gold and silver, and WTI and Brent spot prices from the EIA with a chart per series. Each card opens the asset terminal. The EIA series need a free `EIA_API_KEY` |
 | News | `/news` | Headlines from the Fed, ECB, BEA, CoinDesk and SEC filings, filterable by topic, instrument and source, each linking to the original |
 | Economic calendar | `/calendar` | Upcoming CPI, jobs, GDP and PCE releases and Fed and ECB policy meetings |
 | US macro | `/macro` | Inflation, the Fed funds rate, Treasury yields, GDP and jobs from FRED, with a chart per series. Needs a free `FRED_API_KEY` |
+| Asset terminal | `/asset` | One asset on one screen: live price and status, chart, key figures, reference prices and its latest news, refreshed every 2 minutes |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |
 | Analytics | `/analytics` | Buy/sell signals with backtests, and a side-by-side historical comparison |

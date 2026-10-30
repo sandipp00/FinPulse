@@ -215,3 +215,11 @@ export function getAssistantStatus() {
 export function askAssistant(question, mode = 'rules') {
   return postJSON('/api/assistant/ask', { question, mode })
 }
+
+export function getAssetRegistry() {
+  return getJSON('/api/asset-registry')
+}
+
+export function getAssetNews(asset) {
+  return getJSON(`/api/asset-news?asset=${encodeURIComponent(asset)}`)
+}

@@ -10,7 +10,7 @@ import { formatQuote } from '../lib/explorer'
 import { formatPercent, getAssetDetails } from '../lib/format'
 import { formatObservationDate, toChartPoints, withinYears } from '../lib/macro'
 import { futuresMarketOpen } from '../lib/metals'
-import { ROUTES } from '../lib/routes'
+import { assetHref } from '../lib/asset'
 
 const RANGES = [
   { label: '1Y', years: 1 },
@@ -56,7 +56,7 @@ function Card({ item, active, onSelect }) {
   )
 }
 
-const openExplorer = (symbol) => navigate(`${ROUTES.explorer}?symbol=${encodeURIComponent(symbol)}`)
+const openAsset = (symbol) => navigate(assetHref(symbol))
 
 const OIL = new Set(['CL/USDT', 'BZ/USDT'])
 
@@ -65,7 +65,7 @@ function LiveMetalCard({ symbol, tick, status, now }) {
   const change = tick?.change_pct_24h
   const up = change != null && change >= 0
   return (
-    <button className="macro-card" onClick={() => openExplorer(symbol)} title={`Open ${symbol} in the explorer`}>
+    <button className="macro-card" onClick={() => openAsset(symbol)} title={`Open the ${getAssetDetails(symbol).name} terminal page`}>
       <span className="macro-card-top">
         <span>Live · Binance perpetual</span>
         <DataTag status={freshness} />
@@ -77,7 +77,7 @@ function LiveMetalCard({ symbol, tick, status, now }) {
         {change != null && <b className={`num ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {formatPercent(change)}</b>}
       </span>
       <small className="macro-card-id">
-        {symbol} · USDT {OIL.has(symbol) ? 'per barrel' : 'per troy ounce'} · open in explorer
+        {symbol} · USDT {OIL.has(symbol) ? 'per barrel' : 'per troy ounce'} · price, chart and news
       </small>
     </button>
   )
@@ -121,8 +121,8 @@ function MetalCard({ asset }) {
   return (
     <button
       className="macro-card"
-      onClick={() => openExplorer(asset.symbol)}
-      title={`Open ${asset.symbol} in the explorer`}
+      onClick={() => openAsset(asset.symbol)}
+      title={`Open the ${getAssetDetails(asset.symbol).name} terminal page`}
     >
       <span className="macro-card-top">
         <span>COMEX futures · end of day</span>
@@ -134,7 +134,7 @@ function MetalCard({ asset }) {
         {formatObservationDate(day, 'Daily')}
         {change != null && <b className={`num ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {formatPercent(change)}</b>}
       </span>
-      <small className="macro-card-id">{asset.symbol} · USD per troy ounce · open in explorer</small>
+      <small className="macro-card-id">{asset.symbol} · USD per troy ounce · price, chart and news</small>
     </button>
   )
 }

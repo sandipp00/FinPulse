@@ -15,11 +15,13 @@ import { useNotificationFeeds, useNotifications } from './hooks/useNotifications
 import { navigate } from './hooks/useRoute'
 import { apiState, latestStoredTimestamp } from './lib/dataStatus'
 import { formatPercent, formatPrice, getAssetDetails } from './lib/format'
+import { assetHref } from './lib/asset'
 import { symbolsInMarket } from './lib/liveMarkets'
 import { PAGES } from './lib/pages'
 import { ROUTES } from './lib/routes'
 import AnalyticsPage from './pages/AnalyticsPage'
 import AssetClassPage from './pages/AssetClassPage'
+import AssetPage from './pages/AssetPage'
 import AssistantPage from './pages/AssistantPage'
 import CalendarPage from './pages/CalendarPage'
 import CommoditiesPage from './pages/CommoditiesPage'
@@ -162,6 +164,9 @@ function Dashboard({ route }) {
   }, [route])
 
   // The right panel's "Explore history" opens the explorer on that instrument.
+  // A watchlist row opens that asset's terminal page: price, chart, figures and news.
+  const openAsset = useCallback((symbol) => navigate(assetHref(symbol)), [])
+
   const openExplorer = useCallback((symbol) => {
     setPanelSymbol(symbol)
     navigate(`${ROUTES.explorer}?symbol=${encodeURIComponent(symbol)}`)
@@ -248,7 +253,7 @@ function Dashboard({ route }) {
                   liveStatus={marketStatus}
                   loading={assetLoading}
                   error={apiError}
-                  onSelect={openChart}
+                  onSelect={openAsset}
                   now={pageLoadedAt}
                 />
               )}
@@ -270,7 +275,7 @@ function Dashboard({ route }) {
                     loading: assetLoading,
                     filter,
                     onFilterChange: setFilter,
-                    onSelect: openChart,
+                    onSelect: openAsset,
                     feedStatus: marketStatus,
                   }}
                 />
@@ -290,6 +295,7 @@ function Dashboard({ route }) {
               {route === 'news' && <NewsPage />}
               {route === 'calendar' && <CalendarPage />}
               {route === 'explorer' && <ExplorerPage />}
+              {route === 'asset' && <AssetPage ticks={ticks} marketStatus={marketStatus} marketAssets={marketAssets} />}
               {route === 'assistant' && <AssistantPage />}
               {route === 'portfolio' && (
                 <PortfolioPage liveSymbols={liveSymbols} ticks={ticks} liveStatus={liveStatus} />
@@ -314,6 +320,7 @@ function Dashboard({ route }) {
               selectedSymbol={panelSymbol}
               onSelect={setPanelSymbol}
               onOpenChart={openExplorer}
+              onOpenAsset={openAsset}
             />
           </div>
         </main>
