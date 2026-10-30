@@ -1185,3 +1185,5 @@ a { color: inherit; }
 .rp-open { color: var(--amber); }
 .rp-open:hover:not(:disabled) { background: var(--amber); color: #000; }
 .mh-head .mh-name strong { color: var(--amber); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+.price-cell.up { color: var(--up); }
+.price-cell.down { color: var(--down); }

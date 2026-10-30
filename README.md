@@ -138,6 +138,7 @@ npm test
 Every number the API serves says where it came from and how fresh it is (models in `backend/schemas/market.py`):
 
 - `GET /api/market/quotes` returns one normalized record per instrument: symbol, asset class, price, quote currency (crypto pairs are priced in USDT, not USD), unit, provider, provider timestamp, retrieval time, interval and a status. The status is `real_time` for a recent exchange tick, `stale` when the tick is older than 30 seconds or the feed is down, `historical` for a stored daily close, `cached` for a kept response, and `unavailable` when there is nothing. A currency that is not known is `null`, never guessed.
+- `GET /api/instruments/week-change?symbols=BTC/USDT,AAPL` gives each instrument's 7-day change from its own daily bars, from the same source as its chart (Binance, Yahoo or stored history; indices use Yahoo's, which include today). The base is the last bar at least seven days before the newest, so weekends are skipped, not filled in. Cached for 5 minutes; the watchlist's 7D CHANGE column uses it.
 - `GET /api/candles` adds a `meta` object: provider, the endpoint that answered, retrieval time, the newest bar's time and the cache age.
 
 - `GET /api/instruments` lists every instrument that can be charted: its asset class, quote currency, unit, whether it is live, the intervals it offers, and its stored coverage (bars, first and last date).
