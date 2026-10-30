@@ -216,6 +216,10 @@ export function askAssistant(question, mode = 'rules') {
   return postJSON('/api/assistant/ask', { question, mode })
 }
 
+export function getWorldIndices() {
+  return getJSON('/api/world-indices')
+}
+
 export function getAssetRegistry() {
   return getJSON('/api/asset-registry')
 }

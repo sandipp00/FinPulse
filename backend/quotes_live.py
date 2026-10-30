@@ -1,9 +1,12 @@
 """Near-real-time quotes for stocks, indices and FX from Yahoo Finance.
 
-Yahoo has no free streaming API, so this polls. Every POLL_SECONDS one batch
-request (`/v8/finance/spark`, 1-minute bars for today) returns the latest price
-of every symbol; each symbol's trading session comes from `/v8/finance/chart`,
-refreshed every SESSION_REFRESH_SECONDS. About 250 requests an hour in all.
+Yahoo has no free streaming API, so this polls. Every POLL_SECONDS, batch requests
+(`/v8/finance/spark`, 1-minute bars for today, at most 20 symbols each) return the
+latest price of every symbol; each symbol's trading session comes from
+`/v8/finance/chart`, refreshed every SESSION_REFRESH_SECONDS. A market that is
+closed is only re-fetched every CLOSED_POLL_SECONDS (its price cannot move); its last
+price is re-sent every round so it does not look stale. With the 44 default symbols
+that is roughly 300 to 900 requests an hour, depending on how many markets are open.
 
 Each tick says whether the market is open and, if it is, whether Yahoo's newest
 bar is older than DELAYED_AFTER_SECONDS (then it is `delayed`, never called
@@ -19,12 +22,17 @@ from typing import Optional
 import httpx
 
 from backend import config
+from backend.indices import INDEX_SYMBOLS
 from backend.live import LiveFeed
 
 log = logging.getLogger("finpulse.quotes")
 
 PROVIDER = "yahoo"
 POLL_SECONDS = 15
+# The most symbols Yahoo accepts in one spark request.
+SPARK_BATCH = 20
+# A closed market is re-fetched this often; its last price is re-sent every round.
+CLOSED_POLL_SECONDS = 300
 SESSION_REFRESH_SECONDS = 600
 DELAYED_AFTER_SECONDS = 180
 REQUEST_TIMEOUT_SECONDS = 10
@@ -48,7 +56,7 @@ def yahoo_symbol(symbol: str) -> str:
 def asset_class_for(symbol: str) -> str:
     if "/" in symbol:
         return "fx"
-    return "index" if symbol.startswith("^") else "stock"
+    return "index" if symbol.startswith("^") or symbol in INDEX_SYMBOLS else "stock"
 
 
 def latest_bar(series: dict) -> Optional[tuple[int, float]]:
@@ -62,16 +70,23 @@ def latest_bar(series: dict) -> Optional[tuple[int, float]]:
 
 def build_tick(symbol: str, series: dict, session: Optional[tuple[int, int]], now: float) -> Optional[dict]:
     """A tick from one symbol's spark series, or None if it has no usable price."""
-    bar = latest_bar(series)
-    if bar is None:
-        return None
-    bar_time, price = bar
     previous = series.get("previousClose") or series.get("chartPreviousClose")
     previous = float(previous) if isinstance(previous, (int, float)) and previous > 0 else None
-
     # Unknown session (its lookup failed): open/closed is None and only the age counts.
     market_open = None if session is None else session[0] <= now < session[1]
-    delayed = market_open is not False and now - bar_time > DELAYED_AFTER_SECONDS
+
+    bar = latest_bar(series)
+    if bar is None:
+        # No bar yet today: the last close is the newest value there is. While the market
+        # is closed that is its current value; just after the open (Yahoo runs some
+        # exchanges ~15 minutes behind) it is shown as delayed. Hours unknown: nothing.
+        if market_open is None or previous is None:
+            return None
+        bar_time, price = None, previous
+        delayed = market_open
+    else:
+        bar_time, price = bar
+        delayed = market_open is not False and now - bar_time > DELAYED_AFTER_SECONDS
     return {
         "symbol": symbol,
         "asset_class": asset_class_for(symbol),
@@ -83,7 +98,7 @@ def build_tick(symbol: str, series: dict, session: Optional[tuple[int, int]], no
         "change_window": "1d",
         "market_open": market_open,
         "delayed": delayed,
-        "time": bar_time * 1000,
+        "time": bar_time * 1000 if bar_time is not None else None,
         "received_at": now,
     }
 
@@ -105,6 +120,7 @@ class YahooQuotes(LiveFeed):
         self.source = config.YAHOO_QUOTE_URL
         self._sessions: dict[str, tuple[int, int]] = {}
         self._sessions_at: dict[str, float] = {}
+        self._fetched_at: dict[str, float] = {}
         self._client: Optional[httpx.AsyncClient] = None
 
     def start(self) -> None:
@@ -155,18 +171,41 @@ class YahooQuotes(LiveFeed):
                 self._sessions[symbol] = session
             self._sessions_at[symbol] = now_mono
 
+    def _due(self, symbol: str, now: float) -> bool:
+        """Fetch every round while the market is open (or its hours are unknown);
+        a closed market only every CLOSED_POLL_SECONDS, since its price cannot move."""
+        session = self._sessions.get(symbol)
+        if session is None or session[0] <= now < session[1] or symbol not in self.latest:
+            return True
+        return now - self._fetched_at.get(symbol, -math.inf) >= CLOSED_POLL_SECONDS
+
     async def poll(self) -> None:
         """One round: refresh due sessions, fetch every price, publish the ticks."""
         await self._refresh_sessions(_monotonic())
-        body = await self._get("/v8/finance/spark", {
-            "symbols": ",".join(yahoo_symbol(s) for s in self.symbols), "range": "1d", "interval": "1m",
-        })
-        if not isinstance(body, dict):
-            raise ValueError("Yahoo sent a response that is not a JSON object")
+        now = _wall()
+        due = [s for s in self.symbols if self._due(s, now)]
+        body: dict = {}
+        wanted = [yahoo_symbol(s) for s in due]
+        for start in range(0, len(wanted), SPARK_BATCH):  # Yahoo takes at most 20 symbols a request
+            part = await self._get("/v8/finance/spark", {
+                "symbols": ",".join(wanted[start:start + SPARK_BATCH]), "range": "1d", "interval": "1m",
+            })
+            if not isinstance(part, dict):
+                raise ValueError("Yahoo sent a response that is not a JSON object")
+            body.update(part)
 
         now = _wall()
         published = 0
         for symbol in self.symbols:
+            if symbol not in due:
+                # A closed market between checks: its last price still stands, so re-send it
+                # (otherwise browsers would mark it stale after 30 seconds).
+                if symbol in self.latest:
+                    tick = {**self.latest[symbol], "received_at": now}
+                    self.latest[symbol] = tick
+                    self._broadcast({"type": "tick", **tick})
+                continue
+            self._fetched_at[symbol] = now
             series = body.get(yahoo_symbol(symbol))
             if not isinstance(series, dict):
                 continue

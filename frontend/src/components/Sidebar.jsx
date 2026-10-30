@@ -12,6 +12,7 @@ import {
   CircleHelp,
   Coins,
   Fuel,
+  Globe,
   Clock,
   Landmark,
   LayoutDashboard,
@@ -33,6 +34,7 @@ const NAV_GROUPS = [
     title: 'MARKETS',
     items: [
       { route: 'home', icon: LayoutDashboard },
+      { route: 'indices', icon: Globe },
       { route: 'equities', icon: Building2 },
       { route: 'crypto', icon: Bitcoin },
       { route: 'fx', icon: Coins },

@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from backend import config
+from backend.indices import CURRENCIES as INDEX_CURRENCIES
 from backend.live import STALE_AFTER_SECONDS
 from backend.quotes_live import asset_class_for as yahoo_asset_class
 from backend.schemas.market import MarketRecord
@@ -39,7 +40,7 @@ def _utc(seconds: Optional[float]) -> Optional[datetime]:
 def currency_of(symbol: str) -> Optional[str]:
     if "/" in symbol:
         return symbol.split("/", 1)[1]
-    return STORED_CURRENCIES.get(symbol)
+    return STORED_CURRENCIES.get(symbol) or INDEX_CURRENCIES.get(symbol)
 
 
 def live_asset_class(symbol: str) -> str:
