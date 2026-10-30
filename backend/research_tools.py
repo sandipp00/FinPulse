@@ -18,7 +18,9 @@ from typing import Optional
 import pandas as pd
 from fastapi import HTTPException
 
-from backend import candles as candle_source, config, econ_calendar, eia, fred, fx, instruments, news, quant_api, signal_service
+from backend import (
+    asset_news, candles as candle_source, config, econ_calendar, eia, fred, fx, instruments, news, quant_api, signal_service,
+)
 from src.analytics import quant
 
 LIVE_LABEL = {"real_time": "live", "stale": "stale (no recent update)", "historical": "end of day", "cached": "kept copy"}
@@ -212,9 +214,14 @@ async def backtest(symbol: str) -> dict:
 async def news_items(instrument: Optional[str] = None, topic: Optional[str] = None, limit: int = 5) -> dict:
     args = {"instrument": instrument, "topic": topic}
     title = "Latest headlines" + (f" on {instrument}" if instrument else "") + (f" ({topic})" if topic else "")
-    items, _ = await news.collect()
-    if instrument:
-        items = [i for i in items if instrument in i["instruments"]]
+    asset = asset_news.find(instrument) if instrument else None
+    if asset is not None and asset.yahoo_news:
+        # The asset's own headline feed (as on its asset page), plus its tagged general news.
+        items = (await asset_news.asset_headlines(asset))["items"]
+    else:
+        items, _ = await news.collect()
+        if instrument:
+            items = [i for i in items if instrument in i["instruments"]]
     if topic:
         items = [i for i in items if topic in i["topics"]]
     if not items:

@@ -52,9 +52,9 @@ export const PAGES = {
     blurb: 'Headlines from the Fed, ECB, BEA, CoinDesk and SEC filings, each linked to the original.',
   },
   calendar: {
-    title: 'Economic calendar',
+    title: 'Calendar',
     nav: 'Calendar',
-    blurb: 'Upcoming US data releases and Fed and ECB policy meetings.',
+    blurb: 'Company earnings, US data releases and Fed and ECB policy meetings.',
   },
   markets: {
     title: 'Markets',

@@ -251,3 +251,7 @@ export function getCryptoDerivatives(currency) {
 export function getCftc() {
   return getJSON('/api/cftc')
 }
+
+export function getEarnings(symbol) {
+  return getJSON(symbol ? `/api/earnings?symbol=${encodeURIComponent(symbol)}` : '/api/earnings')
+}
