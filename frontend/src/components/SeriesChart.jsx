@@ -16,7 +16,9 @@ function SeriesChart({ points, percent = false, precision = 2 }) {
       layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: '#94A3B8', fontSize: 11 },
       grid: { vertLines: { color: '#1E293B55' }, horzLines: { color: '#1E293B' } },
       rightPriceScale: { borderColor: '#1E293B' },
-      timeScale: { borderColor: '#1E293B' },
+      // Small bar spacing lets fitContent show a long daily history (10 years is ~2,500
+      // points) in a narrow panel; the library's default stops at half a pixel per bar.
+      timeScale: { borderColor: '#1E293B', minBarSpacing: 0.05 },
     })
     seriesRef.current = chart.addSeries(LineSeries, { color: '#38BDF8', lineWidth: 2, priceLineVisible: false })
     chartRef.current = chart

@@ -262,6 +262,19 @@ Both series are measured only on the dates they share. Every formula and assumpt
 - **Where:** the World indices page (one table per region, with each exchange's local time), the ticker, and an asset terminal page with news for each index. The Sensex and Nifty Bank have no news feed, like the NIFTY 50.
 - **Left out:** Argentina's Merval (Yahoo has no intraday data or currency for it).
 
+### Asset analysis (Analytics page)
+
+The Analytics page analyses every asset the terminal follows (53), from the longest daily history FinPulse can get for each: stored bars where they exist, otherwise Binance (crypto) or Yahoo (indices, FX, and WTI and Brent through their futures `CL=F` and `BZ=F`). Only completed days are used. `src/analytics/asset_analysis.py` does the maths; `backend/analysis_api.py` serves it, cached for 15 minutes.
+
+- **Scoreboard** (`GET /api/analysis/scoreboard`): one sortable row per asset, with returns (1W, 1M, 3M, YTD, 1Y), 1-year volatility, deepest fall, distance from the 52-week high, RSI and trend. Filter by asset class; a row opens the full analysis. An asset whose source has too little history (Tadawul: Yahoo has one day) says so.
+- **Full analysis** (`GET /api/analysis/asset?asset=gold`):
+  - **Performance:** 1W to 3Y and the annualized return.
+  - **Risk:** volatility (30 days, 90 days, 1 year), Sharpe and Sortino (risk-free rate zero), 1-day 95% value at risk and the average of the worst 5% of days, best and worst days, share of up days, and the deepest and current fall from a peak.
+  - **Trend:** price against its 20, 50 and 200-day averages, RSI(14), MACD, the 52-week range and the last golden or death cross.
+  - **Charts:** fall from peak, 30-day rolling volatility, a monthly-returns heatmap with yearly totals, and a histogram of daily returns with skew and excess kurtosis.
+- **Not filled in:** a figure needing more history than exists (a 3-year return on 2 years of data) is left blank.
+- **Dates:** daily bars are dated by their own local day (Tokyo's midnight is the previous day in UTC).
+
 ### Market hours
 
 `/hours` shows which of 27 stock exchanges are open now, when each opens or closes, and a 24-hour timeline of their sessions in your time (4 hours back, 20 ahead, with a line at now). Each exchange is represented by its benchmark index, whose live value and change sit beside it. Crypto (24/7), FX (Sunday 17:00 to Friday 17:00 New York) and the gold, silver and oil futures (CME hours) are shown above.
@@ -325,7 +338,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Asset terminal | `/asset` | One asset on one screen: live price and status, chart, key figures, reference prices and its latest news, refreshed every 2 minutes |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |
-| Analytics | `/analytics` | Buy/sell signals with backtests, and a side-by-side historical comparison |
+| Analytics | `/analytics` | A scoreboard of every asset (returns, risk, trend) and a full analysis of any one (performance, risk, trend, drawdown and volatility charts, monthly returns, return distribution), plus buy/sell signals with backtests and a historical comparison |
 | Research | `/research` | A plain-language brief per asset, written by fixed rules from live price, signals, risk figures and the backtest. It is not AI. |
 | Research assistant | `/assistant` | Ask questions about the data in plain language. A rule-based mode is always on; an optional local AI mode uses Ollama on this computer |
 | Risk Monitor | `/risk` | Volatility, drawdown, 1-in-20-day loss and a correlation heatmap for every asset, plus the concentration and estimated volatility of your own paper portfolio |
