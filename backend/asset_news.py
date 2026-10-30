@@ -62,6 +62,10 @@ class Asset:
 CRYPTO_NOTE = "Live from Binance spot; daily history stored from Binance."
 FUTURES_NOTE = "Live price: a Binance perpetual futures contract in USDT, not an official spot or exchange price."
 FX_NOTE = "Live quote from Yahoo Finance every 15 seconds; ECB reference rate once a day."
+INDEX_NOTE = (
+    "Live quote from Yahoo Finance every 15 seconds; Yahoo delays some exchanges (about 15 minutes for Hong Kong "
+    "and Shanghai), shown as DELAYED. Charts from Yahoo."
+)
 
 ASSETS = [
     Asset("btc", "Bitcoin", "crypto", live="BTC/USDT", stored="BTC/USDT", yahoo_news=("BTC-USD",),
@@ -82,6 +86,24 @@ ASSETS = [
           note="Live quote from Yahoo Finance every 15 seconds; daily history from Yahoo."),
     Asset("nifty", "NIFTY 50", "index", live="^NSEI", stored="^NSEI",
           note="Live quote from Yahoo Finance every 15 seconds; daily history from Yahoo. No news feed, by choice."),
+    *[
+        Asset(id_, name, "index", live=symbol, yahoo_news=(symbol,), keywords=keywords, note=INDEX_NOTE)
+        for id_, name, symbol, keywords in (
+            ("dji", "Dow Jones Industrial Average", "^DJI", (r"\bdow\b", r"\bblue[- ]chip")),
+            ("ixic", "Nasdaq Composite", "^IXIC", (r"\bnasdaq\b", r"\btech stocks\b")),
+            ("tsx", "S&P/TSX Composite", "^GSPTSE", (r"\bTSX\b", r"\bcanad", r"\btoronto\b")),
+            ("bvsp", "Ibovespa", "^BVSP", (r"bovespa\b", r"\bbrazil")),
+            ("ftse", "FTSE 100", "^FTSE", (r"\bFTSE\b", r"\bLondon stocks\b", r"\bU\.?K\.? stocks\b", r"\bBritish stocks\b")),
+            ("dax", "DAX", "^GDAXI", (r"\bDAX\b", r"\bGerman", r"\bFrankfurt\b", r"\bEuropean (stocks|shares|equities|markets)\b")),
+            ("cac", "CAC 40", "^FCHI", (r"\bCAC\b", r"\bFrench stocks\b", r"\bParis\b")),
+            ("sx5e", "Euro Stoxx 50", "^STOXX50E", (r"\bstoxx\b", r"\bEuropean (stocks|shares|equities)\b")),
+            ("n225", "Nikkei 225", "^N225", (r"\bnikkei\b", r"\bJapan", r"\btokyo\b", r"\btopix\b")),
+            ("hsi", "Hang Seng", "^HSI", (r"\bhang seng\b", r"\bHong Kong\b")),
+            ("sse", "Shanghai Composite", "000001.SS", (r"\bshanghai\b", r"\bChin(a|ese) (stocks|shares)\b")),
+            ("kospi", "KOSPI", "^KS11", (r"\bkospi\b", r"\bKorea(n)? (stocks|shares)\b", r"\bseoul\b")),
+            ("asx", "S&P/ASX 200", "^AXJO", (r"\bASX\b", r"\bAustralia", r"\bsydney\b")),
+        )
+    ],
     Asset("gold", "Gold", "commodity", live="XAU/USDT", stored="GC=F", yahoo_news=("GC=F",),
           keywords=(r"\bgold\b", r"\bbullion\b", r"\bprecious metals?\b"),
           note=FUTURES_NOTE + " Daily history: COMEX futures from Yahoo."),

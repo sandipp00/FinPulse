@@ -3,7 +3,8 @@
 Three sources, chosen per instrument:
   * live symbols: candles from Binance (any interval in candles.INTERVALS), spot
     for crypto and futures for live gold, silver and oil;
-  * FX pairs quoted from Yahoo: intraday and daily candles from Yahoo's chart API;
+  * FX pairs and world indices quoted from Yahoo: candles from Yahoo's chart API,
+    except that an index with stored daily history keeps using it for `1d`;
   * stored instruments (stocks, indices, gold and silver futures, some crypto):
     daily bars from SQLite.
 
@@ -106,9 +107,9 @@ def _stored_coverage() -> dict[str, tuple[str, StoredCoverage]]:
     }
 
 
-def fx_symbols() -> list[str]:
-    """The FX pairs quoted live from Yahoo, which also serves their candle history."""
-    return [s for s in config.YAHOO_LIVE_SYMBOLS if live_asset_class(s) == "fx"]
+def yahoo_chart_symbols() -> list[str]:
+    """FX pairs and indices quoted live from Yahoo, which also serves their candles."""
+    return [s for s in config.YAHOO_LIVE_SYMBOLS if live_asset_class(s) in ("fx", "index")]
 
 
 def catalogue() -> dict[str, Instrument]:
@@ -123,10 +124,12 @@ def catalogue() -> dict[str, Instrument]:
             stored=stored[symbol][1] if symbol in stored else None,
         )
 
-    for symbol in fx_symbols():
+    for symbol in yahoo_chart_symbols():
+        asset_class = live_asset_class(symbol)
         instruments[symbol] = Instrument(
-            symbol=symbol, asset_class="fx", currency=currency_of(symbol), unit=UNITS["fx"],
+            symbol=symbol, asset_class=asset_class, currency=currency_of(symbol), unit=UNITS[asset_class],
             live=True, intervals=list(yahoo_history.INTERVALS),
+            stored=stored[symbol][1] if symbol in stored else None,
         )
 
     for symbol, (asset_type, coverage) in stored.items():
@@ -198,9 +201,13 @@ async def history(
     if instrument is None:
         raise HTTPException(status_code=404, detail=f"Unknown instrument: {symbol}")
 
-    from_yahoo = symbol in fx_symbols()
-    if source == "auto":
-        chosen = "yahoo" if from_yahoo else ("binance" if instrument.live else "database")
+    from_yahoo = symbol in yahoo_chart_symbols()
+    if source == "auto" and from_yahoo:
+        # Daily bars of an index with stored history stay on the database (the same series
+        # the risk and research figures use); everything else comes from Yahoo.
+        chosen = "database" if interval == STORED_INTERVAL and instrument.stored else "yahoo"
+    elif source == "auto":
+        chosen = "binance" if instrument.live else "database"
     else:
         chosen = source
     if (chosen == "yahoo") != from_yahoo and chosen != "database":

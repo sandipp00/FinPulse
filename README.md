@@ -243,17 +243,24 @@ Both series are measured only on the dates they share. Every formula and assumpt
 ### Live stock, index and FX quotes (Yahoo Finance)
 
 - **Source:** Yahoo Finance's public chart endpoints, polled by `backend/quotes_live.py`: AAPL, the S&P 500 (`^GSPC`), the NIFTY 50 (`^NSEI`) and the seven FX pairs on the FX page. Personal use, like the stored Yahoo history.
-- **How:** every 15 seconds, one batch request (`/v8/finance/spark`, 1-minute bars) returns the latest price of every symbol. Each symbol's trading session comes from `/v8/finance/chart`, looked up every 10 minutes. About 250 requests an hour in all. Ticks go out on the same `/ws/prices` socket with `market: "quotes"`.
+- **How:** every 15 seconds, batch requests (`/v8/finance/spark`, 1-minute bars, at most 20 symbols each, Yahoo's limit) return the latest price of every symbol. Each symbol's trading session comes from `/v8/finance/chart`, looked up every 10 minutes. With the 23 default symbols (AAPL, 15 world indices, 7 FX pairs) that is about 500 requests an hour. Ticks go out on the same `/ws/prices` socket with `market: "quotes"`.
 - **Labels:** `LIVE` while the market is open and Yahoo's newest 1-minute bar is under 3 minutes old; `DELAYED` if it is older; `CLOSED` when the market is shut, showing the last regular-session price; `STALE` if polling stops. The change is against the previous close (`1d`). In `/api/market/quotes` these are `real_time`, `delayed` and `historical` (with "Market closed").
 - **Where:** the ticker, the watchlist and right panel, the Equities page and the FX cards (beside the ECB reference rate). Signals, backtests and paper trading stay crypto-only.
 - **Failures:** a failed poll backs off (up to 2 minutes) and the quotes are marked stale; a failed session lookup leaves the price shown and judged by its age only.
 - **Settings:** `YAHOO_LIVE_SYMBOLS` and `YAHOO_QUOTE_URL` (see `.env.example`).
 
+### World indices (Yahoo Finance)
+
+- **The 15:** S&P 500, Dow Jones, Nasdaq Composite, S&P/TSX, Ibovespa (Americas); FTSE 100, DAX, CAC 40, Euro Stoxx 50 (Europe); Nikkei 225, Hang Seng, Shanghai Composite, KOSPI, S&P/ASX 200, NIFTY 50 (Asia-Pacific). They are listed, with country, currency and exchange time zone, in `backend/indices.py` (`GET /api/world-indices`).
+- **Live:** all 15 are on the Yahoo quote poller (every 15 seconds), so they are LIVE while their market is open, CLOSED with the last session value otherwise, and DELAYED when Yahoo's newest value is old. Yahoo runs Hong Kong and Shanghai about 15 minutes behind, so those two show DELAYED while open.
+- **Charts:** intraday and daily candles from Yahoo's chart API. The S&P 500 and NIFTY 50 keep their stored daily history for `1d` (the series the risk and research figures use); everything else comes from Yahoo.
+- **Where:** the World indices page (one table per region, with each exchange's local time), the ticker, and an asset terminal page with news for each index.
+
 ### Asset terminal and per-asset news
 
 `/asset?asset=gold` puts one asset on one screen, like a terminal's security page. A watchlist row, the right panel and the Commodities cards open it; the asset can be given by id (`gold`) or any of its symbols (`GC=F`, `XAU/USDT`).
 
-- **Registry:** `backend/asset_news.py` lists the 19 assets (5 crypto, AAPL, the S&P 500, the NIFTY 50, gold, silver, WTI, Brent and 7 FX pairs) with the instruments that price each: a live symbol, stored daily history, an EIA series or an ECB pair. `GET /api/asset-registry` returns it.
+- **Registry:** `backend/asset_news.py` lists the 32 assets (5 crypto, AAPL, 15 world indices, gold, silver, WTI, Brent and 7 FX pairs) with the instruments that price each: a live symbol, stored daily history, an EIA series or an ECB pair. `GET /api/asset-registry` returns it.
 - **The page:** the live price with its freshness tag (LIVE, DELAYED, CLOSED, STALE) and change; a candle chart (exchange history for crypto, gold, silver and oil at 1m to 1d; stored daily bars for stocks and indices; Yahoo intraday candles for FX) with figures for the bars shown; key figures (24h range and volume or previous close, and return, volatility, drawdown and Sharpe over the stored history); reference prices (COMEX daily close, EIA spot, ECB rate); and the latest news.
 - **News:** `GET /api/asset-news?asset=gold` merges Yahoo Finance's headline feed for the asset (personal use; WTI and Brent share both oil feeds) with general-news items tagged with it (CoinDesk for crypto) or, for FX, central-bank releases. Yahoo's per-symbol feeds include general market stories, so a Yahoo headline is kept only if its title names the asset. Feeds are refreshed at most every 2 minutes, kept (labelled) for up to 6 hours if Yahoo fails, and the page re-fetches on the same schedule. Headlines and short snippets only, each linking to the original.
 - **No news, by choice:** the NIFTY 50 and the rupee pairs.
@@ -299,6 +306,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | News | `/news` | Headlines from the Fed, ECB, BEA, CoinDesk and SEC filings, filterable by topic, instrument and source, each linking to the original |
 | Economic calendar | `/calendar` | Upcoming CPI, jobs, GDP and PCE releases and Fed and ECB policy meetings |
 | US macro | `/macro` | Inflation, the Fed funds rate, Treasury yields, GDP and jobs from FRED, with a chart per series. Needs a free `FRED_API_KEY` |
+| World indices | `/indices` | 15 benchmark indices by region, live while their markets are open, tagged CLOSED or DELAYED otherwise; each opens its asset terminal page |
 | Asset terminal | `/asset` | One asset on one screen: live price and status, chart, key figures, reference prices and its latest news, refreshed every 2 minutes |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
 | Portfolio | `/portfolio` | Paper trading: order ticket, holdings, equity curve, history |

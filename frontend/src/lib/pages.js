@@ -11,6 +11,11 @@ export const PAGES = {
     nav: 'Overview',
     blurb: 'Where the markets stand right now, and where to dig deeper.',
   },
+  indices: {
+    title: 'World indices',
+    nav: 'World indices',
+    blurb: '15 benchmark stock indices across the Americas, Europe and Asia-Pacific, live while their markets are open.',
+  },
   equities: {
     title: 'Equities',
     nav: 'Equities',

@@ -133,3 +133,24 @@ def test_yahoo_ticks_become_real_time_delayed_or_closed_records():
 def test_oil_is_quoted_per_barrel():
     assert market_service.unit_for("CL/USDT", "commodity") == "per barrel"
     assert market_service.unit_for("XAU/USDT", "commodity") == "per troy ounce"
+
+
+def test_more_than_twenty_symbols_are_split_into_batches():
+    symbols = [f"S{i}" for i in range(23)]
+    sizes = []
+
+    def handle(request):
+        if request.url.path.startswith("/v8/finance/chart/"):
+            return httpx.Response(200, json={"chart": {"result": [{"meta": {"currentTradingPeriod": {
+                "regular": {"start": NSE[0], "end": NSE[1]}}}}]}})
+        names = request.url.params["symbols"].split(",")
+        sizes.append(len(names))
+        if len(names) > quotes_live.SPARK_BATCH:
+            return httpx.Response(400, json={})  # what Yahoo does
+        return httpx.Response(200, json={name: spark(100.0, previous=99.0) for name in names})
+
+    quotes = poller(handle, symbols=symbols)
+    asyncio.run(quotes.poll())
+
+    assert sizes == [20, 3]
+    assert set(quotes.latest) == set(symbols)

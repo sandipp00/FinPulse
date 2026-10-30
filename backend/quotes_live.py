@@ -1,9 +1,10 @@
 """Near-real-time quotes for stocks, indices and FX from Yahoo Finance.
 
-Yahoo has no free streaming API, so this polls. Every POLL_SECONDS one batch
-request (`/v8/finance/spark`, 1-minute bars for today) returns the latest price
-of every symbol; each symbol's trading session comes from `/v8/finance/chart`,
-refreshed every SESSION_REFRESH_SECONDS. About 250 requests an hour in all.
+Yahoo has no free streaming API, so this polls. Every POLL_SECONDS, batch requests
+(`/v8/finance/spark`, 1-minute bars for today, at most 20 symbols each) return the
+latest price of every symbol; each symbol's trading session comes from
+`/v8/finance/chart`, refreshed every SESSION_REFRESH_SECONDS. With the 23 default
+symbols that is about 500 requests an hour in all.
 
 Each tick says whether the market is open and, if it is, whether Yahoo's newest
 bar is older than DELAYED_AFTER_SECONDS (then it is `delayed`, never called
@@ -19,12 +20,15 @@ from typing import Optional
 import httpx
 
 from backend import config
+from backend.indices import INDEX_SYMBOLS
 from backend.live import LiveFeed
 
 log = logging.getLogger("finpulse.quotes")
 
 PROVIDER = "yahoo"
 POLL_SECONDS = 15
+# The most symbols Yahoo accepts in one spark request.
+SPARK_BATCH = 20
 SESSION_REFRESH_SECONDS = 600
 DELAYED_AFTER_SECONDS = 180
 REQUEST_TIMEOUT_SECONDS = 10
@@ -48,7 +52,7 @@ def yahoo_symbol(symbol: str) -> str:
 def asset_class_for(symbol: str) -> str:
     if "/" in symbol:
         return "fx"
-    return "index" if symbol.startswith("^") else "stock"
+    return "index" if symbol.startswith("^") or symbol in INDEX_SYMBOLS else "stock"
 
 
 def latest_bar(series: dict) -> Optional[tuple[int, float]]:
@@ -158,11 +162,15 @@ class YahooQuotes(LiveFeed):
     async def poll(self) -> None:
         """One round: refresh due sessions, fetch every price, publish the ticks."""
         await self._refresh_sessions(_monotonic())
-        body = await self._get("/v8/finance/spark", {
-            "symbols": ",".join(yahoo_symbol(s) for s in self.symbols), "range": "1d", "interval": "1m",
-        })
-        if not isinstance(body, dict):
-            raise ValueError("Yahoo sent a response that is not a JSON object")
+        body: dict = {}
+        wanted = [yahoo_symbol(s) for s in self.symbols]
+        for start in range(0, len(wanted), SPARK_BATCH):  # Yahoo takes at most 20 symbols a request
+            part = await self._get("/v8/finance/spark", {
+                "symbols": ",".join(wanted[start:start + SPARK_BATCH]), "range": "1d", "interval": "1m",
+            })
+            if not isinstance(part, dict):
+                raise ValueError("Yahoo sent a response that is not a JSON object")
+            body.update(part)
 
         now = _wall()
         published = 0

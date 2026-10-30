@@ -27,6 +27,7 @@ import CalendarPage from './pages/CalendarPage'
 import CommoditiesPage from './pages/CommoditiesPage'
 import ExplorerPage from './pages/ExplorerPage'
 import FxPage from './pages/FxPage'
+import WorldIndicesPage from './pages/WorldIndicesPage'
 import MacroPage from './pages/MacroPage'
 import NewsPage from './pages/NewsPage'
 import HelpPage from './pages/HelpPage'
@@ -281,6 +282,7 @@ function Dashboard({ route }) {
                 />
               )}
               {route === 'fx' && <FxPage ticks={ticks} marketStatus={marketStatus} />}
+              {route === 'indices' && <WorldIndicesPage ticks={ticks} marketStatus={marketStatus} />}
               {route === 'commodities' && (
                 <CommoditiesPage
                   marketAssets={marketAssets}

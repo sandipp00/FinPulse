@@ -245,3 +245,29 @@ def test_a_yahoo_failure_is_a_502(client, monkeypatch):
     monkeypatch.setattr(yahoo_history, "fetch_candle_series", failing)
     response = client.get("/api/instruments/history", params={"symbol": "EUR/USD", "interval": "1h", "limit": 100})
     assert response.status_code == 502 and "429" in response.json()["detail"]
+
+
+# ---- world indices -------------------------------------------------------------------
+
+def test_indices_chart_intraday_from_yahoo_but_keep_stored_daily_history(client, exchange, monkeypatch):
+    from backend import yahoo_history
+    monkeypatch.setattr(config, "YAHOO_LIVE_SYMBOLS", ["^NSEI", "^HSI"])
+    calls = []
+
+    async def fake(symbol, interval, limit):
+        calls.append((symbol, interval))
+        meta = candle_source.SourceMeta(provider="yahoo", endpoint="query1.finance.yahoo.com", status="historical")
+        return [{"time": 1793335200, "open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0, "volume": 0.0}], meta
+
+    monkeypatch.setattr(yahoo_history, "fetch_candle_series", fake)
+    items = by_symbol(client)
+    assert items["^NSEI"]["live"] is True and items["^NSEI"]["stored"]["bars"] == 2  # stored coverage kept
+    assert items["^HSI"]["asset_class"] == "index" and items["^HSI"]["currency"] == "HKD"
+
+    def get(symbol, interval):
+        return client.get("/api/instruments/history", params={"symbol": symbol, "interval": interval, "limit": 100}).json()
+
+    assert get("^NSEI", "1d")["source"] == "database"  # the series risk and research figures use
+    assert get("^NSEI", "15m")["source"] == "yahoo"
+    assert get("^HSI", "1d")["source"] == "yahoo"  # no stored history
+    assert calls == [("^NSEI", "15m"), ("^HSI", "1d")]
