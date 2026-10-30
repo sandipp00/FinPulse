@@ -35,6 +35,7 @@ const NAV_GROUPS = [
     items: [
       { route: 'home', icon: LayoutDashboard },
       { route: 'indices', icon: Globe },
+      { route: 'hours', icon: Clock },
       { route: 'equities', icon: Building2 },
       { route: 'crypto', icon: Bitcoin },
       { route: 'fx', icon: Coins },

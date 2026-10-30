@@ -216,6 +216,10 @@ export function askAssistant(question, mode = 'rules') {
   return postJSON('/api/assistant/ask', { question, mode })
 }
 
+export function getMarketHours() {
+  return getJSON('/api/market-hours')
+}
+
 export function getWorldIndices() {
   return getJSON('/api/world-indices')
 }

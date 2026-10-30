@@ -16,6 +16,11 @@ export const PAGES = {
     nav: 'World indices',
     blurb: '36 benchmark stock indices across the Americas, Europe, Asia-Pacific and the Middle East & Africa, live while their markets are open.',
   },
+  hours: {
+    title: 'Market hours',
+    nav: 'Market hours',
+    blurb: 'Which exchanges are open now, when each opens or closes, and a 24-hour timeline in your time.',
+  },
   equities: {
     title: 'Equities',
     nav: 'Equities',

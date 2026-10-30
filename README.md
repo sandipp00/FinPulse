@@ -262,6 +262,14 @@ Both series are measured only on the dates they share. Every formula and assumpt
 - **Where:** the World indices page (one table per region, with each exchange's local time), the ticker, and an asset terminal page with news for each index. The Sensex and Nifty Bank have no news feed, like the NIFTY 50.
 - **Left out:** Argentina's Merval (Yahoo has no intraday data or currency for it).
 
+### Market hours
+
+`/hours` shows which of 27 stock exchanges are open now, when each opens or closes, and a 24-hour timeline of their sessions in your time (4 hours back, 20 ahead, with a line at now). Each exchange is represented by its benchmark index, whose live value and change sit beside it. Crypto (24/7), FX (Sunday 17:00 to Friday 17:00 New York) and the gold, silver and oil futures (CME hours) are shown above.
+
+- **Source:** each exchange's regular session comes from Yahoo Finance (`currentTradingPeriod`, which the quote poller already looks up). `GET /api/market-hours` (`backend/market_hours.py`) returns it with the city, time zone, benchmark and trading days.
+- **After a session ends,** Yahoo keeps reporting it until the next local day, so the next session is estimated: the same local hours on the next trading day (Sunday to Thursday for the Saudi exchange). The estimate follows daylight-saving changes. It is marked with a `*` and a striped bar.
+- **Not known:** exchange holidays, and lunch breaks (Tokyo, Hong Kong, mainland China, Singapore, Jakarta, Kuala Lumpur), which fall inside the bars shown.
+
 ### Asset terminal and per-asset news
 
 `/asset?asset=gold` puts one asset on one screen, like a terminal's security page. A watchlist row, the right panel and the Commodities cards open it; the asset can be given by id (`gold`) or any of its symbols (`GC=F`, `XAU/USDT`).
@@ -312,6 +320,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | News | `/news` | Headlines from the Fed, ECB, BEA, CoinDesk and SEC filings, filterable by topic, instrument and source, each linking to the original |
 | Economic calendar | `/calendar` | Upcoming CPI, jobs, GDP and PCE releases and Fed and ECB policy meetings |
 | US macro | `/macro` | Inflation, the Fed funds rate, Treasury yields, GDP and jobs from FRED, with a chart per series. Needs a free `FRED_API_KEY` |
+| Market hours | `/hours` | Which exchanges are open now, countdowns to each open and close, a 24-hour session timeline in your time, and each market's live benchmark |
 | World indices | `/indices` | 36 benchmark indices across four regions, live while their markets are open, tagged CLOSED or DELAYED otherwise; each opens its asset terminal page |
 | Asset terminal | `/asset` | One asset on one screen: live price and status, chart, key figures, reference prices and its latest news, refreshed every 2 minutes |
 | Markets | `/markets` | Live candlestick chart with indicators, stored price history, searchable watchlist |
