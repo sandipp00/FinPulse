@@ -171,6 +171,10 @@ class YahooQuotes(LiveFeed):
                 self._sessions[symbol] = session
             self._sessions_at[symbol] = now_mono
 
+    def sessions(self) -> dict[str, tuple[int, int]]:
+        """symbol -> (start, end) of its current regular session, as Yahoo last reported."""
+        return dict(self._sessions)
+
     def _due(self, symbol: str, now: float) -> bool:
         """Fetch every round while the market is open (or its hours are unknown);
         a closed market only every CLOSED_POLL_SECONDS, since its price cannot move."""

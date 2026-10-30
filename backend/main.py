@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend import (
     asset_news, assistant_api, auth, candles as candle_source, commodities, config, db, econ_calendar, eia, fred, fx,
-    fx_api, indices, instruments,
+    fx_api, indices, instruments, market_hours,
     macro, market_service, news, news_api, paper, quant_api, risk_service, signal_service, yahoo_history,
 )
 from backend.errors import exchange_error
@@ -70,6 +70,7 @@ app.include_router(commodities.router)
 app.include_router(news_api.router)
 app.include_router(asset_news.router)
 app.include_router(indices.router)
+app.include_router(market_hours.router)
 app.include_router(quant_api.router)
 app.include_router(assistant_api.router)
 
