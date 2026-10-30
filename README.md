@@ -257,6 +257,14 @@ FinPulse follows the 30 largest US companies by market cap (`backend/stocks.py`)
 - **Everywhere else:** each stock has an asset page with its Yahoo headline feed (a headline must name the company; tickers that are common words or letters, like V, MA, KO, PG, MU and COST, are not used as keywords), a row in the Analytics scoreboard, risk figures and correlations on the Risk page, 7-day change, and a place in the explorer.
 - **Equities page:** the 30 stocks, largest first, with a market summary and sector tabs. Indices are on the World indices page.
 
+### Factor exposure (Fama-French)
+
+Each US stock's asset page, and those of the S&P 500, Dow, Nasdaq, Russell 2000 and NYSE Composite, has a Factor exposure panel (`backend/famafrench.py`, `GET /api/factors?symbol=NVDA`; the regression is in `src/analytics/factor_model.py`).
+
+- **Model:** daily excess returns regressed on the Fama-French market, size (SMB) and value (HML) factors plus momentum (the Carhart four-factor model), over the last 756 trading days the asset and the factors share. The panel shows each beta with its t-statistic and a plain-words reading, R², and alpha a year. Exposures with |t| under about 2 are shown faint as "no clear tilt".
+- **Factors:** the Kenneth R. French Data Library's daily files (free CSV downloads; Fama and French 1993, Carhart 1997). They are published monthly with a lag, so the window ends at the factors' latest date. Cached 24 hours and kept up to 45 days when the library cannot be reached. `FAMA_FRENCH_ENABLED=false` turns it off.
+- **Caveat:** asset returns are Yahoo price returns without dividends while the factors include them, so alpha reads low by roughly the dividend yield. The S&P 500 shows it: market beta 0.98, R² 0.998, alpha −1.3% a year.
+
 ### Positioning (CFTC Commitments of Traders)
 
 The Positioning page (`/positioning`; `backend/cftc.py`, `GET /api/cftc`) shows where speculators stand in 12 futures markets: gold, silver, WTI crude, natural gas, the E-mini S&P 500 and Nasdaq-100, CME Bitcoin and Ether, the euro, yen and pound, and the 10-year Treasury note. It uses the CFTC's public reporting API (public domain, no key; source: U.S. Commodity Futures Trading Commission).
