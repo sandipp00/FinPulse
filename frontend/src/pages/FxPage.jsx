@@ -1,10 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import AppLink from '../components/AppLink'
 import DataTag from '../components/DataTag'
+import ExplorerChart from '../components/ExplorerChart'
+import LivePrice from '../components/LivePrice'
 import SeriesChart from '../components/SeriesChart'
 import { useFxHistory, useFxPairs } from '../hooks/useFx'
+import { useInstrumentHistory } from '../hooks/useInstruments'
 import { useNow } from '../hooks/useNow'
-import { isCachedFallback, parseTimestamp, tickStatus } from '../lib/dataStatus'
-import { describeRate, formatRate, rateDecimals, toRatePoints } from '../lib/fx'
+import { assetHref } from '../lib/asset'
+import { describeSource, isCachedFallback, parseTimestamp, tickStatus } from '../lib/dataStatus'
+import { summarizeReturns } from '../lib/explorer'
+import { describeRate, formatRate, rateDecimals, toRatePoints, withLiveTick } from '../lib/fx'
 import { formatPercent } from '../lib/format'
 import { formatObservationDate, withinYears } from '../lib/macro'
 
@@ -18,53 +24,105 @@ const fetchedFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute
 
 const tagFor = (pair) => (pair.status === 'unavailable' ? 'unavailable' : isCachedFallback(pair.meta) ? 'cached' : 'historical')
 
-function LiveRate({ tick, status }) {
-  if (!tick) return null
-  const up = tick.change_pct_24h != null && tick.change_pct_24h >= 0
-  return (
-    <span className="macro-card-meta">
-      <span>Live <span className="num">{formatRate(tick.price)}</span></span>
-      {tick.change_pct_24h != null && (
-        <b className={`num ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {formatPercent(tick.change_pct_24h)}</b>
-      )}
-      <DataTag status={status} />
-    </span>
-  )
-}
+const INTERVAL_LABEL = { '1m': '1m', '15m': '15m', '1h': '1h', '1d': '1D' }
+const LIVE_BARS = 500
+// Intraday candles are re-fetched this often; the newest bar also follows each live tick.
+const REFRESH_MS = 15_000
 
-function PairCard({ pair, active, onSelect, tick, liveStatus }) {
-  const available = pair.status !== 'unavailable'
-  const up = pair.change_pct != null && pair.change_pct >= 0
+/** One pair: the live Yahoo rate as the headline, the ECB reference rate underneath. */
+function PairCard({ symbol, ecb, active, onSelect, tick, liveStatus }) {
+  const change = tick?.change_pct_24h
+  const up = change != null && change >= 0
   return (
     <button
       className={`macro-card ${active ? 'macro-card-active' : ''}`}
-      onClick={() => onSelect(pair.pair)}
-      disabled={!available}
+      onClick={() => onSelect(symbol)}
       aria-pressed={active}
-      title={available ? pair.method : pair.error}
+      title={ecb?.method ?? symbol}
     >
       <span className="macro-card-top">
-        <span>{pair.derived ? 'Derived cross' : 'ECB reference'}</span>
-        <DataTag status={tagFor(pair)} />
+        <span>Live · Yahoo Finance</span>
+        <DataTag status={liveStatus} />
       </span>
-      <strong className="macro-card-title">{pair.pair}</strong>
-      <span className="macro-card-value num">{formatRate(pair.latest?.rate)}</span>
+      <strong className="macro-card-title">{symbol}</strong>
+      <span className="macro-card-value num">{tick ? <LivePrice tick={tick} /> : '—'}</span>
       <span className="macro-card-meta">
-        {available ? (
-          <>
-            {formatObservationDate(pair.latest?.date, 'Daily')}
-            {pair.change_pct != null && (
-              <b className={`num ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {formatPercent(pair.change_pct)}</b>
-            )}
-          </>
-        ) : (pair.error ?? 'Unavailable')}
+        {tick ? 'Since previous close' : 'Waiting for the first quote…'}
+        {change != null && <b className={`num ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {formatPercent(change)}</b>}
       </span>
-      <LiveRate tick={tick} status={liveStatus} />
-      <small className="macro-card-id">{pair.quote} per 1 {pair.base}</small>
+      {ecb?.latest && (
+        <span className="macro-card-meta">
+          <span>{ecb.derived ? 'ECB cross' : 'ECB'} <span className="num">{formatRate(ecb.latest.rate)}</span></span>
+          <span>{formatObservationDate(ecb.latest.date, 'Daily')}</span>
+        </span>
+      )}
+      <small className="macro-card-id">{quoteOf(symbol)} per 1 {baseOf(symbol)}</small>
     </button>
   )
 }
 
+const baseOf = (symbol) => symbol.split('/')[0]
+const quoteOf = (symbol) => symbol.split('/')[1]
+
+function LiveChart({ symbol, tick, tag }) {
+  const [interval, setInterval_] = useState('15m')
+  const { data, loading, error, reload } = useInstrumentHistory(symbol, interval, LIVE_BARS)
+
+  useEffect(() => {
+    if (interval === '1d') return undefined
+    const timer = setInterval(reload, REFRESH_MS)
+    return () => clearInterval(timer)
+  }, [interval, reload])
+
+  const candles = useMemo(() => withLiveTick(data?.candles ?? [], tick), [data, tick])
+  const summary = useMemo(() => summarizeReturns(candles), [candles])
+  const decimals = rateDecimals(tick?.price ?? candles.at(-1)?.close ?? 1)
+
+  return (
+    <section className="panel macro-detail" aria-label={`${symbol} live chart`}>
+      <div className="ix-head">
+        <div className="min-w-0">
+          <h2>{symbol} <span>{tick ? describeRate(baseOf(symbol), quoteOf(symbol), tick.price) : 'live'}</span></h2>
+          <p>Live Yahoo Finance quotes; the newest bar is still forming. {interval === '1d' ? '' : 'Updates every 15 seconds.'}</p>
+        </div>
+        <div className="range-control" role="group" aria-label="Interval">
+          {Object.keys(INTERVAL_LABEL).map((item) => (
+            <button key={item} onClick={() => setInterval_(item)} className={item === interval ? 'range-active' : ''} aria-pressed={item === interval}>
+              {INTERVAL_LABEL[item]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="ix-source">
+        <DataTag status={tag} />
+        <span>{data ? describeSource(data.meta) : 'Loading…'}</span>
+        {data?.meta?.notes?.map((note) => <span key={note} className="ix-warn">{note}</span>)}
+      </div>
+      <div className="ix-chart-wrap">
+        {/* Yahoo's 1-minute FX bars are single prices, so they are drawn as a line. */}
+        <ExplorerChart candles={candles} showVolume={false} comparison={null} intraday={interval !== '1d'} asLine={interval === '1m'} />
+        {loading && <div className="candle-overlay">Loading {symbol}…</div>}
+        {error && <div className="candle-overlay candle-error">{error}</div>}
+      </div>
+      {summary && (
+        <dl className="ix-stats">
+          <div className="ix-stat"><dt>Change over these {summary.bars} bars</dt><dd className={`num ${summary.periodReturnPct >= 0 ? 'up' : 'down'}`}>{formatPercent(summary.periodReturnPct, 3)}</dd></div>
+          <div className="ix-stat"><dt>High in chart</dt><dd className="num">{summary.high.toFixed(decimals)}</dd></div>
+          <div className="ix-stat"><dt>Low in chart</dt><dd className="num">{summary.low.toFixed(decimals)}</dd></div>
+          {tick?.previous_close != null && (
+            <div className="ix-stat"><dt>Previous close</dt><dd className="num">{tick.previous_close.toFixed(decimals)}</dd></div>
+          )}
+        </dl>
+      )}
+      <p className="ix-footnote">
+        Yahoo Finance quotes are indicative, for personal use, and are not dealing prices. FX trades around the clock on
+        weekdays; at weekends the last Friday quote stays.
+      </p>
+    </section>
+  )
+}
+
+/** The ECB daily reference series, kept as the long-run official reference. */
 function History({ pair, range, onRange }) {
   const { data, loading, error } = useFxHistory(pair)
   const points = useMemo(() => (data ? toRatePoints(withinYears(data.observations, range)) : []), [data, range])
@@ -78,7 +136,7 @@ function History({ pair, range, onRange }) {
     <section className="panel macro-detail" aria-label={`${pair} history`}>
       <div className="ix-head">
         <div className="min-w-0">
-          <h2>{data.pair} <span>{describeRate(data.base, data.quote, data.latest?.rate)}</span></h2>
+          <h2>{data.pair} <span>ECB reference rate history</span></h2>
           <p>{data.method}</p>
         </div>
         <div className="range-control" role="group" aria-label="Range">
@@ -114,42 +172,44 @@ function History({ pair, range, onRange }) {
   )
 }
 
-/** FX: ECB euro reference rates, cross rates derived from them, and live Yahoo quotes. */
+// The pairs the page shows, in order; their live quotes come from the Yahoo poller.
+const PAIRS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/INR', 'EUR/GBP', 'EUR/JPY', 'EUR/INR']
+
+/** FX: live Yahoo quotes and intraday charts for every pair, with the ECB reference rates alongside. */
 export default function FxPage({ ticks = {}, marketStatus = {} }) {
-  const { data, loading, error } = useFxPairs()
+  const { data, error } = useFxPairs()
   const now = useNow(5000)
-  const [selected, setSelected] = useState('')
+  const [selected, setSelected] = useState(PAIRS[0])
   const [range, setRange] = useState(1)
-
-  if (loading) return <section className="panel empty-panel">Loading FX rates…</section>
-  if (error) return <section className="panel empty-panel ix-error">FX rates could not be loaded: {error}</section>
-
-  const available = data.pairs.filter((pair) => pair.status !== 'unavailable')
-  const current = selected || available[0]?.pair || ''
+  const ecbByPair = useMemo(() => Object.fromEntries((data?.pairs ?? []).map((pair) => [pair.pair, pair])), [data])
 
   return (
     <div className="ix">
       <p className="macro-notice">
-        {data.notice} Pairs marked <b>Derived cross</b> are calculated by FinPulse from two ECB euro rates and are not
-        published by the ECB. <a href={data.source_url} target="_blank" rel="noreferrer">About the ECB reference rates</a>.
-        {' '}<b>Live</b> rates are near-real-time quotes from Yahoo Finance (personal use), refreshed every 15 seconds.
+        Every rate here is live: near-real-time quotes from Yahoo Finance (personal use), refreshed every 15 seconds and
+        tagged <b>LIVE</b>, <b>DELAYED</b> or <b>STALE</b>. Each card also shows the European Central Bank&apos;s daily
+        reference rate; pairs marked <b>ECB cross</b> are calculated by FinPulse from two ECB euro rates.
+        {data?.source_url && <>{' '}<a href={data.source_url} target="_blank" rel="noreferrer">About the ECB reference rates</a>.</>}
+        {error && <span className="ix-warn"> The ECB rates could not be loaded: {error}</span>}
       </p>
-      {available.length === 0 && (
-        <section className="panel empty-panel ix-error">The FX source is unavailable. {data.pairs[0]?.error}</section>
-      )}
       <section className="macro-grid" aria-label="FX pairs">
-        {data.pairs.map((pair) => (
+        {PAIRS.map((symbol) => (
           <PairCard
-            key={pair.pair}
-            pair={pair}
-            active={pair.pair === current}
+            key={symbol}
+            symbol={symbol}
+            ecb={ecbByPair[symbol]}
+            active={symbol === selected}
             onSelect={setSelected}
-            tick={ticks[pair.pair]}
-            liveStatus={tickStatus(ticks[pair.pair], marketStatus, now)}
+            tick={ticks[symbol]}
+            liveStatus={tickStatus(ticks[symbol], marketStatus, now)}
           />
         ))}
       </section>
-      {current && <History pair={current} range={range} onRange={setRange} />}
+      <div className="fx-asset-link">
+        <AppLink href={assetHref(selected)}>Open {selected} in the asset terminal (with news) →</AppLink>
+      </div>
+      <LiveChart key={selected} symbol={selected} tick={ticks[selected]} tag={tickStatus(ticks[selected], marketStatus, now)} />
+      {ecbByPair[selected] && <History pair={selected} range={range} onRange={setRange} />}
     </div>
   )
 }

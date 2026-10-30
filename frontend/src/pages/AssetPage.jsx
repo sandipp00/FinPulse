@@ -122,7 +122,13 @@ function CandlesPanel({ instrument }) {
         </div>
       </div>
       <div className="ix-chart-wrap">
-        <ExplorerChart candles={candles} showVolume={Boolean(volumeUnit(instrument))} comparison={null} intraday={interval !== '1d'} />
+        <ExplorerChart
+          candles={candles}
+          showVolume={Boolean(volumeUnit(instrument))}
+          comparison={null}
+          intraday={interval !== '1d'}
+          asLine={instrument.asset_class === 'fx' && interval === '1m'}
+        />
         {loading && <div className="candle-overlay">Loading {instrument.symbol}…</div>}
         {error && <div className="candle-overlay candle-error">{error}</div>}
       </div>

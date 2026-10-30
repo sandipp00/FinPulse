@@ -1,8 +1,9 @@
 """Instrument catalogue and one history endpoint for every supported instrument.
 
-Two sources, chosen per instrument:
+Three sources, chosen per instrument:
   * live symbols: candles from Binance (any interval in candles.INTERVALS), spot
-    for crypto and futures for live gold and silver (XAU/USDT, XAG/USDT);
+    for crypto and futures for live gold, silver and oil;
+  * FX pairs quoted from Yahoo: intraday and daily candles from Yahoo's chart API;
   * stored instruments (stocks, indices, gold and silver futures, some crypto):
     daily bars from SQLite.
 
@@ -17,7 +18,7 @@ from typing import Literal, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from backend import candles as candle_source, config
+from backend import candles as candle_source, config, yahoo_history
 from backend.errors import exchange_error
 from backend.market_service import UNITS, asset_class_of, currency_of, live_asset_class, unit_for
 from backend.schemas.market import AssetClass, Candle, SourceMeta
@@ -56,7 +57,7 @@ class InstrumentHistory(BaseModel):
     currency: Optional[str]
     unit: str
     interval: str
-    source: Literal["binance", "database"]
+    source: Literal["binance", "yahoo", "database"]
     count: int
     candles: list[Candle]
     meta: SourceMeta
@@ -105,6 +106,11 @@ def _stored_coverage() -> dict[str, tuple[str, StoredCoverage]]:
     }
 
 
+def fx_symbols() -> list[str]:
+    """The FX pairs quoted live from Yahoo, which also serves their candle history."""
+    return [s for s in config.YAHOO_LIVE_SYMBOLS if live_asset_class(s) == "fx"]
+
+
 def catalogue() -> dict[str, Instrument]:
     stored = _stored_coverage()
     instruments: dict[str, Instrument] = {}
@@ -115,6 +121,12 @@ def catalogue() -> dict[str, Instrument]:
             symbol=symbol, asset_class=asset_class, currency=currency_of(symbol), unit=unit_for(symbol, asset_class),
             live=True, intervals=list(candle_source.INTERVALS),
             stored=stored[symbol][1] if symbol in stored else None,
+        )
+
+    for symbol in fx_symbols():
+        instruments[symbol] = Instrument(
+            symbol=symbol, asset_class="fx", currency=currency_of(symbol), unit=UNITS["fx"],
+            live=True, intervals=list(yahoo_history.INTERVALS),
         )
 
     for symbol, (asset_type, coverage) in stored.items():
@@ -178,7 +190,7 @@ async def history(
     symbol: str = Query(..., min_length=1, max_length=32),
     interval: str = Query(default=STORED_INTERVAL),
     limit: int = Query(default=500, ge=1, le=MAX_STORED_LIMIT),
-    source: Literal["auto", "binance", "database"] = "auto",
+    source: Literal["auto", "binance", "yahoo", "database"] = "auto",
 ):
     """OHLCV history for one instrument, oldest first, with where it came from."""
     instruments = catalogue()
@@ -186,14 +198,20 @@ async def history(
     if instrument is None:
         raise HTTPException(status_code=404, detail=f"Unknown instrument: {symbol}")
 
-    chosen = source if source != "auto" else ("binance" if instrument.live else "database")
+    from_yahoo = symbol in fx_symbols()
+    if source == "auto":
+        chosen = "yahoo" if from_yahoo else ("binance" if instrument.live else "database")
+    else:
+        chosen = source
+    if (chosen == "yahoo") != from_yahoo and chosen != "database":
+        raise HTTPException(status_code=400, detail=f"{symbol} is not available from {chosen}")
     if chosen == "binance" and not instrument.live:
         raise HTTPException(status_code=400, detail=f"{symbol} has no live exchange source")
     if chosen == "database" and instrument.stored is None:
         raise HTTPException(status_code=404, detail=f"{symbol} has no stored history")
 
-    if interval not in (candle_source.INTERVALS if chosen == "binance" else (STORED_INTERVAL,)):
-        allowed = candle_source.INTERVALS if chosen == "binance" else (STORED_INTERVAL,)
+    allowed = {"binance": candle_source.INTERVALS, "yahoo": yahoo_history.INTERVALS}.get(chosen, (STORED_INTERVAL,))
+    if interval not in allowed:
         raise HTTPException(
             status_code=400,
             detail=f"Interval {interval} is not available for {symbol} from {chosen}. "
@@ -201,12 +219,14 @@ async def history(
         )
 
     notes: list[str] = []
-    if chosen == "binance":
+    if chosen in ("binance", "yahoo"):
         if not candle_source.MIN_LIMIT <= limit <= candle_source.MAX_LIMIT:
             raise HTTPException(
                 status_code=422,
                 detail=f"limit must be between {candle_source.MIN_LIMIT} and {candle_source.MAX_LIMIT} for exchange data",
             )
+
+    if chosen == "binance":
         try:
             series = await candle_source.fetch_candle_series(symbol, interval, limit, allow_stale=True)
         except candle_source.CandleSourceError as exc:
@@ -216,6 +236,12 @@ async def history(
             notes.append(f"Exchange unavailable ({exc}); showing stored daily history instead.")
         else:
             candles, meta = series.candles, series.meta
+
+    if chosen == "yahoo":
+        try:
+            candles, meta = await yahoo_history.fetch_candle_series(symbol, interval, limit)
+        except yahoo_history.YahooHistoryError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     if chosen == "database":
         try:

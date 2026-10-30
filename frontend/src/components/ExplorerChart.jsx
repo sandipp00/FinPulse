@@ -20,10 +20,11 @@ function priceFormatFor(price) {
 
 /**
  * The explorer's chart: candlesticks (plus volume when the source reports it), or,
- * when `comparison` is given, both instruments rebased to 100 on shared dates.
+ * when `comparison` is given, both instruments rebased to 100 on shared dates. With
+ * `asLine`, closes are drawn as a line, for sources whose bars are single prices.
  * Times are UTC, as the API sends them.
  */
-function ExplorerChart({ candles, showVolume, comparison, intraday }) {
+function ExplorerChart({ candles, showVolume, comparison, intraday, asLine = false }) {
   const containerRef = useRef(null)
   const chartRef = useRef(null)
   const seriesRef = useRef([])
@@ -64,6 +65,10 @@ function ExplorerChart({ candles, showVolume, comparison, intraday }) {
       other.setData(comparison.points.map((point) => ({ time: point.time, value: point.other })))
       primary.createPriceLine({ price: 100, color: '#475569', lineWidth: 1, lineStyle: 2, axisLabelVisible: false })
       seriesRef.current = [primary, other]
+    } else if (candles.length > 0 && asLine) {
+      const line = chart.addSeries(LineSeries, { color: PRIMARY, lineWidth: 2, priceFormat: priceFormatFor(candles.at(-1).close) })
+      line.setData(candles.map((item) => ({ time: item.time, value: item.close })))
+      seriesRef.current = [line]
     } else if (candles.length > 0) {
       const candle = chart.addSeries(CandlestickSeries, {
         upColor: UP,
@@ -93,7 +98,7 @@ function ExplorerChart({ candles, showVolume, comparison, intraday }) {
       }
     }
     chart.timeScale().fitContent()
-  }, [candles, showVolume, comparison, intraday])
+  }, [candles, showVolume, comparison, intraday, asLine])
 
   return <div ref={containerRef} className="ix-chart" />
 }

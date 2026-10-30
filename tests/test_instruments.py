@@ -34,6 +34,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "LIVE_FEED_ENABLED", False)
     monkeypatch.setattr(config, "LIVE_SYMBOLS", ["BTC/USDT", "SOL/USDT"])
     monkeypatch.setattr(config, "TRADFI_LIVE_SYMBOLS", ["XAU/USDT"])
+    monkeypatch.setattr(config, "YAHOO_LIVE_SYMBOLS", ["AAPL", "EUR/USD"])
     candle_source._cache.clear()
     with TestClient(main.app) as test_client:
         yield test_client
@@ -67,7 +68,7 @@ def by_symbol(client):
 def test_catalogue_lists_live_and_stored_instruments(client):
     items = by_symbol(client)
 
-    assert set(items) == {"BTC/USDT", "SOL/USDT", "XAU/USDT", "AAPL", "^NSEI"}
+    assert set(items) == {"BTC/USDT", "SOL/USDT", "XAU/USDT", "EUR/USD", "AAPL", "^NSEI"}
 
     btc = items["BTC/USDT"]
     assert btc["live"] is True
@@ -84,6 +85,11 @@ def test_catalogue_lists_live_and_stored_instruments(client):
     assert gold["currency"] == "USDT"
     assert gold["intervals"] == ["1m", "15m", "1h", "1d"]
 
+    eurusd = items["EUR/USD"]  # FX: live quotes and candles from Yahoo
+    assert eurusd["live"] is True and eurusd["asset_class"] == "fx"
+    assert eurusd["currency"] == "USD" and eurusd["intervals"] == ["1m", "15m", "1h", "1d"]
+    assert items["AAPL"]["live"] is False  # quoted live, but charted from stored history
+
     aapl = items["AAPL"]
     assert aapl["live"] is False
     assert aapl["intervals"] == ["1d"]
@@ -99,7 +105,7 @@ def test_catalogue_lists_live_and_stored_instruments(client):
 def test_catalogue_without_a_database_still_lists_live_symbols(client, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATABASE_PATH", tmp_path / "missing.db")
 
-    assert set(by_symbol(client)) == {"BTC/USDT", "SOL/USDT", "XAU/USDT"}
+    assert set(by_symbol(client)) == {"BTC/USDT", "SOL/USDT", "XAU/USDT", "EUR/USD"}
 
 
 # ---- stored history ----------------------------------------------------
@@ -206,3 +212,36 @@ def test_rate_limiting_is_a_503_with_retry_after(client, exchange):
 
     assert response.status_code == 503
     assert response.headers["Retry-After"] == "42"
+
+
+# ---- FX history from Yahoo ---------------------------------------------------------
+
+def test_fx_history_comes_from_yahoo(client, exchange, monkeypatch):
+    from backend import yahoo_history
+    calls = []
+
+    async def fake(symbol, interval, limit):
+        calls.append((symbol, interval, limit))
+        meta = candle_source.SourceMeta(provider="yahoo", endpoint="query1.finance.yahoo.com", status="historical")
+        return [{"time": 1793335200, "open": 1.1186, "high": 1.1188, "low": 1.1185, "close": 1.1187, "volume": 0.0}], meta
+
+    monkeypatch.setattr(yahoo_history, "fetch_candle_series", fake)
+    body = client.get("/api/instruments/history", params={"symbol": "EUR/USD", "interval": "1m", "limit": 100}).json()
+
+    assert body["source"] == "yahoo" and body["asset_class"] == "fx" and body["count"] == 1
+    assert calls == [("EUR/USD", "1m", 100)]
+    assert exchange.calls == []  # Binance is not asked about FX
+
+    assert client.get("/api/instruments/history", params={"symbol": "EUR/USD", "source": "binance"}).status_code == 400
+    assert client.get("/api/instruments/history", params={"symbol": "EUR/USD", "interval": "4h"}).status_code == 400
+
+
+def test_a_yahoo_failure_is_a_502(client, monkeypatch):
+    from backend import yahoo_history
+
+    async def failing(symbol, interval, limit):
+        raise yahoo_history.YahooHistoryError("Yahoo answered 429")
+
+    monkeypatch.setattr(yahoo_history, "fetch_candle_series", failing)
+    response = client.get("/api/instruments/history", params={"symbol": "EUR/USD", "interval": "1h", "limit": 100})
+    assert response.status_code == 502 and "429" in response.json()["detail"]
