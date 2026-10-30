@@ -12,7 +12,9 @@ Three sources, chosen per instrument:
 Binance fails for a daily request and the instrument has stored daily bars,
 those are served instead, and the metadata says so. Nothing is filled in.
 """
+import asyncio
 import sqlite3
+import time
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
@@ -267,4 +269,79 @@ async def history(
         "count": len(candles),
         "candles": candles,
         "meta": meta,
+    }
+
+
+# ---- 7-day change -------------------------------------------------------------------
+
+WEEK_SECONDS = 7 * 86_400
+WEEK_BARS = 50  # the fewest bars an exchange request takes; plenty for a week back
+WEEK_CACHE_SECONDS = 300
+MAX_WEEK_SYMBOLS = 80
+_week_cache: dict[str, tuple[float, dict]] = {}
+_monotonic = time.monotonic
+
+
+def week_change(candles: list[dict]) -> Optional[dict]:
+    """Change from the close a week before the newest daily bar to the newest close.
+
+    The base is the last bar dated at least seven days (less twelve hours, for time
+    zones) before the newest one, so a weekend or holiday is skipped, not filled in.
+    """
+    if len(candles) < 2:
+        return None
+    last = candles[-1]
+    target = last["time"] - WEEK_SECONDS + 12 * 3600
+    earlier = [c for c in candles[:-1] if c["time"] <= target]
+    if not earlier or earlier[-1]["close"] <= 0:
+        return None
+    base = earlier[-1]
+    return {
+        "change_pct": round((last["close"] / base["close"] - 1) * 100, 4),
+        "close": last["close"], "base_close": base["close"],
+        "time": last["time"], "base_time": base["time"],
+    }
+
+
+@router.get("/week-change")
+async def week_changes(symbols: str = Query(..., min_length=1, max_length=2000)):
+    """The 7-day change of each instrument, from its own daily bars (same source as its chart).
+
+    For exchange sources the newest daily bar is today's, still forming, so the change
+    is up to date; stored history ends at its last stored day. Cached for five minutes.
+    """
+    wanted = [s for s in dict.fromkeys(part.strip() for part in symbols.split(",")) if s][:MAX_WEEK_SYMBOLS]
+    known = catalogue()
+    now = _monotonic()
+
+    async def one(symbol: str) -> tuple[str, Optional[dict], Optional[str]]:
+        cached = _week_cache.get(symbol)
+        if cached and now - cached[0] < WEEK_CACHE_SECONDS:
+            return symbol, cached[1], None
+        if symbol not in known:
+            return symbol, None, "Unknown instrument"
+        # Indices with stored history would chart 1d from the database (ending at the last
+        # stored day); for a week's change Yahoo's bars, including today's, are fresher.
+        source = "yahoo" if symbol in yahoo_chart_symbols() else "auto"
+        try:
+            body = await history(symbol=symbol, interval=STORED_INTERVAL, limit=WEEK_BARS, source=source)
+        except HTTPException as exc:
+            return symbol, None, str(exc.detail)
+        change = week_change(body["candles"])
+        if change is not None:
+            change["source"] = body["source"]
+            _week_cache[symbol] = (now, change)
+        return symbol, change, None if change else "Not enough daily history"
+
+    gate = asyncio.Semaphore(8)
+
+    async def limited(symbol):
+        async with gate:
+            return await one(symbol)
+
+    results = await asyncio.gather(*(limited(s) for s in wanted))
+    return {
+        "count": len(results),
+        "changes": {symbol: change for symbol, change, _ in results if change},
+        "errors": {symbol: error for symbol, _, error in results if error},
     }

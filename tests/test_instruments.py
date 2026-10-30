@@ -4,7 +4,7 @@ import sqlite3
 import pytest
 from fastapi.testclient import TestClient
 
-from backend import candles as candle_source, config, main
+from backend import candles as candle_source, config, instruments, main
 from src.data.schema import MARKET_PRICES_DDL
 
 STORED = [
@@ -271,3 +271,42 @@ def test_indices_chart_intraday_from_yahoo_but_keep_stored_daily_history(client,
     assert get("^NSEI", "15m")["source"] == "yahoo"
     assert get("^HSI", "1d")["source"] == "yahoo"  # no stored history
     assert calls == [("^NSEI", "15m"), ("^HSI", "1d")]
+
+
+# ---- 7-day change ----------------------------------------------------------------------
+
+DAY = 86_400
+
+
+def bars(closes, start=1_792_800_000):
+    return [{"time": start + i * DAY, "open": c, "high": c, "low": c, "close": c, "volume": 0.0} for i, c in enumerate(closes)]
+
+
+def test_week_change_compares_with_the_close_seven_days_earlier():
+    change = instruments.week_change(bars([100, 101, 102, 103, 104, 105, 106, 110, 121]))
+    assert change["base_close"] == 101 and change["close"] == 121  # 7 days before the newest bar
+    assert change["change_pct"] == pytest.approx((121 / 101 - 1) * 100, abs=1e-4)
+
+
+def test_week_change_skips_weekends_and_needs_a_week_of_bars():
+    weekdays = [b for i, b in enumerate(bars(list(range(100, 112)))) if i % 7 not in (5, 6)]
+    change = instruments.week_change(weekdays)
+    assert change["time"] - change["base_time"] >= 7 * DAY - 12 * 3600
+    assert instruments.week_change(bars([100, 101, 102])) is None
+
+
+def test_week_change_endpoint_uses_each_instruments_own_source(client, exchange, monkeypatch):
+    instruments._week_cache.clear()
+    exchange_rows = bars([80000.0] * 7 + [81900.0, 82000.0])
+
+    async def fake_binance(symbol, interval, limit, allow_stale=False):
+        meta = candle_source.SourceMeta(provider="binance", endpoint="api.binance.com", status="historical")
+        return candle_source.CandleSeries(exchange_rows, meta)
+
+    monkeypatch.setattr(candle_source, "fetch_candle_series", fake_binance)
+    body = client.get("/api/instruments/week-change", params={"symbols": "BTC/USDT,AAPL,NOPE"}).json()
+
+    assert body["changes"]["BTC/USDT"]["source"] == "binance"
+    assert body["changes"]["BTC/USDT"]["change_pct"] == pytest.approx(2.5, abs=1e-4)
+    assert body["errors"] == {"AAPL": "Not enough daily history", "NOPE": "Unknown instrument"}
+    instruments._week_cache.clear()

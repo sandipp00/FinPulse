@@ -239,3 +239,7 @@ export function getAnalysisScoreboard() {
 export function getAssetAnalysis(asset) {
   return getJSON(`/api/analysis/asset?asset=${encodeURIComponent(asset)}`)
 }
+
+export function getWeekChanges(symbols) {
+  return getJSON(`/api/instruments/week-change?symbols=${encodeURIComponent(symbols.join(','))}`)
+}

@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, BarChart3, Bitcoin } from 'lucide-react'
 import { useNow } from '../hooks/useNow'
+import { useWeekChanges } from '../hooks/useWeekChanges'
 import { tickStatus } from '../lib/dataStatus'
 import { formatPercent } from '../lib/format'
 import DataTag from './DataTag'
@@ -17,6 +18,12 @@ function AssetGlyph({ symbol }) {
   return symbol === 'AAPL' ? 'A' : 'Ξ'
 }
 
+const weekTone = (change) => (change == null ? '' : change.change_pct >= 0 ? 'up' : 'down')
+const dayFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+const weekTitle = (change) => (change
+  ? `${dayFormat.format(change.base_time * 1000)} close ${change.base_close} → ${dayFormat.format(change.time * 1000)} ${change.close} (${change.source})`
+  : 'No 7-day change available')
+
 export default function Watchlist({
   assets,
   totalCount,
@@ -30,6 +37,7 @@ export default function Watchlist({
   liveStatus,
 }) {
   const now = useNow(5000)
+  const week = useWeekChanges(assets.map((asset) => asset.symbol))
 
   return (
     <section className="panel assets-panel">
@@ -61,7 +69,7 @@ export default function Watchlist({
               <th>TYPE</th>
               <th>PRICE</th>
               <th>CHANGE</th>
-              <th>HISTORICAL RETURN</th>
+              <th title="From the close a week before the newest daily bar">7D CHANGE</th>
               <th />
             </tr>
           </thead>
@@ -104,7 +112,9 @@ export default function Watchlist({
                       {tick ? `${formatPercent(tick.change_pct_24h)} ${tick.change_window === '1d' ? '1d' : '24h'}` : asset.change}
                     </span>
                   </td>
-                  <td className="price-cell">{formatPercent(asset.total_return_pct)}</td>
+                  <td className={`price-cell num ${weekTone(week[asset.symbol])}`} title={weekTitle(week[asset.symbol])}>
+                    {week[asset.symbol] ? formatPercent(week[asset.symbol].change_pct) : '—'}
+                  </td>
                   <td>
                     <button
                       className="row-action"
