@@ -243,3 +243,7 @@ export function getAssetAnalysis(asset) {
 export function getWeekChanges(symbols) {
   return getJSON(`/api/instruments/week-change?symbols=${encodeURIComponent(symbols.join(','))}`)
 }
+
+export function getCryptoDerivatives(currency) {
+  return getJSON(`/api/crypto/derivatives?currency=${encodeURIComponent(currency)}`)
+}
