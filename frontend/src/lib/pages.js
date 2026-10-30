@@ -24,7 +24,7 @@ export const PAGES = {
   fx: {
     title: 'FX rates',
     nav: 'FX',
-    blurb: 'Live FX quotes, ECB euro reference rates and cross rates derived from them.',
+    blurb: 'Every pair live: quotes and intraday charts every 15 seconds, with the ECB reference rates alongside.',
   },
   commodities: {
     title: 'Commodities',

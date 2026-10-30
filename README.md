@@ -145,7 +145,10 @@ Every number the API serves says where it came from and how fresh it is (models 
 
 In the explorer, a comparison keeps only the dates both instruments share (daily bars are matched by UTC day), and rebases both to 100. Prices are not converted between currencies, and the page says so when they differ.
 
-### FX rates (ECB via Frankfurter)
+### FX rates: live quotes (Yahoo) and ECB reference rates (via Frankfurter)
+
+- **Live:** every pair on the FX page is quoted from Yahoo Finance every 15 seconds (see *Live stock, index and FX quotes* below) and charted from Yahoo's chart API at 1m, 15m, 1h and 1d (`GET /api/instruments/history?symbol=EUR/USD&interval=15m`, `source: "yahoo"`, in `backend/yahoo_history.py`). Candles are cached for 20 seconds and kept, labelled `cached`, for up to 10 minutes if Yahoo fails. The newest bar is still forming and follows each live tick. Yahoo's 1-minute FX bars are single prices, so they are drawn as a line; Yahoo reports no FX volume.
+- **Reference:** each card also shows the ECB rate, and the ECB history is kept below the live chart. The rest of this section describes the ECB rates.
 
 - **Source:** euro foreign exchange reference rates from the European Central Bank, fetched through the free, open-source [Frankfurter](https://frankfurter.dev/) API (`providers=ecb`). No key is needed. `FX_BASE_URL` can point at a self-hosted Frankfurter.
 - **Freshness:** the ECB publishes them around 16:00 CET on TARGET working days, "for information purposes only". They are labelled `HIST` with their date, never as live. Weekends and holidays have no rate, and none is filled in.
@@ -251,7 +254,7 @@ Both series are measured only on the dates they share. Every formula and assumpt
 `/asset?asset=gold` puts one asset on one screen, like a terminal's security page. A watchlist row, the right panel and the Commodities cards open it; the asset can be given by id (`gold`) or any of its symbols (`GC=F`, `XAU/USDT`).
 
 - **Registry:** `backend/asset_news.py` lists the 19 assets (5 crypto, AAPL, the S&P 500, the NIFTY 50, gold, silver, WTI, Brent and 7 FX pairs) with the instruments that price each: a live symbol, stored daily history, an EIA series or an ECB pair. `GET /api/asset-registry` returns it.
-- **The page:** the live price with its freshness tag (LIVE, DELAYED, CLOSED, STALE) and change; a candle chart (exchange history for crypto, gold, silver and oil at 1m to 1d; stored daily bars for stocks and indices; the ECB reference series for FX) with figures for the bars shown; key figures (24h range and volume or previous close, and return, volatility, drawdown and Sharpe over the stored history); reference prices (COMEX daily close, EIA spot, ECB rate); and the latest news.
+- **The page:** the live price with its freshness tag (LIVE, DELAYED, CLOSED, STALE) and change; a candle chart (exchange history for crypto, gold, silver and oil at 1m to 1d; stored daily bars for stocks and indices; Yahoo intraday candles for FX) with figures for the bars shown; key figures (24h range and volume or previous close, and return, volatility, drawdown and Sharpe over the stored history); reference prices (COMEX daily close, EIA spot, ECB rate); and the latest news.
 - **News:** `GET /api/asset-news?asset=gold` merges Yahoo Finance's headline feed for the asset (personal use; WTI and Brent share both oil feeds) with general-news items tagged with it (CoinDesk for crypto) or, for FX, central-bank releases. Yahoo's per-symbol feeds include general market stories, so a Yahoo headline is kept only if its title names the asset. Feeds are refreshed at most every 2 minutes, kept (labelled) for up to 6 hours if Yahoo fails, and the page re-fetches on the same schedule. Headlines and short snippets only, each linking to the original.
 - **No news, by choice:** the NIFTY 50 and the rupee pairs.
 
@@ -291,7 +294,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Equities | `/equities` | Stocks and indices with their stored daily history and how far it reaches |
 | Crypto | `/crypto` | Live-streamed coins and stored crypto history, with data coverage |
 | Instrument explorer | `/explorer?symbol=AAPL` | Search any supported instrument; candles with volume, interval and bar-count choices, return figures, and a comparison rebased to 100. The selection is kept in the URL so a view can be shared |
-| FX rates | `/fx` | ECB euro reference rates (EUR/USD, EUR/GBP, EUR/JPY, EUR/INR) and cross rates derived from them (GBP/USD, USD/JPY, USD/INR), with a chart per pair. Daily, not live; no key needed |
+| FX rates | `/fx` | Live Yahoo quotes and intraday charts (1m to 1d, refreshed every 15 seconds) for EUR/USD, GBP/USD, USD/JPY, USD/INR, EUR/GBP, EUR/JPY and EUR/INR, with the ECB reference rate and its history alongside. No key needed |
 | Commodities | `/commodities` | Live gold, silver and oil (Binance futures), end-of-day COMEX gold and silver, and WTI and Brent spot prices from the EIA with a chart per series. Each card opens the asset terminal. The EIA series need a free `EIA_API_KEY` |
 | News | `/news` | Headlines from the Fed, ECB, BEA, CoinDesk and SEC filings, filterable by topic, instrument and source, each linking to the original |
 | Economic calendar | `/calendar` | Upcoming CPI, jobs, GDP and PCE releases and Fed and ECB policy meetings |

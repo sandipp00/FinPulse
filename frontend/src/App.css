@@ -1012,3 +1012,4 @@ a.news-title:hover { color: var(--up); text-decoration: underline; }
   .at-grid { grid-template-columns: minmax(0, 1fr); }
   .at-quote { align-items: flex-start; text-align: left; }
 }
+.fx-asset-link { color: var(--accent); font-size: var(--text-sm); }

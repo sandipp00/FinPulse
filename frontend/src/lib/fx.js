@@ -20,3 +20,11 @@ export function describeRate(base, quote, rate) {
 export function toRatePoints(observations) {
   return observations.map((row) => ({ time: row.date, value: row.rate }))
 }
+
+/** Candles with the newest bar following the live tick, so a chart moves between fetches. */
+export function withLiveTick(candles, tick) {
+  const last = candles.at(-1)
+  if (!last || !tick?.price || !tick.time || tick.time / 1000 < last.time) return candles
+  const price = tick.price
+  return [...candles.slice(0, -1), { ...last, close: price, high: Math.max(last.high, price), low: Math.min(last.low, price) }]
+}

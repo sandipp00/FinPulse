@@ -41,7 +41,7 @@ export function limitLabel(limit) {
 
 /** Units the volume figure is counted in, or null when the source does not report volume. */
 export function volumeUnit(instrument) {
-  if (!instrument) return null
+  if (!instrument || instrument.asset_class === 'fx') return null  // Yahoo reports no FX volume
   // Exchange pairs (crypto, live gold and silver) count volume in the base asset.
   if (instrument.symbol.includes('/')) return instrument.symbol.split('/')[0]
   if (instrument.asset_class === 'stock') return 'shares'

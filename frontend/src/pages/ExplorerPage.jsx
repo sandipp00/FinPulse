@@ -20,7 +20,7 @@ import {
 } from '../lib/explorer'
 import { formatCompact, formatPercent, getAssetDetails } from '../lib/format'
 
-const CLASS_LABEL = { crypto: 'Crypto', stock: 'Stock', index: 'Index', commodity: 'Commodity' }
+const CLASS_LABEL = { crypto: 'Crypto', stock: 'Stock', index: 'Index', commodity: 'Commodity', fx: 'FX' }
 const INTERVAL_LABEL = { '1m': '1 minute', '15m': '15 minutes', '1h': '1 hour', '1d': '1 day' }
 const ALL_INTERVALS = ['1m', '15m', '1h', '1d']
 

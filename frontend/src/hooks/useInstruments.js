@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getInstrumentHistory, getInstruments } from '../api/finpulse'
 
 /** Every instrument the API can chart (/api/instruments). */
@@ -47,11 +47,13 @@ export function useInstrumentHistory(symbol, interval, limit) {
     }
   }, [key, symbol, interval, limit, reloadCount])
 
+  // Stable, so a page can poll with it without restarting its timer on every render.
+  const reload = useCallback(() => setReloadCount((n) => n + 1), [])
   const loading = Boolean(key) && result.key !== key
   return {
     data: loading || !key ? null : result.data,
     loading,
     error: loading || !key ? '' : result.error,
-    reload: () => setReloadCount((n) => n + 1),
+    reload,
   }
 }
