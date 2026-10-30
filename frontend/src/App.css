@@ -793,9 +793,11 @@ a.workspace-switch { color: inherit; }
 /* Asset-class pages */
 .coverage-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--space-3); }
 .coverage-stats div { display: flex; flex-direction: column; gap: 3px; }
-.coverage-stats span { color: var(--text-faint); font-size: var(--text-xs); }
+.coverage-stats > div > span { color: var(--text-faint); font-size: var(--text-xs); }
 .coverage-stats strong { color: var(--text-bright); font-size: 16px; font-weight: 600; }
-.coverage-notes { margin-top: var(--space-3); border-top: 1px solid var(--border); padding-top: var(--space-3); padding-left: 16px; list-style: disc; color: var(--text-muted); font-size: var(--text-sm); line-height: 1.6; }
+.coverage-stats .up { color: var(--up); }
+.coverage-stats .down { color: var(--down); }
+.coverage-foot { margin-top: var(--space-3); border-top: 1px solid var(--border); padding-top: var(--space-2); color: var(--text-faint); font-size: var(--text-xs); }
 .empty-panel { color: var(--text-muted); font-size: var(--text-md); text-align: center; }
 
 /* Bottom status bar */
