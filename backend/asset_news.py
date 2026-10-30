@@ -25,6 +25,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query
 
 from backend import config, news
+from backend.tencent_quotes import TENCENT_CODES
 
 log = logging.getLogger("finpulse.asset_news")
 
@@ -62,6 +63,10 @@ class Asset:
 CRYPTO_NOTE = "Live from Binance spot; daily history stored from Binance."
 FUTURES_NOTE = "Live price: a Binance perpetual futures contract in USDT, not an official spot or exchange price."
 FX_NOTE = "Live quote from Yahoo Finance every 15 seconds; ECB reference rate once a day."
+TENCENT_NOTE = (
+    "Live quote from Tencent Finance (unofficial, personal use), which carries the exchange's own time; Yahoo "
+    "as the backup. Charts from Yahoo."
+)
 INDEX_NOTE = (
     "Live quote from Yahoo Finance every 15 seconds; Yahoo delays some exchanges by about 15 minutes (Hong Kong, "
     "mainland China, Singapore, Malaysia, the Sensex), shown as DELAYED. Charts from Yahoo."
@@ -87,7 +92,8 @@ ASSETS = [
     Asset("nifty", "NIFTY 50", "index", live="^NSEI", stored="^NSEI",
           note="Live quote from Yahoo Finance every 15 seconds; daily history from Yahoo. No news feed, by choice."),
     *[
-        Asset(id_, name, "index", live=symbol, yahoo_news=(symbol,), keywords=keywords, note=INDEX_NOTE)
+        Asset(id_, name, "index", live=symbol, yahoo_news=(symbol,), keywords=keywords,
+              note=TENCENT_NOTE if symbol in TENCENT_CODES else INDEX_NOTE)
         for id_, name, symbol, keywords in (
             ("dji", "Dow Jones Industrial Average", "^DJI", (r"\bdow\b", r"\bblue[- ]chip")),
             ("ixic", "Nasdaq Composite", "^IXIC", (r"\bnasdaq\b", r"\btech stocks\b")),
