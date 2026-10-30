@@ -257,6 +257,15 @@ FinPulse follows the 30 largest US companies by market cap (`backend/stocks.py`)
 - **Everywhere else:** each stock has an asset page with its Yahoo headline feed (a headline must name the company; tickers that are common words or letters, like V, MA, KO, PG, MU and COST, are not used as keywords), a row in the Analytics scoreboard, risk figures and correlations on the Risk page, 7-day change, and a place in the explorer.
 - **Equities page:** the 30 stocks, largest first, with a market summary and sector tabs. Indices are on the World indices page.
 
+### Positioning (CFTC Commitments of Traders)
+
+The Positioning page (`/positioning`; `backend/cftc.py`, `GET /api/cftc`) shows where speculators stand in 12 futures markets: gold, silver, WTI crude, natural gas, the E-mini S&P 500 and Nasdaq-100, CME Bitcoin and Ether, the euro, yen and pound, and the 10-year Treasury note. It uses the CFTC's public reporting API (public domain, no key; source: U.S. Commodity Futures Trading Commission).
+
+- **Who:** "managed money" (hedge funds and commodity trading advisers) from the Disaggregated report for metals and energy, and "leveraged funds" from the Traders in Financial Futures report for the rest, with asset managers alongside.
+- **What:** net contracts (long minus short), net as a share of open interest, the 1-week change, and where this week sits among three years of weekly values (a percentile, relative to the market's own history). Each market has a 3-year weekly chart.
+- **When:** positions as of each Tuesday, published Friday. Two requests per refresh, cached 6 hours, the last good report kept up to 14 days when the CFTC fails. `CFTC_ENABLED=false` turns it off.
+- Currency futures are priced in dollars per foreign unit, so net long yen means betting USD/JPY falls. Positioning is a description, not a forecast.
+
 ### Crypto derivatives (Deribit)
 
 The Crypto page has a Derivatives panel for Bitcoin and Ethereum, from Deribit's public market-data API (no key, no account; `backend/deribit.py`, `GET /api/crypto/derivatives?currency=BTC|ETH`):

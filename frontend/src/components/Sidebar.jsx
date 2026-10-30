@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import {
   Activity,
+  Scale,
   BarChart3,
   Bitcoin,
   BookOpen,
@@ -56,6 +57,7 @@ const NAV_GROUPS = [
       { route: 'research', icon: BookOpen },
       { route: 'assistant', icon: MessageSquareText },
       { route: 'risk', icon: ShieldCheck },
+      { route: 'positioning', icon: Scale },
     ],
   },
   {

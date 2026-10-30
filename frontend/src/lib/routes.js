@@ -19,6 +19,7 @@ export const ROUTES = {
   analytics: '/analytics',
   research: '/research',
   risk: '/risk',
+  positioning: '/positioning',
   settings: '/settings',
   help: '/help',
   signin: '/signin',
