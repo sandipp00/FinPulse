@@ -59,17 +59,23 @@ def daily_source(asset: asset_news.Asset) -> tuple[str, str]:
     return "yahoo", asset.live
 
 
-def to_closes(candles: list[dict]) -> pd.Series:
+def to_closes(candles: list[dict], tz: Optional[str] = None) -> pd.Series:
     """Candles -> daily closes by local trading date, completed days only.
 
-    Bars are stamped at local midnight (Tokyo's is 15:00 UTC the day before), so
-    twelve hours are added before taking the date: right for any UTC offset up to
-    twelve hours either way.
+    With `tz` (Yahoo's exchange time zone) a bar's date is its stamp's date there:
+    Yahoo stamps daily bars at the session open (New York's is 13:30 UTC), so a
+    fixed offset would move them to the wrong day. Without it (Binance and stored
+    bars, stamped at UTC midnight), twelve hours are added before taking the date,
+    which also keeps a bar stamped at local midnight on its own day.
     """
     if not candles:
         return pd.Series(dtype=float)
-    stamps = pd.to_datetime([c["time"] + 12 * 3600 for c in candles], unit="s", utc=True)
-    days = stamps.tz_convert(None).normalize()
+    if tz:
+        stamps = pd.to_datetime([c["time"] for c in candles], unit="s", utc=True).tz_convert(tz)
+        days = stamps.tz_localize(None).normalize()
+    else:
+        stamps = pd.to_datetime([c["time"] + 12 * 3600 for c in candles], unit="s", utc=True)
+        days = stamps.tz_convert(None).normalize()
     closes = pd.Series([float(c["close"]) for c in candles], index=days)
     closes = closes[~closes.index.duplicated(keep="last")].sort_index()
     today = pd.Timestamp(datetime.now(timezone.utc).date())
@@ -78,16 +84,18 @@ def to_closes(candles: list[dict]) -> pd.Series:
 
 async def load_closes(asset: asset_news.Asset) -> tuple[pd.Series, str, str]:
     provider, symbol = daily_source(asset)
+    tz = None
     try:
         if provider == "database":
             candles = await asyncio.to_thread(instruments.stored_candles, symbol, instruments.MAX_STORED_LIMIT)
         elif provider == "binance":
             candles = await candle_source.fetch_candles(symbol, "1d", BINANCE_DAILY_BARS)
         else:
-            candles, _ = await yahoo_history.fetch_candle_series(symbol, "1d", YAHOO_DAILY_BARS)
+            candles, meta = await yahoo_history.fetch_candle_series(symbol, "1d", YAHOO_DAILY_BARS)
+            tz = meta.exchange_timezone
     except (candle_source.CandleSourceError, yahoo_history.YahooHistoryError, FileNotFoundError, sqlite3.Error) as exc:
         raise LookupError(f"{provider} history for {symbol} is unavailable: {exc}") from exc
-    return to_closes(candles), provider, symbol
+    return to_closes(candles, tz), provider, symbol
 
 
 def _source(provider: str, symbol: str, closes: pd.Series) -> dict:

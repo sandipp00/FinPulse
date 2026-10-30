@@ -1109,6 +1109,7 @@ a.news-title:hover { color: var(--up); text-decoration: underline; }
 /* Asset analysis */
 .sb-panel { padding: var(--space-4) var(--space-4) var(--space-3); }
 .sb-tabs { margin: var(--space-3) calc(-1 * var(--space-4)) 0; }
+.risk-tabs { margin-bottom: var(--space-3); }
 .sb-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .sb-table th { border-bottom: 1px solid var(--border); padding: 0; text-align: left; white-space: nowrap; }
 .sb-table th.num { text-align: right; }

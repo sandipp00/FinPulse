@@ -70,3 +70,19 @@ export function rankBy(assets, symbol, field) {
   const position = ordered.findIndex((asset) => asset.symbol === symbol)
   return position === -1 ? null : { rank: position + 1, of: ordered.length }
 }
+
+/**
+ * The risk report narrowed to one asset class ('all' keeps everything): its assets,
+ * and the correlation matrix cut to those assets' rows and columns.
+ */
+export function riskForClass(report, assetClass) {
+  if (assetClass === 'all') return { assets: report.assets, correlation: report.correlation }
+  const assets = report.assets.filter((asset) => asset.asset_type === assetClass)
+  const keep = new Set(assets.map((asset) => asset.symbol))
+  const { symbols, matrix } = report.correlation
+  const rows = symbols.map((symbol, i) => i).filter((i) => keep.has(symbols[i]))
+  return {
+    assets,
+    correlation: { symbols: rows.map((i) => symbols[i]), matrix: rows.map((i) => rows.map((j) => matrix[i][j])) },
+  }
+}

@@ -63,6 +63,8 @@ export const assetDetails = {
   'XAG/USDT': { name: 'Silver (live)', color: '#CBD5E1', currency: 'USD' },
   'CL/USDT': { name: 'WTI crude (live)', color: '#F59E0B', currency: 'USD' },
   'BZ/USDT': { name: 'Brent crude (live)', color: '#FB923C', currency: 'USD' },
+  'CL=F': { name: 'WTI crude (futures)', color: '#F59E0B', currency: 'USD' },
+  'BZ=F': { name: 'Brent crude (futures)', color: '#FB923C', currency: 'USD' },
   'USD/INR': { name: 'US dollar / Indian rupee', color: '#94A3B8', currency: 'INR' },
   'EUR/USD': { name: 'Euro / US dollar', color: '#94A3B8', currency: 'USD' },
   'GBP/USD': { name: 'Pound / US dollar', color: '#94A3B8', currency: 'USD' },

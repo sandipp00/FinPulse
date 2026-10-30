@@ -369,7 +369,7 @@ Every page shares one shell:
 
 Every price carries a freshness tag: `LIVE` for a recent tick while the feed is connected, `STALE` when a live symbol has had no tick for 30 seconds or the feed is down, `HIST` for a stored daily close, and `N/A` when nothing is available. Nothing is filled in when a source fails.
 
-The risk figures come from `GET /api/risk` (about three years of daily Binance candles for the live crypto, stored history for stocks and indices; cached for a minute).
+The risk figures come from `GET /api/risk`: about three years of daily Binance candles for the live crypto; the stored history for AAPL, the S&P 500, NIFTY 50, gold and silver; and Yahoo daily bars from 2023 for the other world indices, the FX pairs and WTI/Brent (futures `CL=F`, `BZ=F`). Only completed days are used, and Yahoo bars are dated in the exchange's own time zone. The VIX is left out (it is volatility in points, not a price), as is the Tadawul (Yahoo has about one day of its history). A source that fails leaves its assets out with a note. Cached for 15 minutes. The page has tabs per asset class, which also narrow the correlation heatmap.
 
 ## Notifications and shortcuts
 
