@@ -1,4 +1,7 @@
-"""Historical OHLCV candles for the live crypto symbols, from Binance klines.
+"""Historical OHLCV candles for the live symbols, from Binance klines.
+
+Crypto comes from the spot API; live gold and silver (config.METAL_LIVE_SYMBOLS)
+from the USD-M futures API, which returns klines in the same format.
 
 Binance's public REST API needs no key. Responses are cached for a few seconds
 so many browser tabs (or rapid timeframe switches) don't hammer the exchange.
@@ -202,6 +205,13 @@ def validate_request(symbol: str, interval: str, limit: int) -> None:
         raise ValueError(f"limit must be between {MIN_LIMIT} and {MAX_LIMIT}")
 
 
+def _endpoints(symbol: str) -> tuple[list[str], str]:
+    """(REST bases, klines path) for a symbol's market."""
+    if symbol in config.METAL_LIVE_SYMBOLS:
+        return config.BINANCE_FUTURES_REST_URLS, "/fapi/v1/klines"
+    return config.BINANCE_REST_URLS, "/api/v3/klines"
+
+
 async def fetch_candle_series(
     symbol: str, interval: str, limit: int, allow_stale: bool = False
 ) -> CandleSeries:
@@ -221,8 +231,9 @@ async def fetch_candle_series(
     errors: list[str] = []
     retry_after: list[float] = []
 
+    bases, path = _endpoints(symbol)
     client = get_client()
-    for base in config.BINANCE_REST_URLS:
+    for base in bases:
         blocked = _blocked_until.get(base, 0) - _monotonic()
         if blocked > 0:
             errors.append(f"{_host(base)}: rate limited, retry in {blocked:.0f}s")
@@ -230,7 +241,7 @@ async def fetch_candle_series(
             continue
 
         try:
-            rows = await _get_json(client, f"{base.rstrip('/')}/api/v3/klines", params)
+            rows = await _get_json(client, f"{base.rstrip('/')}{path}", params)
             candles = parse_klines(rows)
         except RateLimited as exc:
             _blocked_until[base] = _monotonic() + exc.retry_after
@@ -260,7 +271,7 @@ async def fetch_candle_series(
         )
 
     # Only a rate limit on every endpoint says when to come back.
-    all_limited = len(retry_after) == len(config.BINANCE_REST_URLS) and retry_after
+    all_limited = len(retry_after) == len(bases) and retry_after
     raise CandleSourceError(message, retry_after=min(retry_after) if all_limited else None)
 
 

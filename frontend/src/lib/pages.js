@@ -29,7 +29,7 @@ export const PAGES = {
   commodities: {
     title: 'Commodities',
     nav: 'Commodities',
-    blurb: 'Gold and silver futures (end of day), and WTI and Brent crude oil spot prices from the U.S. Energy Information Administration.',
+    blurb: 'Live and end-of-day gold and silver, and WTI and Brent crude oil spot prices from the U.S. Energy Information Administration.',
   },
   macro: {
     title: 'US macro',

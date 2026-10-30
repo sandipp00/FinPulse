@@ -15,6 +15,7 @@ from backend import (
     macro, market_service, news, news_api, paper, quant_api, risk_service, signal_service,
 )
 from backend.errors import exchange_error
+from backend import live
 from backend.live import feed
 from backend.schemas.market import QuotesResponse
 from src.analytics.financial_metrics import asset_snapshot
@@ -27,10 +28,12 @@ async def lifespan(_app: FastAPI):
     db.init_db()
     auth.warn_about_email_config()
     if config.LIVE_FEED_ENABLED:
-        feed.start()
+        for live_feed in live.FEEDS:
+            live_feed.start()
     yield
     if config.LIVE_FEED_ENABLED:
-        await feed.stop()
+        for live_feed in live.FEEDS:
+            await live_feed.stop()
     await candle_source.close_client()
     await fred.close_client()
     await fx.close_client()
@@ -277,8 +280,9 @@ def market_quotes():
     except HTTPException:
         stored = []
 
+    live_symbols = [*config.LIVE_SYMBOLS, *config.METAL_LIVE_SYMBOLS]
     quotes = market_service.build_quotes(
-        config.LIVE_SYMBOLS, dict(feed.latest), feed.connected, stored
+        live_symbols, live.all_latest(), {s: live.connected_for(s) for s in live_symbols}, stored
     )
     return {
         "as_of": pd.Timestamp.now(tz="UTC").to_pydatetime(),
@@ -289,15 +293,22 @@ def market_quotes():
 
 @app.get("/api/live/status")
 def live_status():
-    return {"enabled": config.LIVE_FEED_ENABLED, **feed.status()}
+    return {
+        "enabled": config.LIVE_FEED_ENABLED,
+        **feed.status(),
+        "symbols": live.all_symbols(),
+        "markets": [f.status() for f in live.FEEDS],
+    }
 
 
 @app.get("/api/live/ticks")
 def live_ticks():
     """Latest in-memory tick per live symbol (REST fallback for the socket)."""
+    latest = live.all_latest()
     return {
         "connected": feed.connected,
-        "ticks": [feed.latest[s] for s in feed.symbols if s in feed.latest],
+        "markets": live.markets(),
+        "ticks": [latest[s] for s in live.all_symbols() if s in latest],
     }
 
 
@@ -311,8 +322,8 @@ async def candles(
         le=candle_source.MAX_LIMIT,
     ),
 ):
-    """OHLCV candles for a live crypto symbol, oldest first."""
-    _require_live_symbol(symbol)
+    """OHLCV candles for a live symbol (crypto, or live gold and silver), oldest first."""
+    _require_live_symbol(symbol, metals=True)
     _require_interval(interval)
 
     try:
@@ -329,12 +340,14 @@ async def candles(
     }
 
 
-def _require_live_symbol(symbol: str) -> None:
-    if symbol not in config.LIVE_SYMBOLS:
+def _require_live_symbol(symbol: str, metals: bool = False) -> None:
+    """Signals and backtests are crypto-only; charts also take live gold and silver."""
+    allowed = [*config.LIVE_SYMBOLS, *config.METAL_LIVE_SYMBOLS] if metals else config.LIVE_SYMBOLS
+    if symbol not in allowed:
         raise HTTPException(
             status_code=404,
             detail=f"{symbol} is not a live symbol. "
-                   f"Available: {', '.join(config.LIVE_SYMBOLS)}",
+                   f"Available: {', '.join(allowed)}",
         )
 
 
@@ -423,12 +436,14 @@ async def ws_prices(websocket: WebSocket):
         await websocket.close(code=1013, reason="Live feed disabled")
         return
 
-    queue = feed.subscribe()
+    queue = live.subscribe_all()
     try:
+        latest = live.all_latest()
         await websocket.send_json({
             "type": "snapshot",
             "connected": feed.connected,
-            "ticks": [feed.latest[s] for s in feed.symbols if s in feed.latest],
+            "markets": live.markets(),
+            "ticks": [latest[s] for s in live.all_symbols() if s in latest],
         })
 
         while True:
@@ -436,4 +451,4 @@ async def ws_prices(websocket: WebSocket):
     except (WebSocketDisconnect, asyncio.CancelledError):
         pass
     finally:
-        feed.unsubscribe(queue)
+        live.unsubscribe_all(queue)

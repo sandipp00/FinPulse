@@ -60,6 +60,13 @@ BINANCE_REST_URLS = _csv(
     "https://api.binance.com,https://data-api.binance.vision",
 )
 
+# Live gold and silver: Binance USD-M "TradFi" perpetual futures (XAUUSDT, XAGUSDT),
+# priced in USDT and tracking spot gold and silver. Same public market data, no key.
+# Binance serves these streams on the /market route of its futures WebSocket host.
+METAL_LIVE_SYMBOLS = _csv("METAL_LIVE_SYMBOLS", "XAU/USDT,XAG/USDT")
+BINANCE_FUTURES_WS_URLS = _csv("BINANCE_FUTURES_WS_URLS", "wss://fstream.binance.com/market")
+BINANCE_FUTURES_REST_URLS = _csv("BINANCE_FUTURES_REST_URLS", "https://fapi.binance.com")
+
 # US macro data from FRED (Federal Reserve Bank of St. Louis). Free key from
 # https://fred.stlouisfed.org/docs/api/api_key.html; without it macro data is
 # reported as not configured. The key is a secret: it stays on the server.

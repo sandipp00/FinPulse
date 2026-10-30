@@ -58,6 +58,7 @@ describe('options and units', () => {
     expect(volumeUnit(INSTRUMENTS[2])).toBe('shares')
     expect(volumeUnit(INSTRUMENTS[3])).toBeNull()
     expect(volumeUnit({ symbol: 'GC=F', asset_class: 'commodity' })).toBe('contracts')
+    expect(volumeUnit({ symbol: 'XAU/USDT', asset_class: 'commodity' })).toBe('XAU')
   })
 })
 

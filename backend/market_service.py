@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 
+from backend import config
 from backend.live import STALE_AFTER_SECONDS
 from backend.schemas.market import MarketRecord
 
@@ -29,6 +30,11 @@ def currency_of(symbol: str) -> Optional[str]:
     return STORED_CURRENCIES.get(symbol)
 
 
+def live_asset_class(symbol: str) -> str:
+    """Live symbols are crypto, except gold and silver (Binance futures)."""
+    return "commodity" if symbol in config.METAL_LIVE_SYMBOLS else "crypto"
+
+
 def asset_class_of(value: str) -> str:
     value = str(value).lower()
     return value if value in UNITS else "stock"
@@ -48,13 +54,14 @@ def live_record(symbol: str, tick: dict, feed_connected: bool, now: float) -> Ma
     received_at = tick.get("received_at")
     fresh = feed_connected and received_at is not None and now - received_at <= STALE_AFTER_SECONDS
     event_ms = tick.get("time")
+    asset_class = live_asset_class(symbol)
     return MarketRecord(
-        instrument_id=f"crypto:{symbol}",
+        instrument_id=f"{asset_class}:{symbol}",
         symbol=symbol,
-        asset_class="crypto",
+        asset_class=asset_class,
         price=tick.get("price"),
         currency=currency_of(symbol),
-        unit=UNITS["crypto"],
+        unit=UNITS[asset_class],
         provider="binance",
         status="real_time" if fresh else "stale",
         source_timestamp=_utc(event_ms / 1000) if isinstance(event_ms, (int, float)) else None,
@@ -93,27 +100,30 @@ def stored_record(asset: dict, error: Optional[str] = None) -> MarketRecord:
 def build_quotes(
     live_symbols: list[str],
     ticks: dict[str, dict],
-    feed_connected: bool,
+    feed_connected: bool | dict[str, bool],
     stored_assets: list[dict],
     now: Optional[float] = None,
 ) -> list[MarketRecord]:
+    """`feed_connected` is one flag for every live symbol, or one per symbol."""
     now = time.time() if now is None else now
     stored = {asset["symbol"]: asset for asset in stored_assets}
     records = []
 
     for symbol in live_symbols:
         tick = ticks.get(symbol)
+        connected = feed_connected.get(symbol, False) if isinstance(feed_connected, dict) else feed_connected
         if tick and tick.get("price") is not None:
-            records.append(live_record(symbol, tick, feed_connected, now))
+            records.append(live_record(symbol, tick, connected, now))
         elif symbol in stored:
             records.append(stored_record(stored[symbol], error="No live tick received yet"))
         else:
+            asset_class = live_asset_class(symbol)
             records.append(MarketRecord(
-                instrument_id=f"crypto:{symbol}",
+                instrument_id=f"{asset_class}:{symbol}",
                 symbol=symbol,
-                asset_class="crypto",
+                asset_class=asset_class,
                 currency=currency_of(symbol),
-                unit=UNITS["crypto"],
+                unit=UNITS[asset_class],
                 provider="binance",
                 status="unavailable",
                 interval="tick",

@@ -398,8 +398,10 @@ def test_quotes_endpoint_with_no_stored_history_and_no_feed(client, monkeypatch)
 
     body = client.get("/api/market/quotes").json()
 
-    assert body["count"] == len(config.LIVE_SYMBOLS)
+    assert body["count"] == len(config.LIVE_SYMBOLS) + len(config.METAL_LIVE_SYMBOLS)
     assert {q["status"] for q in body["quotes"]} == {"unavailable"}
+    gold = next(q for q in body["quotes"] if q["symbol"] == "XAU/USDT")
+    assert gold["asset_class"] == "commodity" and gold["unit"] == "per troy ounce"
 
 
 def test_the_sp500_is_quoted_in_usd_index_points():
@@ -423,3 +425,37 @@ def test_gold_and_silver_are_commodities_in_usd_per_troy_ounce(symbol, price):
     assert record.currency == "USD"
     assert record.unit == "per troy ounce"
     assert record.status == "historical"
+
+
+# ---- live gold and silver ---------------------------------------------------------
+
+def test_metal_candles_come_from_the_futures_api(provider, monkeypatch):
+    futures = "https://futures.example"
+    monkeypatch.setattr(config, "METAL_LIVE_SYMBOLS", ["XAU/USDT"])
+    monkeypatch.setattr(config, "BINANCE_FUTURES_REST_URLS", [futures])
+    paths = []
+
+    def handler(request):
+        paths.append((request.url.path, request.url.params["symbol"]))
+        return httpx.Response(200, json=KLINES)
+
+    provider.routes[futures] = handler
+
+    series = fetch(symbol="XAU/USDT")
+
+    assert paths == [("/fapi/v1/klines", "XAUUSDT")]
+    assert provider.calls == [futures]  # the spot endpoints are not asked
+    assert series.meta.endpoint == "futures.example"
+
+
+def test_each_live_symbol_is_judged_by_its_own_feed(monkeypatch):
+    monkeypatch.setattr(config, "METAL_LIVE_SYMBOLS", ["XAU/USDT"])
+    ticks = {"BTC/USDT": tick(), "XAU/USDT": tick("XAU/USDT", price=4000.55)}
+
+    records = quotes(ticks, connected={"BTC/USDT": True, "XAU/USDT": False}, live=("BTC/USDT", "XAU/USDT"))
+
+    assert records["BTC/USDT"].status == "real_time"
+    gold = records["XAU/USDT"]
+    assert gold.status == "stale" and gold.error == "Live feed disconnected"
+    assert gold.instrument_id == "commodity:XAU/USDT"
+    assert gold.unit == "per troy ounce" and gold.currency == "USDT"

@@ -1,9 +1,10 @@
-"""Live crypto market feed.
+"""Live market feeds: crypto (Binance spot) and gold and silver (Binance futures).
 
-A background task keeps one WebSocket open to Binance's public streams
-(24h ticker + 1m klines for each symbol), keeps the latest tick per symbol in
-memory, fans ticks out to connected browser clients, and stores closed 1-minute
-candles in SQLite so charts survive restarts.
+Each LiveFeed keeps one WebSocket open to Binance's public streams (24h ticker +
+1m klines for each symbol), keeps the latest tick per symbol in memory, fans
+ticks out to connected browser clients, and stores closed 1-minute candles in
+SQLite so charts survive restarts. Each tick and status message says which
+market it belongs to.
 """
 import asyncio
 import json
@@ -31,9 +32,12 @@ def to_stream_name(symbol: str) -> str:
 
 
 class LiveFeed:
-    def __init__(self, symbols: list[str], ws_urls: list[str]):
+    def __init__(self, symbols: list[str], ws_urls: list[str], market: str = "crypto",
+                 asset_class: str = "crypto"):
         self.symbols = symbols
         self.ws_urls = ws_urls
+        self.market = market
+        self.asset_class = asset_class
         # Binance symbol ("BTCUSDT") -> display symbol ("BTC/USDT")
         self._by_binance = {s.replace("/", ""): s for s in symbols}
 
@@ -71,6 +75,7 @@ class LiveFeed:
             else None
         )
         return {
+            "market": self.market,
             "connected": self.connected,
             "source": self.source,
             "symbols": self.symbols,
@@ -163,7 +168,7 @@ class LiveFeed:
                 log.warning("Dropped malformed upstream message: %s: %s", type(exc).__name__, exc)
 
     def _status_message(self) -> dict:
-        return {"type": "status", "connected": self.connected}
+        return {"type": "status", "market": self.market, "connected": self.connected}
 
     def _handle_ticker(self, data: dict) -> None:
         symbol = self._by_binance.get(data["s"])
@@ -176,6 +181,7 @@ class LiveFeed:
 
         tick = {
             "symbol": symbol,
+            "asset_class": self.asset_class,
             "price": price,
             "change_pct_24h": float(data["P"]),
             "open_24h": float(data["o"]),
@@ -251,4 +257,39 @@ class LiveFeed:
             )
 
 
+# Crypto (spot) and gold and silver (futures) run as two independent feeds. Paper
+# trading and signals use `feed` alone; the price socket and quotes use both.
 feed = LiveFeed(config.LIVE_SYMBOLS, config.BINANCE_WS_URLS)
+metals_feed = LiveFeed(
+    config.METAL_LIVE_SYMBOLS, config.BINANCE_FUTURES_WS_URLS, market="metals", asset_class="commodity",
+)
+FEEDS = [f for f in (feed, metals_feed) if f.symbols]
+
+
+def all_latest() -> dict[str, dict]:
+    return {s: t for f in FEEDS for s, t in f.latest.items()}
+
+
+def all_symbols() -> list[str]:
+    return [s for f in FEEDS for s in f.symbols]
+
+
+def connected_for(symbol: str) -> bool:
+    return any(f.connected for f in FEEDS if symbol in f.symbols)
+
+
+def markets() -> dict[str, bool]:
+    return {f.market: f.connected for f in FEEDS}
+
+
+def subscribe_all() -> asyncio.Queue:
+    """One queue fed by every feed, so a client gets all ticks in one stream."""
+    queue: asyncio.Queue = asyncio.Queue(maxsize=SUBSCRIBER_QUEUE_SIZE)
+    for f in FEEDS:
+        f._subscribers.add(queue)
+    return queue
+
+
+def unsubscribe_all(queue: asyncio.Queue) -> None:
+    for f in FEEDS:
+        f.unsubscribe(queue)

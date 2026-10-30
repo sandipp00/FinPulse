@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 
+from backend import live
 from backend.live import LiveFeed, to_stream_name
 
 TICKER = {
@@ -120,3 +121,42 @@ def test_malformed_messages_are_dropped_without_dropping_the_connection(feed):
     assert feed.latest["BTC/USDT"]["price"] == pytest.approx(65000.10)
     assert feed.rejected_messages == 6
     assert feed.status()["rejected_messages"] == 6
+
+
+# ---- live gold and silver (Binance futures) ------------------------------------
+
+def test_metal_ticks_and_status_say_which_market_they_belong_to():
+    metals = LiveFeed(["XAU/USDT"], ["wss://example.invalid/market"], market="metals", asset_class="commodity")
+    queue = metals.subscribe()
+
+    metals._handle_ticker({**TICKER, "s": "XAUUSDT", "c": "4000.55"})
+
+    tick = queue.get_nowait()
+    assert tick["symbol"] == "XAU/USDT" and tick["asset_class"] == "commodity"
+    assert tick["price"] == pytest.approx(4000.55)
+    assert metals._status_message() == {"type": "status", "market": "metals", "connected": False}
+    assert metals._stream_url("wss://example.invalid/market") == (
+        "wss://example.invalid/market/stream?streams=xauusdt@ticker/xauusdt@kline_1m"
+    )
+
+
+def test_one_client_queue_receives_ticks_from_both_feeds(monkeypatch):
+    crypto = LiveFeed(["BTC/USDT"], ["wss://example.invalid"])
+    metals = LiveFeed(["XAU/USDT"], ["wss://example.invalid/market"], market="metals", asset_class="commodity")
+    monkeypatch.setattr(live, "FEEDS", [crypto, metals])
+
+    queue = live.subscribe_all()
+    crypto._handle_ticker(TICKER)
+    metals._handle_ticker({**TICKER, "s": "XAUUSDT", "c": "4000.55"})
+
+    assert [queue.get_nowait()["symbol"] for _ in range(2)] == ["BTC/USDT", "XAU/USDT"]
+    assert set(live.all_latest()) == {"BTC/USDT", "XAU/USDT"}
+    assert live.all_symbols() == ["BTC/USDT", "XAU/USDT"]
+
+    metals.connected = True
+    assert live.connected_for("XAU/USDT") is True
+    assert live.connected_for("BTC/USDT") is False
+    assert live.markets() == {"crypto": False, "metals": True}
+
+    live.unsubscribe_all(queue)
+    assert not crypto._subscribers and not metals._subscribers
