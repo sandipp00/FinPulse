@@ -1,9 +1,11 @@
-import { memo } from 'react'
-import { ArrowDownRight, ArrowUpRight, LineChart, MonitorDot } from 'lucide-react'
+import { memo, useState } from 'react'
+import { ArrowDown, ArrowDownRight, ArrowUp, ArrowUpRight, LineChart, MonitorDot, Pencil, X } from 'lucide-react'
 import { useNow } from '../hooks/useNow'
 import { formatAge, formatAsOfDate, parseTimestamp, storedStatus, tickStatus } from '../lib/dataStatus'
 import { formatCompact, formatPercent, formatPrice } from '../lib/format'
+import { MAX_ITEMS, add, move, remove } from '../lib/watchlist'
 import DataTag from './DataTag'
+import InstrumentSearch from './InstrumentSearch'
 import LivePrice from './LivePrice'
 
 function Change({ value, suffix }) {
@@ -96,12 +98,54 @@ function Details({ asset, tick, freshness, now, onOpenChart, onOpenAsset }) {
   )
 }
 
+/** Edit the watchlist: add from every instrument, reorder, remove; save, cancel or go back to the default. */
+function Editor({ initial, instruments, watchlist, onDone }) {
+  const [draft, setDraft] = useState(initial)
+  const save = async (symbols) => {
+    if (await watchlist.save(symbols)) onDone()
+  }
+  const full = draft.length >= MAX_ITEMS
+  return (
+    <div className="rp-editor">
+      <InstrumentSearch
+        label="Add"
+        instruments={instruments}
+        value=""
+        onChange={(symbol) => setDraft((list) => add(list, symbol))}
+        disabledReason={(item) => (draft.includes(item.symbol) ? 'in the list' : full ? `the list holds ${MAX_ITEMS}` : null)}
+      />
+      <ul className="rp-list rp-edit-list">
+        {draft.map((symbol, i) => (
+          <li key={symbol} className="rp-edit-row">
+            <span className="rp-symbol">{symbol}</span>
+            <button onClick={() => setDraft((list) => move(list, i, -1))} disabled={i === 0} aria-label={`Move ${symbol} up`}><ArrowUp size={13} /></button>
+            <button onClick={() => setDraft((list) => move(list, i, 1))} disabled={i === draft.length - 1} aria-label={`Move ${symbol} down`}><ArrowDown size={13} /></button>
+            <button onClick={() => setDraft((list) => remove(list, symbol))} aria-label={`Remove ${symbol}`}><X size={13} /></button>
+          </li>
+        ))}
+        {draft.length === 0 && <li className="rp-message">Empty. Add instruments above, or go back to the default list.</li>}
+      </ul>
+      {watchlist.error && <p className="rp-message rp-error">{watchlist.error}</p>}
+      <div className="rp-edit-actions">
+        <button className="rp-open" onClick={() => save(draft)} disabled={watchlist.saving || draft.length === 0}>
+          {watchlist.saving ? 'Saving…' : 'Save'}
+        </button>
+        <button className="rp-open" onClick={onDone}>Cancel</button>
+        <button className="rp-open" onClick={() => save([])} disabled={watchlist.saving}>Default list</button>
+      </div>
+      <p className="rp-message">{watchlist.signedIn ? 'Saved to your account.' : 'Saved in this browser. Sign in to keep it on your account.'}</p>
+    </div>
+  )
+}
+
 /**
  * Right-hand panel on every dashboard page: a compact watchlist and the details of
  * the selected instrument. Live symbols show the feed price; others show the stored close.
+ * With `watchlist`, the list can be edited (see hooks/useWatchlist).
  */
-function RightPanel({ assets, ticks, liveStatus, loading, error, selectedSymbol, onSelect, onOpenChart, onOpenAsset }) {
+function RightPanel({ assets, ticks, liveStatus, loading, error, selectedSymbol, onSelect, onOpenChart, onOpenAsset, watchlist, instruments = [] }) {
   const now = useNow(5000)
+  const [editing, setEditing] = useState(false)
   const selected = assets.find((asset) => asset.symbol === selectedSymbol) ?? assets[0]
 
   const freshnessOf = (asset) => (ticks[asset.symbol]
@@ -112,15 +156,26 @@ function RightPanel({ assets, ticks, liveStatus, loading, error, selectedSymbol,
     <aside className="right-panel" aria-label="Watchlist and instrument details">
       <div className="rp-heading">
         <h2>Watchlist</h2>
-        <span>{loading ? 'Loading…' : `${assets.length} instruments`}</span>
+        <span>
+          {loading ? 'Loading…' : `${assets.length} instruments${watchlist?.custom ? ', yours' : ''}`}
+          {watchlist && !editing && (
+            <button className="rp-edit" onClick={() => setEditing(true)} aria-label="Edit the watchlist" title="Edit the watchlist">
+              <Pencil size={12} /> Edit
+            </button>
+          )}
+        </span>
       </div>
+
+      {editing && (
+        <Editor initial={assets.map((asset) => asset.symbol)} instruments={instruments} watchlist={watchlist} onDone={() => setEditing(false)} />
+      )}
 
       {error && <p className="rp-message rp-error">Stored assets could not be loaded: {error}</p>}
       {!loading && !error && assets.length === 0 && (
         <p className="rp-message">No instruments yet. Load stored history or wait for the live feed.</p>
       )}
 
-      {assets.length > 0 && (
+      {!editing && assets.length > 0 && (
         <ul className="rp-list">
           {assets.map((asset) => {
             const tick = ticks[asset.symbol]

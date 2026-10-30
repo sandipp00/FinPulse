@@ -7,6 +7,9 @@ import StatusBar from './components/StatusBar'
 import ToastStack from './components/ToastStack'
 import Topbar from './components/Topbar'
 import { useAssets } from './hooks/useAssets'
+import { useInstruments } from './hooks/useInstruments'
+import { useWatchlist } from './hooks/useWatchlist'
+import { resolve as resolveWatchlist } from './lib/watchlist'
 import { useBackendStatus } from './hooks/useBackendStatus'
 import { LivePricesContext } from './context/live-prices-context'
 import { useAuth } from './hooks/useAuth'
@@ -63,6 +66,8 @@ function Dashboard({ route }) {
   const { assets: marketAssets, loading: assetLoading, error: apiError } = useAssets()
   const { ticks, history, status: liveStatus, marketStatus } = useLivePrices()
   const { user, logout } = useAuth()
+  const watchlist = useWatchlist(user)
+  const { instruments } = useInstruments()
   const { unread } = useNotifications()
   const backend = useBackendStatus()
 
@@ -134,6 +139,12 @@ function Dashboard({ route }) {
       }
     })
   }, [marketAssets, liveSymbols, tradfiSymbols])
+
+  // The right panel: the user's own watchlist when they have one, otherwise the default list.
+  const watchlistAssets = useMemo(
+    () => (watchlist.custom ? resolveWatchlist(watchlist.custom, displayAssets, instruments) : displayAssets),
+    [watchlist.custom, displayAssets, instruments],
+  )
 
   const filteredAssets = useMemo(() => displayAssets.filter((asset) => {
     const matchesType = filter === 'All assets' || asset.type === filter
@@ -315,7 +326,9 @@ function Dashboard({ route }) {
             </div>
 
             <RightPanel
-              assets={displayAssets}
+              assets={watchlistAssets}
+              watchlist={watchlist}
+              instruments={instruments}
               ticks={ticks}
               liveStatus={marketStatus}
               loading={assetLoading}
