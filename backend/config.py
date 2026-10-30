@@ -111,6 +111,11 @@ FEED_USER_AGENT = "FinPulse/1.0 (personal research terminal)"
 # running the open-source Frankfurter API works here, including a self-hosted one.
 FX_BASE_URL = (_env("FX_BASE_URL") or "https://api.frankfurter.dev/v2").rstrip("/")
 
+# Commitments of Traders (who holds futures positions, weekly) from the CFTC's public
+# reporting API: public domain, no key.
+CFTC_ENABLED = _flag("CFTC_ENABLED", True)
+CFTC_API_URL = (_env("CFTC_API_URL") or "https://publicreporting.cftc.gov/resource").rstrip("/")
+
 # Earnings dates and results for the followed US stocks, from Nasdaq's public website
 # API (no key; unofficial, personal use). Fetched at most every few hours per stock.
 EARNINGS_ENABLED = _flag("EARNINGS_ENABLED", True)

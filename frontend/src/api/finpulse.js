@@ -263,6 +263,10 @@ export function getCryptoDerivatives(currency) {
   return getJSON(`/api/crypto/derivatives?currency=${encodeURIComponent(currency)}`)
 }
 
+export function getCftc() {
+  return getJSON('/api/cftc')
+}
+
 export function getWatchlist() {
   return getJSON('/api/watchlist')
 }
