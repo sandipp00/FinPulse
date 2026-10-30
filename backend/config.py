@@ -111,6 +111,11 @@ FEED_USER_AGENT = "FinPulse/1.0 (personal research terminal)"
 # running the open-source Frankfurter API works here, including a self-hosted one.
 FX_BASE_URL = (_env("FX_BASE_URL") or "https://api.frankfurter.dev/v2").rstrip("/")
 
+# Fama-French factors from the Kenneth R. French Data Library (free CSV files), for the
+# factor exposure of US stocks and indices.
+FAMA_FRENCH_ENABLED = _flag("FAMA_FRENCH_ENABLED", True)
+FAMA_FRENCH_URL = (_env("FAMA_FRENCH_URL") or "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp").rstrip("/")
+
 # Crypto derivatives (DVOL, funding, futures and options) from Deribit's public
 # market-data API: no key, rate-limited per IP, so FinPulse caches each coin for a minute.
 DERIBIT_ENABLED = _flag("DERIBIT_ENABLED", True)

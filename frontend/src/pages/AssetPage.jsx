@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, CandlestickChart } from 'lucide-react'
 import AppLink from '../components/AppLink'
 import DataTag from '../components/DataTag'
+import FactorsPanel from '../components/FactorsPanel'
 import ExplorerChart from '../components/ExplorerChart'
 import LivePrice from '../components/LivePrice'
 import NewsItem from '../components/NewsItem'
@@ -18,6 +19,7 @@ import { formatCompact, formatPercent, formatPrice, getAssetDetails } from '../l
 import { formatRate, toRatePoints } from '../lib/fx'
 import { formatObservationDate, withinYears } from '../lib/macro'
 import { ROUTES } from '../lib/routes'
+import { FACTOR_INDICES } from '../lib/factors'
 
 const INTERVAL_LABEL = { '1m': '1m', '15m': '15m', '1h': '1h', '1d': '1D' }
 const CHART_BARS = 500
@@ -327,6 +329,9 @@ export default function AssetPage({ ticks = {}, marketStatus = {}, marketAssets 
             ? <CandlesPanel key={instrument.symbol} instrument={instrument} />
             : asset.ecb && <EcbPanel pair={asset.ecb} />}
           <KeyFigures asset={asset} tick={tick} stored={stored} instrument={instrument} />
+          {asset.live && (asset.asset_class === 'stock' || FACTOR_INDICES.includes(asset.live)) && (
+            <FactorsPanel key={asset.live} symbol={asset.live} />
+          )}
           <Related asset={asset} stored={stored} hasTick={Boolean(tick)} />
         </div>
         <NewsPanel key={asset.id} asset={asset} />
