@@ -36,22 +36,23 @@ function Stat({ label, children, tone }) {
   )
 }
 
+/** One column per asset class, its assets listed underneath. FX pairs show their code (EUR/USD). */
 function Picker({ groups, current, onPick }) {
   return (
     <nav className="panel at-picker" aria-label="Assets">
       {groups.map((group) => (
-        <div key={group.assetClass} className="at-picker-group">
+        <div key={group.assetClass} className="at-picker-group" role="group" aria-label={group.label}>
           <span className="at-picker-label">{group.label}</span>
-          <div className="asset-filters">
+          <div className="at-picker-list">
             {group.assets.map((asset) => (
               <button
                 key={asset.id}
                 onClick={() => onPick(asset.id)}
-                className={asset.id === current ? 'filter-active' : ''}
+                className={asset.id === current ? 'at-picker-active' : ''}
                 aria-pressed={asset.id === current}
                 title={asset.name}
               >
-                {asset.name}
+                {asset.asset_class === 'fx' ? asset.live : asset.name}
               </button>
             ))}
           </div>
