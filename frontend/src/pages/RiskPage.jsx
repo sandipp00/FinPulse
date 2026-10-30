@@ -4,6 +4,7 @@ import CorrelationHeatmap from '../components/CorrelationHeatmap'
 import MetricCard from '../components/MetricCard'
 import PortfolioRisk from '../components/PortfolioRisk'
 import RiskTable from '../components/RiskTable'
+import VixCurvePanel from '../components/VixCurvePanel'
 import { useRisk } from '../hooks/useRisk'
 import { CLASS_LABEL, CLASS_ORDER } from '../lib/asset'
 import { averageCorrelation, mostDiversifyingPair, riskForClass } from '../lib/risk'
@@ -81,6 +82,8 @@ export default function RiskPage({ ticks }) {
           {data.notes.map((note) => <p key={note}>{note}</p>)}
         </div>
       )}
+
+      <VixCurvePanel />
 
       <section className="panel risk-panel">
         <div className="panel-heading">

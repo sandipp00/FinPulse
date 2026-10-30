@@ -1121,6 +1121,16 @@ a.news-title:hover { color: var(--up); text-decoration: underline; }
 .sb-tabs { margin: var(--space-3) calc(-1 * var(--space-4)) 0; }
 .risk-tabs { margin-bottom: var(--space-3); }
 .sector-tabs { margin-top: var(--space-3); }
+.vix-panel { margin-top: 16px; padding: var(--space-4); }
+.vix-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-3); }
+.vix-curve { width: 100%; height: auto; }
+.vix-curve polyline { fill: none; stroke: var(--amber); stroke-width: 2; }
+.vix-curve circle { fill: var(--amber); }
+.vix-value { fill: var(--text-strong); font-size: 12px; }
+.vix-tenor { fill: var(--text-faint); font-size: 11px; }
+.vix-summary { color: var(--text-muted); font-size: var(--text-sm); line-height: 1.5; }
+.vix-summary b { color: var(--text-strong); }
+@media (max-width: 900px) { .vix-grid { grid-template-columns: minmax(0, 1fr); } }
 .factor-list { margin: var(--space-3) 0; }
 .factor-summary { color: var(--text-muted); font-size: var(--text-sm); line-height: 1.5; }
 .factor-summary b { color: var(--text-strong); }

@@ -12,8 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend import (
     analysis_api, asset_news, assistant_api, auth, candles as candle_source, cftc, commodities, config, db,
     deribit, earnings, econ_calendar, eia, famafrench, fred, fx, fx_api, indices, instruments, macro,
-    market_hours, market_service, news, news_api, paper, quant_api, risk_service, signal_service, watchlist,
-    yahoo_history,
+    market_hours, market_service, news, news_api, paper, quant_api, risk_service, signal_service, vix_curve,
+    watchlist, yahoo_history,
 )
 from backend.errors import exchange_error
 from backend import feeds as live
@@ -80,6 +80,7 @@ app.include_router(analysis_api.router)
 app.include_router(quant_api.router)
 app.include_router(assistant_api.router)
 app.include_router(deribit.router)
+app.include_router(vix_curve.router)
 app.include_router(famafrench.router)
 app.include_router(cftc.router)
 app.include_router(watchlist.router)

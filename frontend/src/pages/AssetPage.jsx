@@ -4,6 +4,7 @@ import AppLink from '../components/AppLink'
 import DataTag from '../components/DataTag'
 import EarningsPanel from '../components/EarningsPanel'
 import FactorsPanel from '../components/FactorsPanel'
+import VixCurvePanel from '../components/VixCurvePanel'
 import ExplorerChart from '../components/ExplorerChart'
 import LivePrice from '../components/LivePrice'
 import NewsItem from '../components/NewsItem'
@@ -334,6 +335,7 @@ export default function AssetPage({ ticks = {}, marketStatus = {}, marketAssets 
           {asset.live && (asset.asset_class === 'stock' || FACTOR_INDICES.includes(asset.live)) && (
             <FactorsPanel key={asset.live} symbol={asset.live} />
           )}
+          {asset.live === '^VIX' && <VixCurvePanel />}
           <Related asset={asset} stored={stored} hasTick={Boolean(tick)} />
         </div>
         <NewsPanel key={asset.id} asset={asset} />

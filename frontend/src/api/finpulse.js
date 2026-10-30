@@ -263,6 +263,10 @@ export function getCryptoDerivatives(currency) {
   return getJSON(`/api/crypto/derivatives?currency=${encodeURIComponent(currency)}`)
 }
 
+export function getVixCurve() {
+  return getJSON('/api/vix-curve')
+}
+
 export function getFactorExposure(symbol) {
   return getJSON(`/api/factors?symbol=${encodeURIComponent(symbol)}`)
 }
