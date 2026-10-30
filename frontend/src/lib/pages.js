@@ -14,7 +14,7 @@ export const PAGES = {
   equities: {
     title: 'Equities',
     nav: 'Equities',
-    blurb: 'Stocks and indices with stored daily history.',
+    blurb: 'Stocks and indices: live quotes while markets are open, plus stored daily history.',
   },
   crypto: {
     title: 'Crypto',
@@ -24,12 +24,12 @@ export const PAGES = {
   fx: {
     title: 'FX rates',
     nav: 'FX',
-    blurb: 'ECB euro reference rates and cross rates derived from them. Daily, not live.',
+    blurb: 'Live FX quotes, ECB euro reference rates and cross rates derived from them.',
   },
   commodities: {
     title: 'Commodities',
     nav: 'Commodities',
-    blurb: 'Live and end-of-day gold and silver, and WTI and Brent crude oil spot prices from the U.S. Energy Information Administration.',
+    blurb: 'Live gold, silver and crude oil, end-of-day COMEX metals, and EIA crude oil spot prices.',
   },
   macro: {
     title: 'US macro',

@@ -198,7 +198,7 @@ Both series are measured only on the dates they share. Every formula and assumpt
 
 ### Refreshing stock and index history
 
-`python src/data/update_equities.py` brings AAPL, the NIFTY 50 (`^NSEI`), the S&P 500 (`^GSPC`), gold (`GC=F`) and silver (`SI=F`) up to date from Yahoo Finance (via yfinance). Yahoo data is for personal use, and FinPulse is run as a personal terminal.
+`python src/data/update_equities.py` brings AAPL, the NIFTY 50 (`^NSEI`), the S&P 500 (`^GSPC`), gold (`GC=F`) and silver (`SI=F`) up to date from Yahoo Finance (via yfinance), and BTC/USDT and ETH/USDT from Binance's public daily klines (the same exchange as the stored history). Yahoo data is for personal use, and FinPulse is run as a personal terminal.
 
 - **Dry run by default:** it prints what it would add, per symbol, and writes nothing. Add `--apply` to write.
 - **Backup first:** with `--apply`, the database is copied to `data/backups/` (git-ignored) with SQLite's backup API, and the copy is checked row by row and with an integrity check before anything is written.
@@ -229,13 +229,22 @@ Both series are measured only on the dates they share. Every formula and assumpt
 - **Silver** stays on the expiring contract until it expires. In the weeks before each expiry that contract trades very thinly, so 123 of the first 961 stored days have one price for open, high, low and close, and volume is tiny. When it moves to the next contract the price can jump by about half a percent. The days are stored as reported; the updater's dry run counts single-price days, and the Commodities page explains them.
 - **Not covered:** spot (LBMA) gold and silver prices. Their display terms have not been checked.
 
-### Live gold and silver (Binance futures)
+### Live gold, silver and oil (Binance futures)
 
-- **Source:** Binance USD-M "TradFi" perpetual futures, `XAUUSDT` and `XAGUSDT` (listed December 2025 and January 2026), shown as `XAU/USDT` and `XAG/USDT`. They are priced in USDT per troy ounce and track spot gold and silver through Binance's index price. They are not official spot prices. Public market data, no key, the same terms as the crypto feed.
-- **How:** a second live feed (`metals_feed` in `backend/live.py`) streams the 24-hour ticker and 1-minute candles from `wss://fstream.binance.com/market`. Ticks go out on the same `/ws/prices` socket with `asset_class: "commodity"`, and status messages name their market, so one feed failing does not mark the other offline. Closed 1-minute candles are stored in `live_candles`, like crypto. Chart history comes from `https://fapi.binance.com/fapi/v1/klines` (1m, 15m, 1h, 1d).
+- **Source:** Binance USD-M "TradFi" perpetual futures: gold `XAUUSDT` and silver `XAGUSDT` (listed December 2025 and January 2026, USDT per troy ounce), WTI `CLUSDT` and Brent `BZUSDT` (USDT per barrel), shown as `XAU/USDT`, `XAG/USDT`, `CL/USDT` and `BZ/USDT`. They track the real markets through Binance's index price but are not official spot or exchange prices. Public market data, no key, the same terms as the crypto feed.
+- **How:** a live feed of its own (`tradfi_feed` in `backend/live.py`) streams the 24-hour ticker and 1-minute candles from `wss://fstream.binance.com/market`. Ticks go out on the same `/ws/prices` socket with `asset_class: "commodity"`, and status messages name their market, so one feed failing does not mark the other offline. Closed 1-minute candles are stored in `live_candles`, like crypto. Chart history comes from `https://fapi.binance.com/fapi/v1/klines` (1m, 15m, 1h, 1d).
 - **Where:** the Commodities page (live cards above the COMEX end-of-day ones), the ticker, the watchlist and the explorer. Signals, backtests and paper trading stay crypto-only.
-- **Trading hours:** the contracts trade around the clock, but COMEX gold and silver trade Sunday 18:00 to Friday 17:00 New York time with a daily 17:00 break. Outside those hours the Commodities page says the price reflects Binance trading only. Exchange holidays are not known.
-- **Settings:** `METAL_LIVE_SYMBOLS`, `BINANCE_FUTURES_WS_URLS` and `BINANCE_FUTURES_REST_URLS` (see `.env.example`). `LIVE_FEED_ENABLED=false` turns off both live feeds.
+- **Trading hours:** the contracts trade around the clock, but CME gold, silver and WTI trade Sunday 18:00 to Friday 17:00 New York time with a daily 17:00 break (ICE Brent's hours are close). Outside those hours the Commodities page says the price reflects Binance trading only. Exchange holidays are not known.
+- **Settings:** `TRADFI_LIVE_SYMBOLS`, `BINANCE_FUTURES_WS_URLS` and `BINANCE_FUTURES_REST_URLS` (see `.env.example`). `LIVE_FEED_ENABLED=false` turns off every live source.
+
+### Live stock, index and FX quotes (Yahoo Finance)
+
+- **Source:** Yahoo Finance's public chart endpoints, polled by `backend/quotes_live.py`: AAPL, the S&P 500 (`^GSPC`), the NIFTY 50 (`^NSEI`) and the seven FX pairs on the FX page. Personal use, like the stored Yahoo history.
+- **How:** every 15 seconds, one batch request (`/v8/finance/spark`, 1-minute bars) returns the latest price of every symbol. Each symbol's trading session comes from `/v8/finance/chart`, looked up every 10 minutes. About 250 requests an hour in all. Ticks go out on the same `/ws/prices` socket with `market: "quotes"`.
+- **Labels:** `LIVE` while the market is open and Yahoo's newest 1-minute bar is under 3 minutes old; `DELAYED` if it is older; `CLOSED` when the market is shut, showing the last regular-session price; `STALE` if polling stops. The change is against the previous close (`1d`). In `/api/market/quotes` these are `real_time`, `delayed` and `historical` (with "Market closed").
+- **Where:** the ticker, the watchlist and right panel, the Equities page and the FX cards (beside the ECB reference rate). Signals, backtests and paper trading stay crypto-only.
+- **Failures:** a failed poll backs off (up to 2 minutes) and the quotes are marked stale; a failed session lookup leaves the price shown and judged by its age only.
+- **Settings:** `YAHOO_LIVE_SYMBOLS` and `YAHOO_QUOTE_URL` (see `.env.example`).
 
 ### US macro (FRED)
 

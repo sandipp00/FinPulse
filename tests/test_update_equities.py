@@ -324,3 +324,48 @@ def test_single_price_bars_are_reported_and_stored(db, tmp_path, capsys):
     assert "would add 3 bar(s): 2026-10-23 to 2026-10-27" in out
     assert "note: 2 of them have one price for open, high, low and close" in out
     assert len(rows(db, "SI=F")) == 3
+
+
+# ---- crypto daily bars (Binance) ---------------------------------------------------
+
+def test_crypto_daily_bars_are_appended_after_the_check(db, tmp_path, capsys):
+    crypto = {**GOOD, "BTC/USDT": [("2026-10-13", 81500.0), ("2026-10-14", 82268.0), ("2026-10-15", 83010.5),
+                                   ("2026-10-30", 84000.0)]}  # today: unfinished, ignored
+
+    run(db, tmp_path, crypto, "--apply")
+
+    out = capsys.readouterr().out
+    assert "BTC/USDT (crypto): ready" in out
+    assert [r[0][:10] for r in rows(db, "BTC/USDT")] == ["2026-10-14", "2026-10-15"]
+
+
+def test_a_partial_crypto_bar_names_binance_and_can_be_replaced(db, tmp_path, capsys):
+    crypto = {**GOOD, "BTC/USDT": [("2026-10-14", 81682.01), ("2026-10-15", 83010.5)]}
+
+    run(db, tmp_path, crypto, "--apply")
+    out = capsys.readouterr().out
+    assert "mismatch 2026-10-14: stored 82268.0000, Binance now 81682.0100" in out
+    assert "Binance's prices for stored days have changed" in out
+    assert len(rows(db, "BTC/USDT")) == 1
+
+
+def test_binance_daily_klines_are_paged_into_one_frame(monkeypatch):
+    import httpx
+
+    day = 86_400_000
+    start = 1_791_590_400_000  # 2026-10-10
+    pages = [[[start + i * day, "1", "2", "0.5", str(100 + i), "7", 0, "0", 0, "0", "0", "0"]
+              for i in range(n)] for n in (up.BINANCE_PAGE, 3)]
+    calls = []
+
+    def fake_get(url, timeout, params):
+        calls.append(params["startTime"])
+        return httpx.Response(200, json=pages[len(calls) - 1], request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    frame = up.fetch_binance_daily("BTC/USDT", "2026-10-10")
+
+    assert len(frame) == up.BINANCE_PAGE + 3
+    assert calls == [start, start + (up.BINANCE_PAGE - 1) * day + 1]
+    assert frame["timestamp"].iloc[0] == pd.Timestamp("2026-10-10", tz="UTC")
+    assert frame["close"].iloc[1] == 101.0 and frame["symbol"].iloc[0] == "BTC/USDT"

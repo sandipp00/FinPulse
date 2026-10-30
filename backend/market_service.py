@@ -1,7 +1,9 @@
 """Normalized latest quotes: one MarketRecord per tracked instrument.
 
-A live symbol uses its latest exchange tick (real_time, or stale once the tick is
-too old or the feed is down). Anything else uses its latest stored daily close
+A live symbol uses its latest tick: real_time, or stale once the tick is too old
+or its feed is down. Yahoo quotes can also be `delayed` (Yahoo's newest bar is old
+while the market is open) or, while the market is closed, `historical` with the
+last regular-session price. Anything else uses its latest stored daily close
 (historical). An instrument with neither is reported as unavailable.
 """
 import time
@@ -10,6 +12,7 @@ from typing import Optional
 
 from backend import config
 from backend.live import STALE_AFTER_SECONDS
+from backend.quotes_live import asset_class_for as yahoo_asset_class
 from backend.schemas.market import MarketRecord
 
 # Quote currency of stored instruments that are not "BASE/QUOTE" pairs. An
@@ -17,7 +20,16 @@ from backend.schemas.market import MarketRecord
 STORED_CURRENCIES = {"AAPL": "USD", "^NSEI": "INR", "^GSPC": "USD", "GC=F": "USD", "SI=F": "USD"}
 
 # Gold (GC=F) and silver (SI=F) are COMEX futures, both quoted per troy ounce.
-UNITS = {"crypto": "per coin", "stock": "per share", "index": "index points", "commodity": "per troy ounce"}
+UNITS = {
+    "crypto": "per coin", "stock": "per share", "index": "index points", "commodity": "per troy ounce",
+    "fx": "quote currency per unit of base",
+}
+# Commodities not priced per troy ounce.
+SYMBOL_UNITS = {"CL/USDT": "per barrel", "BZ/USDT": "per barrel"}
+
+
+def unit_for(symbol: str, asset_class: str) -> str:
+    return SYMBOL_UNITS.get(symbol, UNITS[asset_class])
 
 
 def _utc(seconds: Optional[float]) -> Optional[datetime]:
@@ -31,8 +43,12 @@ def currency_of(symbol: str) -> Optional[str]:
 
 
 def live_asset_class(symbol: str) -> str:
-    """Live symbols are crypto, except gold and silver (Binance futures)."""
-    return "commodity" if symbol in config.METAL_LIVE_SYMBOLS else "crypto"
+    """Crypto, unless the symbol is a Binance TradFi future or a Yahoo quote."""
+    if symbol in config.TRADFI_LIVE_SYMBOLS:
+        return "commodity"
+    if symbol in config.YAHOO_LIVE_SYMBOLS:
+        return yahoo_asset_class(symbol)
+    return "crypto"
 
 
 def asset_class_of(value: str) -> str:
@@ -55,24 +71,32 @@ def live_record(symbol: str, tick: dict, feed_connected: bool, now: float) -> Ma
     fresh = feed_connected and received_at is not None and now - received_at <= STALE_AFTER_SECONDS
     event_ms = tick.get("time")
     asset_class = live_asset_class(symbol)
+    polled = tick.get("provider") == "yahoo"
+
+    status, error = "real_time", None
+    if not fresh:
+        status = "stale"
+        error = "Live feed disconnected" if not feed_connected else f"No update for more than {STALE_AFTER_SECONDS}s"
+    elif tick.get("market_open") is False:
+        status, error = "historical", "Market closed; last regular-session price"
+    elif tick.get("delayed"):
+        status, error = "delayed", "The provider's newest price is more than a few minutes old"
+
     return MarketRecord(
         instrument_id=f"{asset_class}:{symbol}",
         symbol=symbol,
         asset_class=asset_class,
         price=tick.get("price"),
         currency=currency_of(symbol),
-        unit=UNITS[asset_class],
-        provider="binance",
-        status="real_time" if fresh else "stale",
+        unit=unit_for(symbol, asset_class),
+        provider=tick.get("provider", "binance"),
+        status=status,
         source_timestamp=_utc(event_ms / 1000) if isinstance(event_ms, (int, float)) else None,
         retrieved_at=_utc(received_at),
-        interval="tick",
+        interval="1m" if polled else "tick",
         change_pct=tick.get("change_pct_24h"),
-        change_window="24h",
-        error=None if fresh else (
-            "Live feed disconnected" if not feed_connected
-            else f"No update for more than {STALE_AFTER_SECONDS}s"
-        ),
+        change_window=tick.get("change_window", "24h"),
+        error=error,
     )
 
 
@@ -123,8 +147,8 @@ def build_quotes(
                 symbol=symbol,
                 asset_class=asset_class,
                 currency=currency_of(symbol),
-                unit=UNITS[asset_class],
-                provider="binance",
+                unit=unit_for(symbol, asset_class),
+                provider="yahoo" if symbol in config.YAHOO_LIVE_SYMBOLS else "binance",
                 status="unavailable",
                 interval="tick",
                 error="No live tick received yet",

@@ -6,10 +6,10 @@ const CLASSES = {
   equities: {
     types: ['Stock', 'Index'],
     title: 'Equities watchlist',
-    subtitle: 'Latest stored daily close for each stock and index',
+    subtitle: 'Near-real-time quotes while markets are open; the last session price when closed',
     sources: [
-      'End-of-day bars from Yahoo Finance (downloaded with yfinance), stored in the local database. Yahoo data is for personal use.',
-      'There is no live equity quote: every price is a completed day\'s close, tagged with its date.',
+      'Live quotes from Yahoo Finance, refreshed every 15 seconds. CLOSED means the market is shut and the price is the last of the session; DELAYED means the newest price from Yahoo is a few minutes old. Yahoo data is for personal use.',
+      'Daily history: end-of-day bars from Yahoo Finance (downloaded with yfinance), stored in the local database.',
       'Refresh with python src/data/update_equities.py (a dry run first; --apply to write).',
     ],
     showLag: true,

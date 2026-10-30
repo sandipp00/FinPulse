@@ -398,7 +398,7 @@ def test_quotes_endpoint_with_no_stored_history_and_no_feed(client, monkeypatch)
 
     body = client.get("/api/market/quotes").json()
 
-    assert body["count"] == len(config.LIVE_SYMBOLS) + len(config.METAL_LIVE_SYMBOLS)
+    assert body["count"] == len(config.LIVE_SYMBOLS) + len(config.TRADFI_LIVE_SYMBOLS) + len(config.YAHOO_LIVE_SYMBOLS)
     assert {q["status"] for q in body["quotes"]} == {"unavailable"}
     gold = next(q for q in body["quotes"] if q["symbol"] == "XAU/USDT")
     assert gold["asset_class"] == "commodity" and gold["unit"] == "per troy ounce"
@@ -431,7 +431,7 @@ def test_gold_and_silver_are_commodities_in_usd_per_troy_ounce(symbol, price):
 
 def test_metal_candles_come_from_the_futures_api(provider, monkeypatch):
     futures = "https://futures.example"
-    monkeypatch.setattr(config, "METAL_LIVE_SYMBOLS", ["XAU/USDT"])
+    monkeypatch.setattr(config, "TRADFI_LIVE_SYMBOLS", ["XAU/USDT"])
     monkeypatch.setattr(config, "BINANCE_FUTURES_REST_URLS", [futures])
     paths = []
 
@@ -449,7 +449,7 @@ def test_metal_candles_come_from_the_futures_api(provider, monkeypatch):
 
 
 def test_each_live_symbol_is_judged_by_its_own_feed(monkeypatch):
-    monkeypatch.setattr(config, "METAL_LIVE_SYMBOLS", ["XAU/USDT"])
+    monkeypatch.setattr(config, "TRADFI_LIVE_SYMBOLS", ["XAU/USDT"])
     ticks = {"BTC/USDT": tick(), "XAU/USDT": tick("XAU/USDT", price=4000.55)}
 
     records = quotes(ticks, connected={"BTC/USDT": True, "XAU/USDT": False}, live=("BTC/USDT", "XAU/USDT"))

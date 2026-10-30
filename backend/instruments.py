@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 from backend import candles as candle_source, config
 from backend.errors import exchange_error
-from backend.market_service import UNITS, asset_class_of, currency_of, live_asset_class
+from backend.market_service import UNITS, asset_class_of, currency_of, live_asset_class, unit_for
 from backend.schemas.market import AssetClass, Candle, SourceMeta
 
 router = APIRouter(prefix="/api/instruments", tags=["instruments"])
@@ -109,10 +109,10 @@ def catalogue() -> dict[str, Instrument]:
     stored = _stored_coverage()
     instruments: dict[str, Instrument] = {}
 
-    for symbol in [*config.LIVE_SYMBOLS, *config.METAL_LIVE_SYMBOLS]:
+    for symbol in [*config.LIVE_SYMBOLS, *config.TRADFI_LIVE_SYMBOLS]:
         asset_class = live_asset_class(symbol)
         instruments[symbol] = Instrument(
-            symbol=symbol, asset_class=asset_class, currency=currency_of(symbol), unit=UNITS[asset_class],
+            symbol=symbol, asset_class=asset_class, currency=currency_of(symbol), unit=unit_for(symbol, asset_class),
             live=True, intervals=list(candle_source.INTERVALS),
             stored=stored[symbol][1] if symbol in stored else None,
         )

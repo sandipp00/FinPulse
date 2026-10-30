@@ -74,7 +74,7 @@ export default function StatusBar({ backend, liveStatus, ticks, storedAsOf, asse
       <Item tone={assetsError ? 'error' : storedAsOf ? 'hist' : 'muted'} title="Stocks and indices show stored daily closes, not live quotes">
         {historyText}
       </Item>
-      <span className="status-item status-wide">Crypto trades 24/7 · equities: daily history only</span>
+      <span className="status-item status-wide">Crypto, gold, silver and oil stream live · stocks, indices and FX every 15s</span>
 
       <span className="status-spacer" />
       <span className="status-item status-wide">Informational only · not investment advice</span>

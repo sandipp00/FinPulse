@@ -33,7 +33,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "DATABASE_PATH", path)
     monkeypatch.setattr(config, "LIVE_FEED_ENABLED", False)
     monkeypatch.setattr(config, "LIVE_SYMBOLS", ["BTC/USDT", "SOL/USDT"])
-    monkeypatch.setattr(config, "METAL_LIVE_SYMBOLS", ["XAU/USDT"])
+    monkeypatch.setattr(config, "TRADFI_LIVE_SYMBOLS", ["XAU/USDT"])
     candle_source._cache.clear()
     with TestClient(main.app) as test_client:
         yield test_client

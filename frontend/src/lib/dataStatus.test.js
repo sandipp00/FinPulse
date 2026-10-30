@@ -38,6 +38,18 @@ describe('tickStatus', () => {
     expect(tickStatus({ symbol: 'BTC/USDT', price: 1 }, 'live', NOW)).toBe('stale')
   })
 
+  it('judges each tick by its own market feed', () => {
+    const quote = { ...tick, symbol: 'AAPL', market: 'quotes' }
+    expect(tickStatus(quote, { crypto: 'offline', quotes: 'live' }, NOW)).toBe('live')
+    expect(tickStatus(tick, { crypto: 'offline', quotes: 'live' }, NOW)).toBe('stale')
+  })
+
+  it('says when a polled quote is closed or delayed', () => {
+    const quote = { ...tick, symbol: 'AAPL', market: 'quotes' }
+    expect(tickStatus({ ...quote, market_open: false }, { quotes: 'live' }, NOW)).toBe('closed')
+    expect(tickStatus({ ...quote, market_open: true, delayed: true }, { quotes: 'live' }, NOW)).toBe('delayed')
+  })
+
   it('is unavailable without a usable price', () => {
     expect(tickStatus(undefined, 'live', NOW)).toBe('unavailable')
     expect(tickStatus({ ...tick, price: null }, 'live', NOW)).toBe('unavailable')

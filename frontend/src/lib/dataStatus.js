@@ -15,6 +15,8 @@ export const DATA_STATUS_BADGE = {
   stale: 'STALE',
   historical: 'HIST',
   cached: 'CACHED',
+  delayed: 'DELAYED',
+  closed: 'CLOSED',
   unavailable: 'N/A',
 }
 
@@ -23,15 +25,25 @@ export const DATA_STATUS_LABEL = {
   stale: 'Last live price, no recent update',
   historical: 'Latest stored daily close, not a live quote',
   cached: 'Kept from an earlier response; the provider is not answering',
+  delayed: 'The market is open, but the newest price from the provider is a few minutes old',
+  closed: 'Market closed: the last price of the session',
   unavailable: 'No data available',
 }
 
-/** Status of a live tick (see useLivePrices), given the socket status and the current time in ms. */
+/**
+ * Status of a live tick (see useLivePrices), given the feed status and the current
+ * time in ms. `feedStatus` is one status for every tick, or one per market
+ * ({ crypto, tradfi, quotes }), so each tick is judged by its own feed. A polled
+ * quote can also be 'closed' (market shut, last session price) or 'delayed'.
+ */
 export function tickStatus(tick, feedStatus, now) {
   if (!tick || tick.price == null || !Number.isFinite(Number(tick.price))) return 'unavailable'
-  if (feedStatus !== 'live') return 'stale'
+  const status = feedStatus && typeof feedStatus === 'object' ? feedStatus[tick.market ?? 'crypto'] : feedStatus
+  if (status !== 'live') return 'stale'
   const seenAt = Number(tick.seenAt)
   if (!Number.isFinite(seenAt) || now - seenAt > STALE_AFTER_MS) return 'stale'
+  if (tick.market_open === false) return 'closed'
+  if (tick.delayed) return 'delayed'
   return 'live'
 }
 

@@ -60,12 +60,20 @@ BINANCE_REST_URLS = _csv(
     "https://api.binance.com,https://data-api.binance.vision",
 )
 
-# Live gold and silver: Binance USD-M "TradFi" perpetual futures (XAUUSDT, XAGUSDT),
-# priced in USDT and tracking spot gold and silver. Same public market data, no key.
-# Binance serves these streams on the /market route of its futures WebSocket host.
-METAL_LIVE_SYMBOLS = _csv("METAL_LIVE_SYMBOLS", "XAU/USDT,XAG/USDT")
+# Live gold, silver and crude oil: Binance USD-M "TradFi" perpetual futures (XAUUSDT,
+# XAGUSDT, CLUSDT for WTI, BZUSDT for Brent), priced in USDT and tracking the real
+# markets. Same public market data, no key. Binance serves these streams on the
+# /market route of its futures WebSocket host.
+TRADFI_LIVE_SYMBOLS = _csv("TRADFI_LIVE_SYMBOLS", "XAU/USDT,XAG/USDT,CL/USDT,BZ/USDT")
 BINANCE_FUTURES_WS_URLS = _csv("BINANCE_FUTURES_WS_URLS", "wss://fstream.binance.com/market")
 BINANCE_FUTURES_REST_URLS = _csv("BINANCE_FUTURES_REST_URLS", "https://fapi.binance.com")
+
+# Near-real-time stock, index and FX quotes, polled from Yahoo Finance (personal use).
+YAHOO_LIVE_SYMBOLS = _csv(
+    "YAHOO_LIVE_SYMBOLS",
+    "AAPL,^GSPC,^NSEI,USD/INR,EUR/USD,GBP/USD,USD/JPY,EUR/INR,EUR/GBP,EUR/JPY",
+)
+YAHOO_QUOTE_URL = (_env("YAHOO_QUOTE_URL") or "https://query1.finance.yahoo.com").rstrip("/")
 
 # US macro data from FRED (Federal Reserve Bank of St. Louis). Free key from
 # https://fred.stlouisfed.org/docs/api/api_key.html; without it macro data is
