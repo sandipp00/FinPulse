@@ -247,3 +247,7 @@ export function getWeekChanges(symbols) {
 export function getCryptoDerivatives(currency) {
   return getJSON(`/api/crypto/derivatives?currency=${encodeURIComponent(currency)}`)
 }
+
+export function getEarnings(symbol) {
+  return getJSON(symbol ? `/api/earnings?symbol=${encodeURIComponent(symbol)}` : '/api/earnings')
+}

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import { getMarketHours, getNews } from '../api/finpulse'
+import { useEarnings } from '../hooks/useEarnings'
 import { useNow } from '../hooks/useNow'
 import { CLASS_LABEL } from '../lib/asset'
+import { TIMING_LABEL, formatDay, reportsWithin, todayIso } from '../lib/earnings'
 import { formatPercent, getAssetDetails } from '../lib/format'
 import { formatCountdown } from '../lib/marketHours'
 import { marketsOpen, movers } from '../lib/overview'
@@ -66,6 +68,8 @@ export default function OverviewPulse({ ticks, onOpenAsset }) {
   const now = useNow(30_000)
   const hours = usePolled(loadHours, HOURS_REFRESH_MS)
   const news = usePolled(loadNews, NEWS_REFRESH_MS)
+  const earnings = useEarnings()
+  const thisWeek = reportsWithin(earnings.data?.upcoming, todayIso(new Date(now)), 7)
   const { gainers, losers } = movers(ticks)
   const markets = marketsOpen(hours.data?.exchanges, now / 1000)
 
@@ -109,6 +113,25 @@ export default function OverviewPulse({ ticks, onOpenAsset }) {
             <p className="pulse-note">Crypto trades around the clock.</p>
           </>
         )}
+        <div className="pulse-earnings">
+          <h3>Earnings in the next 7 days</h3>
+          {earnings.loading && <p className="pulse-empty">Loading…</p>}
+          {earnings.error && <p className="pulse-empty">Unavailable: {earnings.error}</p>}
+          {earnings.data && thisWeek.length === 0 && <p className="pulse-empty">None of the 30 stocks reports this week.</p>}
+          {thisWeek.length > 0 && (
+            <ul className="pulse-list">
+              {thisWeek.map((r) => (
+                <li key={r.symbol}>
+                  <button onClick={() => onOpenAsset(r.symbol)} title={`Open the ${r.name} asset page`}>
+                    <span className="pulse-name"><strong>{r.symbol}</strong><small>{r.timing ? TIMING_LABEL[r.timing].toLowerCase() : r.certainty}</small></span>
+                    <span className="pulse-day">{formatDay(r.date)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <AppLink href={ROUTES.calendar} className="pulse-more">Earnings calendar <ArrowUpRight size={13} /></AppLink>
+        </div>
       </div>
 
       <div className="panel pulse-panel">
