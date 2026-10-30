@@ -5,6 +5,21 @@ export const assetDetails = {
   'SOL/USDT': { name: 'Solana', color: '#2DD4BF', currency: 'USD' },
   'BNB/USDT': { name: 'BNB', color: '#FBBF24', currency: 'USD' },
   'XRP/USDT': { name: 'XRP', color: '#94A3B8', currency: 'USD' },
+  'TRX/USDT': { name: 'TRON', color: '#EF4444', currency: 'USD' },
+  'HYPE/USDT': { name: 'Hyperliquid', color: '#5EEAD4', currency: 'USD' },
+  'ZEC/USDT': { name: 'Zcash', color: '#F4B728', currency: 'USD' },
+  'DOGE/USDT': { name: 'Dogecoin', color: '#C2A633', currency: 'USD' },
+  'LINK/USDT': { name: 'Chainlink', color: '#375BD2', currency: 'USD' },
+  'ADA/USDT': { name: 'Cardano', color: '#3B82F6', currency: 'USD' },
+  'XLM/USDT': { name: 'Stellar', color: '#A3A3A3', currency: 'USD' },
+  'NEAR/USDT': { name: 'NEAR Protocol', color: '#34D399', currency: 'USD' },
+  'BCH/USDT': { name: 'Bitcoin Cash', color: '#8DC351', currency: 'USD' },
+  'LTC/USDT': { name: 'Litecoin', color: '#BFBBBB', currency: 'USD' },
+  'UNI/USDT': { name: 'Uniswap', color: '#FF007A', currency: 'USD' },
+  'AVAX/USDT': { name: 'Avalanche', color: '#E84142', currency: 'USD' },
+  'SUI/USDT': { name: 'Sui', color: '#4DA2FF', currency: 'USD' },
+  'GRAM/USDT': { name: 'Gram (Toncoin)', color: '#0098EA', currency: 'USD' },
+  'HBAR/USDT': { name: 'Hedera', color: '#9CA3AF', currency: 'USD' },
   '^NSEI': { name: 'Nifty 50', color: '#34D399', currency: 'INR' },
   '^GSPC': { name: 'S&P 500', color: '#F472B6', currency: 'USD' },
   '^DJI': { name: 'Dow Jones', color: '#60A5FA', currency: 'USD' },
@@ -55,6 +70,18 @@ export const assetDetails = {
   'EUR/INR': { name: 'Euro / Indian rupee', color: '#94A3B8', currency: 'INR' },
   'EUR/GBP': { name: 'Euro / pound', color: '#94A3B8', currency: 'GBP' },
   'EUR/JPY': { name: 'Euro / Japanese yen', color: '#94A3B8', currency: 'JPY' },
+}
+
+// The followed cryptocurrencies, largest market cap first (matches LIVE_SYMBOLS).
+export const CRYPTO_RANK = ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'XRP/USDT', 'SOL/USDT', 'TRX/USDT', 'HYPE/USDT', 'ZEC/USDT', 'DOGE/USDT', 'LINK/USDT', 'ADA/USDT', 'XLM/USDT', 'NEAR/USDT', 'BCH/USDT', 'LTC/USDT', 'UNI/USDT', 'AVAX/USDT', 'SUI/USDT', 'GRAM/USDT', 'HBAR/USDT']
+
+/** Live crypto symbols in market-cap order; unknown ones keep their order after the ranked ones. */
+export function byCryptoRank(symbols) {
+  const rank = (symbol) => {
+    const i = CRYPTO_RANK.indexOf(symbol)
+    return i === -1 ? CRYPTO_RANK.length : i
+  }
+  return [...symbols].sort((a, b) => rank(a) - rank(b))
 }
 
 export function getAssetDetails(symbol) {

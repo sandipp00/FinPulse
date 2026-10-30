@@ -44,7 +44,9 @@ LIVE_FEED_ENABLED = _flag("LIVE_FEED_ENABLED", True)
 
 LIVE_SYMBOLS = _csv(
     "LIVE_SYMBOLS",
-    "BTC/USDT,ETH/USDT,SOL/USDT,BNB/USDT,XRP/USDT",
+    # The top 20 cryptocurrencies by market cap that Binance trades (stablecoins and
+    # wrapped coins left out), largest first; chosen from CoinGecko on 2026-10-30.
+    "BTC/USDT,ETH/USDT,BNB/USDT,XRP/USDT,SOL/USDT,TRX/USDT,HYPE/USDT,ZEC/USDT,DOGE/USDT,LINK/USDT,ADA/USDT,XLM/USDT,NEAR/USDT,BCH/USDT,LTC/USDT,UNI/USDT,AVAX/USDT,SUI/USDT,GRAM/USDT,HBAR/USDT",
 )
 
 # Tried in order; the second is Binance's market-data-only endpoint, which

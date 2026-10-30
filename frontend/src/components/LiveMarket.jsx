@@ -1,5 +1,7 @@
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import { formatCompact, formatPercent, formatPrice, getAssetDetails } from '../lib/format'
+import { ROUTES } from '../lib/routes'
+import AppLink from './AppLink'
 import LiveBadge from './LiveBadge'
 import LivePrice from './LivePrice'
 import Sparkline from './Sparkline'
@@ -57,19 +59,23 @@ function LiveCard({ symbol, tick, series, selected, onSelect }) {
   )
 }
 
+// The overview shows the largest coins; the Crypto page lists them all.
+const OVERVIEW_CARDS = 8
+
 export default function LiveMarket({ ticks, history, symbols, status, selectedSymbol, onSelect }) {
+  const shown = symbols.slice(0, OVERVIEW_CARDS)
   return (
     <section className="panel live-market">
       <div className="panel-heading">
         <div>
           <h2>Live crypto market</h2>
-          <p>Real-time prices streamed from Binance · 24h change, range and volume</p>
+          <p>The largest coins by market cap, streamed from Binance · 24h change, range and volume</p>
         </div>
         <LiveBadge status={status} />
       </div>
 
       <div className="live-grid">
-        {symbols.map((symbol) => (
+        {shown.map((symbol) => (
           <LiveCard
             key={symbol}
             symbol={symbol}
@@ -82,6 +88,9 @@ export default function LiveMarket({ ticks, history, symbols, status, selectedSy
       </div>
 
       <p className="live-note">
+        {symbols.length > shown.length && (
+          <><AppLink href={ROUTES.crypto} className="at-link">All {symbols.length} coins on the Crypto page →</AppLink>{' '}</>
+        )}
         Click a card to chart it. Sparklines show price moves since you opened this page. Live quotes are
         informational and may differ slightly from other venues.
       </p>

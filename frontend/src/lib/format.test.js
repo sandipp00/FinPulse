@@ -11,3 +11,11 @@ describe('formatPrice', () => {
     expect(formatPrice(17.2, '^VIX')).toBe('17.20')
   })
 })
+
+describe('byCryptoRank', () => {
+  it('orders live coins by market cap, unknown ones last in their own order', async () => {
+    const { byCryptoRank } = await import('./format')
+    expect(byCryptoRank(['SOL/USDT', 'XYZ/USDT', 'BTC/USDT', 'HBAR/USDT', 'ETH/USDT']))
+      .toEqual(['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'HBAR/USDT', 'XYZ/USDT'])
+  })
+})

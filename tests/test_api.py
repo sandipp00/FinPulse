@@ -125,7 +125,7 @@ def test_candles_endpoint_returns_parsed_rows(client, monkeypatch):
 
 
 def test_candles_rejects_unknown_symbol_and_interval(client):
-    assert client.get("/api/candles", params={"symbol": "DOGE/USDT"}).status_code == 404
+    assert client.get("/api/candles", params={"symbol": "ZZZ/USDT"}).status_code == 404
     assert client.get(
         "/api/candles", params={"symbol": "BTC/USDT", "interval": "3m"}
     ).status_code == 400
@@ -212,7 +212,7 @@ def test_signals_endpoint_filters_to_one_symbol(client, fake_candles):
 
 def test_signals_validation(client):
     assert client.get("/api/signals", params={"interval": "3m"}).status_code == 400
-    assert client.get("/api/signals", params={"symbol": "DOGE/USDT"}).status_code == 404
+    assert client.get("/api/signals", params={"symbol": "ZZZ/USDT"}).status_code == 404
 
 
 def test_backtest_endpoint_reports_strategy_and_benchmark(client, fake_candles):

@@ -109,9 +109,8 @@ export default function Watchlist({
                     <button
                       className="row-action"
                       onClick={() => onSelect(asset.symbol)}
-                      disabled={!asset.stored}
-                      title={asset.stored ? undefined : 'No stored history for this asset'}
-                      aria-label={`View ${asset.symbol} historical prices`}
+                      title={`Open the ${asset.name ?? asset.symbol} asset page: price, chart and news`}
+                      aria-label={`Open ${asset.symbol} asset page`}
                     >
                       <ArrowUpRight size={17} />
                     </button>
