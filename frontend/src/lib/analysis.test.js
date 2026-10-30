@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { heatColor, heatmapRows, rsiZone, sortRows, toPercentPoints } from './analysis'
+import { heatColor, heatmapRows, rsiZone, searchRows, sortRows, toPercentPoints } from './analysis'
 
 describe('analysis helpers', () => {
   it('turns fractions into percent chart points, keeping gaps', () => {
@@ -35,5 +35,26 @@ describe('analysis helpers', () => {
     expect(heatColor(-0.05)).toMatch(/^rgba\(248, 113, 113/)
     expect(heatColor(null)).toBe('transparent')
     expect([rsiZone(75), rsiZone(25), rsiZone(50), rsiZone(null)]).toEqual(['overbought', 'oversold', 'neutral', null])
+  })
+})
+
+describe('searchRows', () => {
+  const rows = [
+    { asset: { id: 'gold', name: 'Gold', asset_class: 'commodity', live: 'XAU/USDT', stored: 'GC=F' } },
+    { asset: { id: 'nifty', name: 'NIFTY 50', asset_class: 'index', live: '^NSEI' } },
+    { asset: { id: 'eurusd', name: 'Euro / US dollar', asset_class: 'fx', live: 'EUR/USD' } },
+  ]
+  const labels = { commodity: 'Commodity', index: 'Index', fx: 'FX' }
+  const ids = (q) => searchRows(rows, q, labels).map((r) => r.asset.id)
+
+  it('matches names, symbols, ids and classes, ignoring case and a leading ^', () => {
+    expect(ids('gold')).toEqual(['gold'])
+    expect(ids('xau')).toEqual(['gold'])
+    expect(ids('nsei')).toEqual(['nifty'])
+    expect(ids('^NSEI')).toEqual(['nifty'])
+    expect(ids('eur')).toEqual(['eurusd'])
+    expect(ids('fx')).toEqual(['eurusd'])
+    expect(ids('')).toEqual(['gold', 'nifty', 'eurusd'])
+    expect(ids('zzz')).toEqual([])
   })
 })

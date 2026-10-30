@@ -50,3 +50,12 @@ export function rsiZone(rsi) {
   if (rsi <= 30) return 'oversold'
   return 'neutral'
 }
+
+/** Scoreboard rows matching a search: name, id, symbols or asset class, case-insensitive. */
+export function searchRows(rows, query, classLabels = {}) {
+  const q = (query ?? '').trim().toLowerCase()
+  if (!q) return rows
+  return rows.filter(({ asset }) => [
+    asset.name, asset.id, asset.live, asset.stored, asset.eia, asset.ecb, classLabels[asset.asset_class],
+  ].some((text) => text && text.toLowerCase().replace(/^\^/, '').includes(q.replace(/^\^/, ''))))
+}

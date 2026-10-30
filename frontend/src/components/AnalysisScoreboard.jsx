@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Search, X } from 'lucide-react'
 import { getAnalysisScoreboard } from '../api/finpulse'
 import { CLASS_LABEL, CLASS_ORDER } from '../lib/asset'
-import { rsiZone, sortRows } from '../lib/analysis'
+import { rsiZone, searchRows, sortRows } from '../lib/analysis'
 import { formatPercent } from '../lib/format'
 
 const COLUMNS = [
@@ -13,11 +14,12 @@ const COLUMNS = [
   { key: 'return_1y', label: '1Y', pct: true },
   { key: 'volatility_1y', label: 'Vol 1Y', pct: true, plain: true },
   { key: 'max_drawdown', label: 'Max fall', pct: true },
-  { key: 'from_high_52w', label: 'From 52w high', pct: true },
+  { key: 'from_high_52w', label: 'vs 52w high', pct: true },
   { key: 'rsi_14', label: 'RSI' },
   { key: 'trend', label: 'Trend' },
 ]
 
+const VISIBLE_ROWS = 10
 const TREND_LABEL = { up: '▲ Up', down: '▼ Down', mixed: '◆ Mixed' }
 
 function Cell({ column, row }) {
@@ -35,6 +37,8 @@ export default function AnalysisScoreboard({ selected, onSelect }) {
   const [state, setState] = useState({ data: null, error: '' })
   const [assetClass, setAssetClass] = useState('all')
   const [sort, setSort] = useState({ key: 'return_1y', direction: 'desc' })
+  const [query, setQuery] = useState('')
+  const [showAll, setShowAll] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -46,11 +50,14 @@ export default function AnalysisScoreboard({ selected, onSelect }) {
     }
   }, [])
 
-  const rows = useMemo(() => {
+  const matching = useMemo(() => {
     const all = state.data?.rows ?? []
-    const filtered = assetClass === 'all' ? all : all.filter((row) => row.asset.asset_class === assetClass)
-    return sortRows(filtered, sort.key, sort.direction)
-  }, [state.data, assetClass, sort])
+    const inClass = assetClass === 'all' ? all : all.filter((row) => row.asset.asset_class === assetClass)
+    return sortRows(searchRows(inClass, query, CLASS_LABEL), sort.key, sort.direction)
+  }, [state.data, assetClass, sort, query])
+  // A search shows every match; otherwise the top rows for the current sort, unless expanded.
+  const limited = !query && !showAll && matching.length > VISIBLE_ROWS
+  const rows = limited ? matching.slice(0, VISIBLE_ROWS) : matching
 
   const toggle = (key) => setSort((current) => (
     current.key === key ? { key, direction: current.direction === 'desc' ? 'asc' : 'desc' } : { key, direction: key === 'name' ? 'asc' : 'desc' }
@@ -63,6 +70,17 @@ export default function AnalysisScoreboard({ selected, onSelect }) {
           <h2>Scoreboard: every asset</h2>
           <p>Returns, risk and trend from daily history. Click a column to sort, a row for the full analysis.</p>
         </div>
+      </div>
+      <div className="sb-search">
+        <Search size={14} aria-hidden="true" />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search an asset: gold, nifty, EUR/USD, BTC…"
+          aria-label="Search assets"
+        />
+        {query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={14} /></button>}
       </div>
       <div className="at-tabs sb-tabs" role="tablist" aria-label="Asset class">
         {['all', ...CLASS_ORDER].map((key) => (
@@ -104,7 +122,13 @@ export default function AnalysisScoreboard({ selected, onSelect }) {
               ))}
             </tbody>
           </table>
+          {rows.length === 0 && <p className="at-empty">No asset matches “{query}”.</p>}
         </div>
+      )}
+      {state.data && (limited || (showAll && !query && matching.length > VISIBLE_ROWS)) && (
+        <button className="sb-more" onClick={() => setShowAll((value) => !value)}>
+          {limited ? `Show all ${matching.length} assets` : `Show the top ${VISIBLE_ROWS} only`}
+        </button>
       )}
       {state.data && <p className="ix-footnote">{state.data.notes.join(' ')}</p>}
     </section>

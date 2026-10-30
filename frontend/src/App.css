@@ -1092,9 +1092,9 @@ a.news-title:hover { color: var(--up); text-decoration: underline; }
 .sb-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .sb-table th { border-bottom: 1px solid var(--border); padding: 0; text-align: left; white-space: nowrap; }
 .sb-table th.num { text-align: right; }
-.sb-table th button { width: 100%; padding: 8px 6px; color: var(--text-faint); font-size: var(--text-xs); font-weight: 600; text-align: inherit; }
+.sb-table th button { width: 100%; padding: 8px 5px; color: var(--text-faint); font-size: var(--text-xs); font-weight: 600; text-align: inherit; }
 .sb-table th button:hover { color: var(--text); }
-.sb-table td { border-bottom: 1px solid var(--border); padding: 7px 6px; white-space: nowrap; }
+.sb-table td { border-bottom: 1px solid var(--border); padding: 7px 5px; white-space: nowrap; }
 .sb-table td.num { text-align: right; }
 .sb-row { cursor: pointer; }
 .sb-row:hover { background: #0f1f24; }
@@ -1123,3 +1123,10 @@ a.news-title:hover { color: var(--up); text-decoration: underline; }
 .aa-heatmap th { padding: 3px; color: var(--text-faint); font-weight: 600; text-align: center; }
 .aa-heatmap td { min-width: 30px; border-radius: 3px; padding: 4px 2px; color: var(--text-bright); text-align: center; }
 .aa-heatmap td.aa-year { font-weight: 700; }
+.sb-search { display: flex; align-items: center; gap: 8px; max-width: 420px; margin-top: var(--space-3); border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-sunken); padding: 0 10px; color: var(--text-faint); }
+.sb-search:focus-within { border-color: #2b4a40; }
+.sb-search input { min-width: 0; flex: 1; border: 0; background: transparent; padding: 8px 0; color: var(--text); font-size: var(--text-sm); outline: none; }
+.sb-search button { display: grid; place-items: center; color: var(--text-faint); }
+.sb-search button:hover { color: var(--text); }
+.sb-more { display: block; margin: var(--space-3) auto 0; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 14px; color: var(--accent); font-size: var(--text-sm); }
+.sb-more:hover { border-color: #2b4a40; background: #0f1f24; }
