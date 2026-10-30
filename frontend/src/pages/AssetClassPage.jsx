@@ -1,20 +1,21 @@
+import { useState } from 'react'
 import CryptoDerivatives from '../components/CryptoDerivatives'
 import Watchlist from '../components/Watchlist'
-import { formatPercent } from '../lib/format'
+import { useAssetRegistry } from '../hooks/useAsset'
+import { equityRows, sectorCounts } from '../lib/equities'
+import { formatPercent, getAssetDetails } from '../lib/format'
 import { summarize } from '../lib/marketSummary'
 
 // What each asset-class page covers, and where its numbers come from.
 const CLASSES = {
   equities: {
-    types: ['Stock', 'Index'],
-    title: 'Equities watchlist',
-    subtitle: 'Near-real-time quotes while markets are open; the last session price when closed',
+    title: 'US stocks',
+    subtitle: 'The 30 largest US companies by market cap, largest first. Indices are on the World indices page.',
     changeLabel: 'since the previous close',
     source: 'Quotes from Yahoo Finance every 15 seconds (personal use). CLOSED: market shut, last session price; DELAYED: the newest price is a few minutes old.',
-    empty: 'No stocks or indices are in the stored history. Run src/data/build_database.py to load them.',
+    empty: 'The stock list could not be loaded.',
   },
   crypto: {
-    types: ['Crypto'],
     title: 'Crypto watchlist',
     subtitle: 'Live exchange prices where streamed, stored daily closes otherwise',
     changeLabel: 'over 24 hours',
@@ -39,11 +40,22 @@ function Mover({ label, move }) {
 }
 
 /** One asset class: a quick read of how it is moving, then its watchlist. */
-export default function AssetClassPage({ assetClass, assets, ticks, liveStatus, loading, error, onSelect }) {
+export default function AssetClassPage({ assetClass, assets, ticks, liveStatus, loading: assetsLoading, error: assetsError, onSelect }) {
   const config = CLASSES[assetClass]
-  const inClass = assets.filter((asset) => config.types.includes(asset.type))
+  const registry = useAssetRegistry()
+  const [sector, setSector] = useState('all')
+  const equities = assetClass === 'equities'
+  // Stocks come from the asset registry (with sectors); crypto from the live and stored assets.
+  const rows = equities
+    ? equityRows(registry.assets, assets).map((row) => ({ ...row, color: getAssetDetails(row.symbol).color }))
+    : assets.filter((asset) => asset.type === 'Crypto')
+  const sectors = equities ? sectorCounts(rows) : []
+  const shownSector = sectors.some((s) => s.sector === sector) ? sector : 'all'
+  const inClass = shownSector === 'all' ? rows : rows.filter((row) => row.sector === shownSector)
+  const loading = equities ? registry.loading : assetsLoading
+  const error = equities ? registry.error : assetsError
   const summary = summarize(inClass, ticks)
-  // While stored assets are loading or failed to load, their counts are unknown, not zero.
+  // While the list is loading or failed to load, its counts are unknown, not zero.
   const known = (value) => (loading ? '…' : error ? '—' : value)
 
   return (
@@ -62,18 +74,29 @@ export default function AssetClassPage({ assetClass, assets, ticks, liveStatus, 
           <Mover label="Biggest gainer" move={summary.best} />
           <Mover label="Biggest loser" move={summary.worst} />
         </div>
-        <p className="coverage-foot">Changes {config.changeLabel}. {config.source}</p>
+        <p className="coverage-foot">Changes {config.changeLabel}{shownSector === 'all' ? '' : `, ${shownSector} only`}. {config.source}</p>
       </section>
+
+      {sectors.length > 0 && (
+        <div className="at-tabs sector-tabs" role="tablist" aria-label="Sector">
+          {[{ sector: 'all', count: rows.length }, ...sectors].map(({ sector: key, count }) => (
+            <button key={key} role="tab" aria-selected={shownSector === key} className={shownSector === key ? 'at-tab-active' : ''} onClick={() => setSector(key)}>
+              {key === 'all' ? 'All' : key}
+              <span className="at-tab-count">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="page-block">
         {!loading && inClass.length === 0 ? (
           <section className="panel empty-panel">
-            {error ? 'Stored assets could not be loaded, so this list is unavailable.' : config.empty}
+            {error ? `This list is unavailable: ${error}` : config.empty}
           </section>
         ) : (
           <Watchlist
             assets={inClass}
-            totalCount={inClass.length}
+            totalCount={rows.length}
             loading={loading}
             liveTicks={ticks}
             liveStatus={liveStatus}

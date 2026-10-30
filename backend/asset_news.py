@@ -25,6 +25,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query
 
 from backend import config, news
+from backend.stocks import US_STOCKS
 from backend.tencent_quotes import TENCENT_CODES
 
 log = logging.getLogger("finpulse.asset_news")
@@ -53,6 +54,7 @@ class Asset:
     keywords: tuple[str, ...] = ()  # regexes a Yahoo headline must match
     news_tag: Optional[str] = None  # instrument tag in backend/news.py
     news_topics: tuple[str, ...] = ()  # general-news topics that count as this asset's
+    sector: Optional[str] = None  # stocks: Yahoo's sector
     note: str = ""
 
     @property
@@ -67,6 +69,7 @@ TENCENT_NOTE = (
     "Live quote from Tencent Finance (unofficial, personal use), which carries the exchange's own time; Yahoo "
     "as the backup. Charts from Yahoo."
 )
+STOCK_NOTE = "Live quote from Yahoo Finance every 15 seconds; charts and daily history from Yahoo."
 INDEX_NOTE = (
     "Live quote from Yahoo Finance every 15 seconds; Yahoo delays some exchanges by about 15 minutes (Hong Kong, "
     "mainland China, Singapore, Malaysia, the Sensex), shown as DELAYED. Charts from Yahoo."
@@ -98,9 +101,13 @@ ASSETS = [
     Asset("sui", "Sui", "crypto", live="SUI/USDT", keywords=('\\bSui\\b', '\\bSUI\\b'), news_tag="SUI/USDT", note="Live from Binance spot."),
     Asset("gram", "Gram (Toncoin)", "crypto", live="GRAM/USDT", yahoo_news=("GRAM-USD",), keywords=('\\bGRAM\\b', '\\btoncoin\\b', '\\bTON\\b'), news_tag="GRAM/USDT", note="Live from Binance spot."),
     Asset("hbar", "Hedera", "crypto", live="HBAR/USDT", yahoo_news=("HBAR-USD",), keywords=('\\bhedera\\b', '\\bHBAR\\b'), news_tag="HBAR/USDT", note="Live from Binance spot."),
-    Asset("aapl", "Apple Inc.", "stock", live="AAPL", stored="AAPL", yahoo_news=("AAPL",),
-          keywords=(r"\bapple\b", r"\bAAPL\b", r"\biphone\b"), news_tag="AAPL",
-          note="Live quote from Yahoo Finance every 15 seconds; daily history from Yahoo."),
+    # AAPL also has stored daily history and is tagged in the general news sources.
+    *[
+        Asset(symbol.lower().replace("-", ""), name, "stock", live=symbol, stored="AAPL" if symbol == "AAPL" else None,
+              yahoo_news=(symbol,), keywords=keywords, news_tag="AAPL" if symbol == "AAPL" else None,
+              sector=sector, note=STOCK_NOTE)
+        for symbol, name, sector, keywords in US_STOCKS
+    ],
     Asset("spx", "S&P 500", "index", live="^GSPC", stored="^GSPC", yahoo_news=("^GSPC",),
           keywords=(r"S&P", r"\bstocks?\b", r"\bwall street\b", r"\bdow\b", r"\bnasdaq\b", r"\bequit"),
           note="Live quote from Yahoo Finance every 15 seconds; daily history from Yahoo."),
@@ -293,6 +300,7 @@ def describe(asset: Asset) -> dict:
         "id": asset.id, "name": asset.name, "asset_class": asset.asset_class,
         "live": asset.live, "stored": asset.stored, "eia": asset.eia, "ecb": asset.ecb,
         "has_news": bool(asset.yahoo_news or asset.news_tag or asset.news_topics),
+        "sector": asset.sector,
         "note": asset.note,
     }
 

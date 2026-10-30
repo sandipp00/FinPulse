@@ -14,6 +14,7 @@ from backend import config
 from backend.indices import CURRENCIES as INDEX_CURRENCIES
 from backend.live import STALE_AFTER_SECONDS
 from backend.quotes_live import asset_class_for as yahoo_asset_class
+from backend.stocks import CURRENCIES as STOCK_CURRENCIES
 from backend.schemas.market import MarketRecord
 
 # Quote currency of stored instruments that are not "BASE/QUOTE" pairs. An
@@ -40,7 +41,7 @@ def _utc(seconds: Optional[float]) -> Optional[datetime]:
 def currency_of(symbol: str) -> Optional[str]:
     if "/" in symbol:
         return symbol.split("/", 1)[1]
-    return STORED_CURRENCIES.get(symbol) or INDEX_CURRENCIES.get(symbol)
+    return STORED_CURRENCIES.get(symbol) or INDEX_CURRENCIES.get(symbol) or STOCK_CURRENCIES.get(symbol)
 
 
 def live_asset_class(symbol: str) -> str:

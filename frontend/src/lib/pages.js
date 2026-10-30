@@ -24,7 +24,7 @@ export const PAGES = {
   equities: {
     title: 'Equities',
     nav: 'Equities',
-    blurb: 'Stocks and indices: live quotes while markets are open, plus stored daily history.',
+    blurb: 'The 30 largest US companies: live quotes while the market is open, by sector.',
   },
   crypto: {
     title: 'Crypto',

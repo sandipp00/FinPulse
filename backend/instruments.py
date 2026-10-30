@@ -3,8 +3,9 @@
 Three sources, chosen per instrument:
   * live symbols: candles from Binance (any interval in candles.INTERVALS), spot
     for crypto and futures for live gold, silver and oil;
-  * FX pairs and world indices quoted from Yahoo: candles from Yahoo's chart API,
-    except that an index with stored daily history keeps using it for `1d`;
+  * stocks, FX pairs and world indices quoted from Yahoo: candles from Yahoo's chart
+    API, except that one with stored daily history (AAPL, the S&P 500, NIFTY 50)
+    keeps using it for `1d`;
   * stored instruments (stocks, indices, gold and silver futures, some crypto):
     daily bars from SQLite.
 
@@ -110,8 +111,8 @@ def _stored_coverage() -> dict[str, tuple[str, StoredCoverage]]:
 
 
 def yahoo_chart_symbols() -> list[str]:
-    """FX pairs and indices quoted live from Yahoo, which also serves their candles."""
-    return [s for s in config.YAHOO_LIVE_SYMBOLS if live_asset_class(s) in ("fx", "index")]
+    """Stocks, FX pairs and indices quoted live from Yahoo, which also serves their candles."""
+    return [s for s in config.YAHOO_LIVE_SYMBOLS if live_asset_class(s) in ("stock", "fx", "index")]
 
 
 def catalogue() -> dict[str, Instrument]:
@@ -205,7 +206,7 @@ async def history(
 
     from_yahoo = symbol in yahoo_chart_symbols()
     if source == "auto" and from_yahoo:
-        # Daily bars of an index with stored history stay on the database (the same series
+        # Daily bars of a stock or index with stored history stay on the database (the same series
         # the risk and research figures use); everything else comes from Yahoo.
         chosen = "database" if interval == STORED_INTERVAL and instrument.stored else "yahoo"
     elif source == "auto":

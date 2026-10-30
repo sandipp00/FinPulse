@@ -88,11 +88,9 @@ def test_catalogue_lists_live_and_stored_instruments(client):
     eurusd = items["EUR/USD"]  # FX: live quotes and candles from Yahoo
     assert eurusd["live"] is True and eurusd["asset_class"] == "fx"
     assert eurusd["currency"] == "USD" and eurusd["intervals"] == ["1m", "15m", "1h", "1d"]
-    assert items["AAPL"]["live"] is False  # quoted live, but charted from stored history
-
-    aapl = items["AAPL"]
-    assert aapl["live"] is False
-    assert aapl["intervals"] == ["1d"]
+    aapl = items["AAPL"]  # a stock: live quotes and candles from Yahoo, plus stored daily history
+    assert aapl["live"] is True
+    assert aapl["intervals"] == ["1m", "15m", "1h", "1d"]
     assert aapl["asset_class"] == "stock"
     assert aapl["currency"] == "USD"
     assert aapl["stored"]["first"].startswith("2026-10-12")
@@ -105,7 +103,7 @@ def test_catalogue_lists_live_and_stored_instruments(client):
 def test_catalogue_without_a_database_still_lists_live_symbols(client, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATABASE_PATH", tmp_path / "missing.db")
 
-    assert set(by_symbol(client)) == {"BTC/USDT", "SOL/USDT", "XAU/USDT", "EUR/USD"}
+    assert set(by_symbol(client)) == {"BTC/USDT", "SOL/USDT", "XAU/USDT", "EUR/USD", "AAPL"}
 
 
 # ---- stored history ----------------------------------------------------
@@ -132,7 +130,7 @@ def test_stored_history_limit_keeps_the_latest_bars(client):
 
 
 def test_stored_history_is_daily_only(client):
-    response = client.get("/api/instruments/history", params={"symbol": "AAPL", "interval": "1h"})
+    response = client.get("/api/instruments/history", params={"symbol": "^NSEI", "interval": "1h"})
 
     assert response.status_code == 400
     assert "1d" in response.json()["detail"]
@@ -304,6 +302,12 @@ def test_week_change_endpoint_uses_each_instruments_own_source(client, exchange,
         return candle_source.CandleSeries(exchange_rows, meta)
 
     monkeypatch.setattr(candle_source, "fetch_candle_series", fake_binance)
+    from backend import yahoo_history
+
+    async def fake_yahoo(symbol, interval, limit):  # AAPL is quoted from Yahoo: two bars, not a week
+        return bars([200.0, 201.0]), candle_source.SourceMeta(provider="yahoo", status="historical")
+
+    monkeypatch.setattr(yahoo_history, "fetch_candle_series", fake_yahoo)
     body = client.get("/api/instruments/week-change", params={"symbols": "BTC/USDT,AAPL,NOPE"}).json()
 
     assert body["changes"]["BTC/USDT"]["source"] == "binance"

@@ -1110,6 +1110,7 @@ a.news-title:hover { color: var(--up); text-decoration: underline; }
 .sb-panel { padding: var(--space-4) var(--space-4) var(--space-3); }
 .sb-tabs { margin: var(--space-3) calc(-1 * var(--space-4)) 0; }
 .risk-tabs { margin-bottom: var(--space-3); }
+.sector-tabs { margin-top: var(--space-3); }
 .deriv-tabs { margin: var(--space-3) calc(-1 * var(--space-4)) var(--space-3); }
 .deriv-cards { margin-bottom: var(--space-4); }
 .deriv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }

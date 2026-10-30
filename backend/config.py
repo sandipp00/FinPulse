@@ -71,10 +71,12 @@ BINANCE_FUTURES_WS_URLS = _csv("BINANCE_FUTURES_WS_URLS", "wss://fstream.binance
 BINANCE_FUTURES_REST_URLS = _csv("BINANCE_FUTURES_REST_URLS", "https://fapi.binance.com")
 
 # Near-real-time stock, index and FX quotes, polled from Yahoo Finance (personal use).
-# The indices are the 36 world benchmarks in backend/indices.py.
+# The stocks are the 30 in backend/stocks.py; the indices are the 36 world benchmarks
+# in backend/indices.py.
 YAHOO_LIVE_SYMBOLS = _csv(
     "YAHOO_LIVE_SYMBOLS",
-    "AAPL,"
+    "AAPL,NVDA,MSFT,GOOGL,AMZN,META,TSLA,AVGO,LLY,BRK-B,WMT,MU,JPM,AMD,V,XOM,JNJ,MA,ABBV,CVX,"
+    "COST,PLTR,CSCO,KO,ORCL,PG,MRK,UNH,BAC,INTC,"
     "^GSPC,^DJI,^IXIC,^RUT,^NYA,^VIX,^GSPTSE,^BVSP,^MXX,"
     "^FTSE,^GDAXI,^FCHI,^STOXX50E,^STOXX,^IBEX,FTSEMIB.MI,^AEX,^SSMI,^OMX,"
     "^N225,^HSI,000001.SS,399001.SZ,^TWII,^KS11,^AXJO,^NSEI,^BSESN,^NSEBANK,^STI,^JKSE,^KLSE,^NZ50,"
