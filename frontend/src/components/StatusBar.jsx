@@ -71,7 +71,7 @@ export default function StatusBar({ backend, liveStatus, ticks, storedAsOf, asse
         {lastSeen != null && <span className="status-sub">last tick {formatAge(now - lastSeen)}</span>}
         {source && <span className="status-sub status-wide">{source}</span>}
       </Item>
-      <Item tone={assetsError ? 'error' : storedAsOf ? 'hist' : 'muted'} title="Stocks and indices show stored daily closes, not live quotes">
+      <Item tone={assetsError ? 'error' : storedAsOf ? 'hist' : 'muted'} title="Where the stored daily history ends (AAPL, the S&P 500, NIFTY 50, gold, silver, BTC and ETH). Live quotes are separate.">
         {historyText}
       </Item>
       <span className="status-item status-wide">Crypto, gold, silver and oil stream live · stocks, indices and FX every 15s</span>

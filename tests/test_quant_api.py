@@ -69,7 +69,7 @@ def test_no_shared_dates_means_no_measures(client):
 
 @pytest.mark.parametrize("params, status", [
     ({"symbol": "AAPL", "benchmark": "AAPL"}, 400),
-    ({"symbol": "TSLA", "benchmark": "^GSPC"}, 404),
+    ({"symbol": "NOPE", "benchmark": "^GSPC"}, 404),
     ({"symbol": "AAPL", "benchmark": "^GSPC", "window": 5}, 422),
     ({"symbol": "AAPL"}, 422),
 ])

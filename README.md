@@ -248,6 +248,15 @@ Both series are measured only on the dates they share. Every formula and assumpt
 - **Trading hours:** the contracts trade around the clock, but CME gold, silver and WTI trade Sunday 18:00 to Friday 17:00 New York time with a daily 17:00 break (ICE Brent's hours are close). Outside those hours the Commodities page says the price reflects Binance trading only. Exchange holidays are not known.
 - **Settings:** `TRADFI_LIVE_SYMBOLS`, `BINANCE_FUTURES_WS_URLS` and `BINANCE_FUTURES_REST_URLS` (see `.env.example`). `LIVE_FEED_ENABLED=false` turns off every live source.
 
+### US stocks (Yahoo Finance)
+
+FinPulse follows the 30 largest US companies by market cap (`backend/stocks.py`), chosen on 2026-10-31 from Yahoo's market caps. Foreign companies listed in the US, such as TSMC and ASML, are left out. Names and sectors (Yahoo's seven sector names) come from Yahoo.
+
+- **Quotes:** the Yahoo quote poller, every 15 seconds while the market is open and every 5 minutes while it is closed, tagged LIVE, DELAYED or CLOSED like the indices. Each symbol must also be in `YAHOO_LIVE_SYMBOLS`; a test checks this.
+- **Charts and history:** Yahoo's chart API at 1m, 15m, 1h and 1d. AAPL keeps its stored daily history for `1d`. Nothing new is stored.
+- **Everywhere else:** each stock has an asset page with its Yahoo headline feed (a headline must name the company; tickers that are common words or letters, like V, MA, KO, PG, MU and COST, are not used as keywords), a row in the Analytics scoreboard, risk figures and correlations on the Risk page, 7-day change, and a place in the explorer.
+- **Equities page:** the 30 stocks, largest first, with a market summary and sector tabs. Indices are on the World indices page.
+
 ### Crypto derivatives (Deribit)
 
 The Crypto page has a Derivatives panel for Bitcoin and Ethereum, from Deribit's public market-data API (no key, no account; `backend/deribit.py`, `GET /api/crypto/derivatives?currency=BTC|ETH`):
@@ -347,7 +356,7 @@ Everything below the sidebar is a real page with its own URL, so Back, Forward a
 | Page | URL | What is on it |
 |---|---|---|
 | Overview | `/` | Headline numbers, live crypto cards, asset mix, quick links |
-| Equities | `/equities` | Stocks and indices with their stored daily history and how far it reaches |
+| Equities | `/equities` | The 30 largest US stocks with live quotes, day and 7-day change, and sector tabs |
 | Crypto | `/crypto` | Live-streamed coins and stored crypto history, with data coverage |
 | Instrument explorer | `/explorer?symbol=AAPL` | Search any supported instrument; candles with volume, interval and bar-count choices, return figures, and a comparison rebased to 100. The selection is kept in the URL so a view can be shared |
 | FX rates | `/fx` | Live Yahoo quotes and intraday charts (1m to 1d, refreshed every 15 seconds) for EUR/USD, GBP/USD, USD/JPY, USD/INR, EUR/GBP, EUR/JPY and EUR/INR, with the ECB reference rate and its history alongside. No key needed |

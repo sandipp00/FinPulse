@@ -11,11 +11,12 @@ const FILTER_LABEL = { Stock: 'Stocks', Index: 'Indices' }
 
 const METAL_GLYPH = { 'GC=F': 'Au', 'XAU/USDT': 'Au', 'SI=F': 'Ag', 'XAG/USDT': 'Ag' }
 
-function AssetGlyph({ symbol }) {
+function AssetGlyph({ symbol, type }) {
+  if (type === 'Stock') return symbol[0]
   if (symbol === 'BTC/USDT') return <Bitcoin size={20} />
   if (METAL_GLYPH[symbol]) return METAL_GLYPH[symbol]
   if (symbol.startsWith('^')) return <BarChart3 size={18} />
-  return symbol === 'AAPL' ? 'A' : 'Ξ'
+  return 'Ξ'
 }
 
 const weekTone = (change) => (change == null ? '' : change.change_pct >= 0 ? 'up' : 'down')
@@ -92,7 +93,7 @@ export default function Watchlist({
                           background: `${asset.color}12`,
                         }}
                       >
-                        <AssetGlyph symbol={asset.symbol} />
+                        <AssetGlyph symbol={asset.symbol} type={asset.type} />
                       </span>
                       <span><strong>{asset.symbol}</strong><small>{asset.name}</small></span>
                     </div>
