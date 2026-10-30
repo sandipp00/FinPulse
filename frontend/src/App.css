@@ -1172,3 +1172,52 @@ a { color: inherit; }
 .rp-open { color: var(--amber); }
 .rp-open:hover:not(:disabled) { background: var(--amber); color: #000; }
 .mh-head .mh-name strong { color: var(--amber); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+
+/* ---- Classic Bloomberg: amber on black, no boxes, dense --------------------
+   Text and numbers are amber; green and red stay for price moves and the
+   freshness tags keep their own colours. Sections are separated by thin rules
+   instead of boxed cards, and spacing is tighter. */
+:root {
+  --text-dim: #5c3d12;
+  --text-faint: #8f6020;
+  --text-muted: #b97b26;
+  --text-soft: #e08e2b;
+  --text: #ff9f2e;
+  --text-strong: #ffb450;
+  --text-bright: #ffc876;
+  --border: #2a1c08;
+  --border-strong: #3a2810;
+  --border-hi: #4d3515;
+  --panel: transparent;
+  --panel-soft: transparent;
+  --surface-raised: #0d0904;
+  --space-3: 9px;
+  --space-4: 12px;
+  --space-5: 14px;
+}
+body, .app-shell { background: #000; color: var(--text); }
+.num { color: var(--text-bright); }
+.up .num, .num.up, .up { color: var(--up); }
+.down .num, .num.down, .down { color: var(--down); }
+
+/* Flat sections: a rule above each instead of a box around it. */
+.metric-card, .panel, .macro-card, .live-card, .at-chip, .mh-other, .aa-perf-cell, .quick-icon, .icon-tile {
+  border: 0; border-radius: 0; background: transparent; box-shadow: none;
+}
+.panel, .metric-card { border-top: 1px solid var(--border-strong); }
+.macro-card, .live-card, .at-chip, .aa-perf-cell, .mh-other { border-left: 1px solid var(--border); }
+.live-card { border-top: 2px solid var(--accent, var(--amber)); }
+.macro-card-active, .at-chip-active, .sb-row-active, .live-card:hover, .macro-card:hover { background: var(--amber-bg); }
+
+/* Dense rows. */
+.market-table td { padding: 6px 8px; }
+.market-table th { padding: 6px 8px; }
+.wi-row td, .sb-table td { padding: 5px 4px; }
+.mh-row { padding: 5px 0; }
+.news-item { padding: 8px var(--space-4); }
+.dashboard-content { padding: var(--space-3) var(--space-4) var(--space-4); }
+.page-intro { margin-bottom: var(--space-3); }
+
+/* Status tags keep their own colours on the amber screen. */
+.data-tag-live { color: var(--up); }
+.data-tag-historical, .data-tag-closed { color: #4fc3f7; }
