@@ -3,6 +3,7 @@
 Yahoo is replaced by an httpx mock transport, so no network is used.
 """
 import asyncio
+from datetime import datetime, timedelta, timezone
 
 import httpx
 import pytest
@@ -193,3 +194,88 @@ def test_closed_markets_are_fetched_every_five_minutes_but_re_sent_every_round(m
     clock["wall"] += quotes_live.CLOSED_POLL_SECONDS
     asyncio.run(quotes.poll())
     assert asked[-1] == ["^NSEI", "AAPL"]
+
+
+# ---- previous close from daily bars ----------------------------------------------------
+
+def test_previous_close_is_the_session_before_the_newest_bars_local_day():
+    # NIFTY on Oct 30 (IST, +5:30). Yahoo's spark previousClose is a day too old (Oct 28).
+    daily = quotes_live.DailyCloses(19800, [("2026-10-28", 22698.8), ("2026-10-29", 22936.75), ("2026-10-30", 23030.0)])
+    tick = build_tick("^NSEI", spark(23096.8, previous=22698.8), NSE, NOW, daily)
+    assert tick["previous_close"] == 22936.75
+    assert tick["change_pct_24h"] == pytest.approx((23096.8 / 22936.75 - 1) * 100, abs=1e-4)
+
+
+def test_without_daily_bars_the_spark_previous_close_is_kept():
+    assert build_tick("^NSEI", spark(23096.8, previous=22698.8), NSE, NOW)["previous_close"] == 22698.8
+
+
+def test_daily_bars_are_dated_by_the_exchanges_local_day():
+    tokyo_midnight = 1_793_286_000  # 2026-10-29 15:00 UTC = Oct 30 00:00 JST
+    body = {"chart": {"result": [{"meta": {"gmtoffset": 32400}, "timestamp": [tokyo_midnight - 86400, tokyo_midnight],
+                                  "indicators": {"quote": [{"close": [64659.47, None]}]}}]}}
+    daily = quotes_live.parse_daily(body)
+    assert daily.closes == [("2026-10-29", 64659.47)]  # the empty bar is skipped
+
+
+def test_no_bar_today_uses_the_last_daily_close_and_the_one_before():
+    daily = quotes_live.DailyCloses(-14400, [("2026-10-28", 7743.98), ("2026-10-29", 7720.39)])
+    tick = build_tick("^GSPC", {"timestamp": [], "close": [], "previousClose": 1.0}, US, NOW, daily)
+    assert tick["price"] == 7720.39 and tick["previous_close"] == 7743.98 and tick["market_open"] is False
+
+
+# ---- Tencent for Shanghai, Shenzhen and Hang Seng -----------------------------------------
+
+from backend import tencent_quotes  # noqa: E402
+
+TENCENT = (
+    'v_sh000001="1~name~000001~3599.02~3651.43~3640.00~' + "~".join(["0"] * 24) + '~20261030102001~-52.41~-1.44";\n'
+    'v_hkHSI="100~name~HSI~23294.42~22958.65~23000~' + "~".join(["0"] * 24) + '~2026/10/30 10:20:30~0~0";\n'
+    'v_sz399001="1~broken";\n'
+)
+
+
+def test_tencent_quotes_parse_price_previous_close_and_china_time():
+    quotes = tencent_quotes.parse(TENCENT)
+    assert set(quotes) == {"sh000001", "hkHSI"}  # the broken line is skipped
+    assert quotes["sh000001"]["price"] == 3599.02 and quotes["sh000001"]["previous_close"] == 3651.43
+    assert quotes["sh000001"]["time"] == datetime(2026, 10, 30, 2, 20, 1, tzinfo=timezone.utc).timestamp()
+    assert quotes["hkHSI"]["time"] == datetime(2026, 10, 30, 2, 20, 30, tzinfo=timezone.utc).timestamp()
+
+
+def test_a_newer_tencent_quote_replaces_yahoos_and_keeps_honest_freshness():
+    yahoo_tick = build_tick("000001.SS", spark(3590.0, minutes_ago=16, previous=3681.47), NSE, NOW)
+    assert yahoo_tick["delayed"] is True
+    fresh = {"price": 3599.02, "previous_close": 3651.43, "time": NOW - 20}
+    tick = tencent_quotes.apply(yahoo_tick, fresh, quotes_live.DELAYED_AFTER_SECONDS, NOW)
+    assert tick["provider"] == "tencent" and tick["price"] == 3599.02 and tick["delayed"] is False
+    assert tick["change_pct_24h"] == pytest.approx((3599.02 / 3651.43 - 1) * 100, abs=1e-4)
+    stale = {"price": 3599.02, "previous_close": 3651.43, "time": NOW - 900}  # Tencent delayed too
+    assert tencent_quotes.apply(yahoo_tick, stale, quotes_live.DELAYED_AFTER_SECONDS, NOW)["delayed"] is True
+
+
+def test_the_poller_prefers_tencent_only_when_newer_and_survives_its_failure(monkeypatch):
+    monkeypatch.setattr(config, "TENCENT_QUOTES_ENABLED", True)
+    monkeypatch.setattr(config, "TENCENT_QUOTE_URL", "https://t.example")
+    state = {"tencent": "ok"}
+
+    def handle(request):
+        if request.url.host == "t.example":
+            if state["tencent"] == "down":
+                return httpx.Response(503)
+            body = (f'v_hkHSI="100~n~HSI~23300.00~22958.65~0~' + "~".join(["0"] * 24)
+                    + f'~{datetime.fromtimestamp(NOW - 10, timezone(timedelta(hours=8))).strftime("%Y/%m/%d %H:%M:%S")}~0";')
+            return httpx.Response(200, content=body.encode("gbk"))
+        if request.url.path.startswith("/v8/finance/chart/"):
+            return httpx.Response(200, json={"chart": {"result": [{"meta": {"currentTradingPeriod": {
+                "regular": {"start": NSE[0], "end": NSE[1]}}}}]}})
+        return httpx.Response(200, json={"^HSI": spark(23290.0, minutes_ago=16, previous=23094.8)})
+
+    quotes = poller(handle, symbols=("^HSI",))
+    asyncio.run(quotes.poll())
+    assert quotes.latest["^HSI"]["provider"] == "tencent" and quotes.latest["^HSI"]["price"] == 23300.0
+
+    state["tencent"] = "down"
+    quotes._fetched_at.clear()
+    asyncio.run(quotes.poll())
+    assert quotes.latest["^HSI"]["provider"] == "yahoo"  # Tencent failing: Yahoo stays

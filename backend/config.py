@@ -80,6 +80,10 @@ YAHOO_LIVE_SYMBOLS = _csv(
     "USD/INR,EUR/USD,GBP/USD,USD/JPY,EUR/INR,EUR/GBP,EUR/JPY",
 )
 YAHOO_QUOTE_URL = (_env("YAHOO_QUOTE_URL") or "https://query1.finance.yahoo.com").rstrip("/")
+# Fresher quotes for the Shanghai, Shenzhen and Hang Seng indices (unofficial, personal use);
+# set TENCENT_QUOTES_ENABLED=false to use Yahoo only. See backend/tencent_quotes.py.
+TENCENT_QUOTES_ENABLED = _flag("TENCENT_QUOTES_ENABLED", True)
+TENCENT_QUOTE_URL = (_env("TENCENT_QUOTE_URL") or "https://qt.gtimg.cn").rstrip("/")
 
 # US macro data from FRED (Federal Reserve Bank of St. Louis). Free key from
 # https://fred.stlouisfed.org/docs/api/api_key.html; without it macro data is
