@@ -78,7 +78,7 @@ function Account({ ticks, risk }) {
 
   const rows = [
     ...analysis.holdings.map((h) => ({ label: h.symbol, weight: h.weight, color: getAssetDetails(h.symbol).color })),
-    { label: 'Cash', weight: analysis.cashWeight, color: '#475569' },
+    { label: 'Cash', weight: analysis.cashWeight, color: '#5A5A5A' },
   ]
   const concentrated = analysis.largest && analysis.largest.weight > CONCENTRATED
 

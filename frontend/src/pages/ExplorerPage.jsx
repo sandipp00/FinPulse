@@ -174,10 +174,10 @@ export default function ExplorerPage() {
 
         {comparing && (
           <div className="ix-legend">
-            <span><i style={{ background: '#34D399' }} />{instrument.symbol}
+            <span><i style={{ background: '#2FD16B' }} />{instrument.symbol}
               {comparisonReady && <b className={`num ${toneOf(comparison.primaryReturnPct)}`}>{formatPercent(comparison.primaryReturnPct)}</b>}
             </span>
-            <span><i style={{ background: '#818CF8' }} />{state.compare}
+            <span><i style={{ background: '#4FC3F7' }} />{state.compare}
               {comparisonReady && <b className={`num ${toneOf(comparison.otherReturnPct)}`}>{formatPercent(comparison.otherReturnPct)}</b>}
             </span>
             <span className="ix-legend-note">

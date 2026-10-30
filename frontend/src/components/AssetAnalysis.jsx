@@ -69,12 +69,12 @@ function Distribution({ distribution }) {
       <div className="aa-histogram">
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={bars} margin={{ top: 6, right: 6, bottom: 0, left: -18 }}>
-            <XAxis dataKey="mid" tickFormatter={(v) => `${v.toFixed(1)}%`} tick={{ fill: '#94A3B8', fontSize: 10 }} interval="preserveStartEnd" minTickGap={24} />
-            <YAxis tick={{ fill: '#94A3B8', fontSize: 10 }} allowDecimals={false} />
-            <Tooltip cursor={{ fill: '#1E293B55' }} contentStyle={{ background: '#0B1220', border: '1px solid #1E293B', fontSize: 11 }}
+            <XAxis dataKey="mid" tickFormatter={(v) => `${v.toFixed(1)}%`} tick={{ fill: '#8C8C8C', fontSize: 10 }} interval="preserveStartEnd" minTickGap={24} />
+            <YAxis tick={{ fill: '#8C8C8C', fontSize: 10 }} allowDecimals={false} />
+            <Tooltip cursor={{ fill: '#1F1F1F80' }} contentStyle={{ background: '#000000', border: '1px solid #1F1F1F', fontSize: 11 }}
               formatter={(value) => [`${value} days`, 'Days']} labelFormatter={(_, payload) => payload?.[0]?.payload.label ?? ''} />
             <Bar dataKey="count" isAnimationActive={false}>
-              {bars.map((bar) => <Cell key={bar.mid} fill={bar.mid >= 0 ? '#34D399' : '#F87171'} />)}
+              {bars.map((bar) => <Cell key={bar.mid} fill={bar.mid >= 0 ? '#2FD16B' : '#FF4D4D'} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
