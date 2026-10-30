@@ -257,6 +257,14 @@ FinPulse follows the 30 largest US companies by market cap (`backend/stocks.py`)
 - **Everywhere else:** each stock has an asset page with its Yahoo headline feed (a headline must name the company; tickers that are common words or letters, like V, MA, KO, PG, MU and COST, are not used as keywords), a row in the Analytics scoreboard, risk figures and correlations on the Risk page, 7-day change, and a place in the explorer.
 - **Equities page:** the 30 stocks, largest first, with a market summary and sector tabs. Indices are on the World indices page.
 
+### VIX term structure
+
+The Risk Monitor and the VIX asset page show Cboe's volatility indices for five horizons: 9 days (`^VIX9D`), 30 days (`^VIX`), 3 months (`^VIX3M`), 6 months (`^VIX6M`) and a year (`^VIX1Y`). They come from Yahoo's chart API (`backend/vix_curve.py`, `GET /api/vix-curve`), cached for a minute.
+
+- **The gauge:** VIX3M / VIX. Above 1 (contango) is the usual calm state; below 1 (backwardation) means near-term fear is above longer-term, as in sell-offs. The page shows today's ratio, where it sits in the history, how often it has been below 1, and a daily chart.
+- Yahoo has only today's value for the 1-year index, so it is on the curve but has no history.
+- Cboe's own VIX futures settlement prices are not used: cboe.com's terms require Cboe's consent to store and display them.
+
 ### Crypto derivatives (Deribit)
 
 The Crypto page has a Derivatives panel for Bitcoin and Ethereum, from Deribit's public market-data API (no key, no account; `backend/deribit.py`, `GET /api/crypto/derivatives?currency=BTC|ETH`):
