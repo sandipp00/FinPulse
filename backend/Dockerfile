@@ -1,5 +1,5 @@
 # Build context is the repository root (the API imports the `src` package too).
-FROM python:3.11-slim AS base
+FROM python:3.15-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
